@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nauterio-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@nauterio/web", "dev"],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+"use client";
+
+import { AlertCircle, ShieldCheck, CheckCircle2, FileCheck, Calculator, ArrowRight } from "lucide-react";
+import { useState } from "react";
+
+export default function CustomsPage() {
+  const [declaredValue, setDeclaredValue] = useState("");
+  const [estimatedDuty, setEstimatedDuty] = useState<number | null>(null);
+
+  const calculateDuty = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = parseFloat(declaredValue);
+    if (!isNaN(value)) {
+      // Simple mock calculation: 5% duty for values over $800
+      setEstimatedDuty(value > 800 ? value * 0.05 : 0);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white text-[#081F3D] font-sans">
+      {/* Hero Section */}
+      <section className="py-24 md:py-32 bg-slate-50 flex flex-col items-center text-center px-4">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8">
+            Customs & Compliance
+          </h1>
+          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto">
+            Navigate international shipping with confidence. Understand Italy-USA customs requirements and ensure your shipments arrive without delay.
+          </p>
+        </div>
+      </section>
+
+      {/* Item Categories */}
+      <section className="py-24 px-4 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Prohibited */}
+          <div className="bg-white rounded-3xl p-10 shadow-sm border border-slate-100 flex flex-col">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold">Prohibited Items</h2>
+            </div>
+            <p className="text-slate-600 mb-8 flex-grow">
+              Items strictly forbidden from entering the USA. Shipping these will result in confiscation and potential fines.
+            </p>
+            <ul className="space-y-4">
+              {["Fresh meats & produce", "Counterfeit goods", "Illegal drugs", "Explosives & firearms", "Most agricultural products"].map((item, idx) => (
+                <li key={idx} className="flex items-start gap-3 text-slate-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Restricted */}
+          <div className="bg-white rounded-3xl p-10 shadow-sm border border-slate-100 flex flex-col">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold">Restricted Items</h2>
+            </div>
+            <p className="text-slate-600 mb-8 flex-grow">
+              Items requiring special permits, FDA approval, or specific documentation before shipping.
+            </p>
+            <ul className="space-y-4">
+              {["Alcoholic beverages", "Medications (prescription)", "Commercial food products", "High-value art & antiques", "Certain cosmetics"].map((item, idx) => (
+                <li key={idx} className="flex items-start gap-3 text-slate-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Allowed */}
+          <div className="bg-white rounded-3xl p-10 shadow-sm border border-slate-100 flex flex-col">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold">Freely Allowed</h2>
+            </div>
+            <p className="text-slate-600 mb-8 flex-grow">
+              Common items that typically clear customs easily without specialized documentation.
+            </p>
+            <ul className="space-y-4">
+              {["Personal clothing", "Books & documents", "Consumer electronics", "Packaged dry snacks", "Souvenirs & gifts"].map((item, idx) => (
+                <li key={idx} className="flex items-start gap-3 text-slate-700">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Required Documentation */}
+      <section className="py-24 bg-slate-50 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-6">Required Documentation</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Ensure you have the right paperwork for a smooth border crossing.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-white p-8 rounded-3xl shadow-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <FileCheck className="text-[#F28C18] w-8 h-8" />
+                <h3 className="text-2xl font-bold">Commercial Invoice</h3>
+              </div>
+              <p className="text-slate-600 mb-4">Required for all non-document shipments. Must include:</p>
+              <ul className="space-y-3 text-slate-700">
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Sender and receiver addresses</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Detailed item description</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Quantity and unit value</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Country of origin</li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-8 rounded-3xl shadow-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <FileCheck className="text-[#F28C18] w-8 h-8" />
+                <h3 className="text-2xl font-bold">Waybill</h3>
+              </div>
+              <p className="text-slate-600 mb-4">Generated automatically when you book, containing:</p>
+              <ul className="space-y-3 text-slate-700">
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Tracking number</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Selected service level</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Package dimensions & weight</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Routing information</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Estimator */}
+      <section className="py-24 px-4 max-w-4xl mx-auto">
+        <div className="bg-[#081F3D] text-white rounded-3xl p-10 md:p-16 shadow-lg">
+          <div className="flex flex-col md:flex-row gap-12 items-center">
+            <div className="flex-1">
+              <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-2xl mb-6">
+                <Calculator className="w-8 h-8 text-[#F28C18]" />
+              </div>
+              <h2 className="text-4xl font-bold mb-4">Duty & Tax Estimator</h2>
+              <p className="text-white/80 text-lg">
+                Shipments to the USA under $800 generally clear customs duty-free. Enter your shipment value to see an estimate.
+              </p>
+            </div>
+            
+            <div className="flex-1 w-full bg-white rounded-2xl p-8 text-[#081F3D]">
+              <form onSubmit={calculateDuty} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Declared Value (USD)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
+                    <input
+                      type="number"
+                      value={declaredValue}
+                      onChange={(e) => setDeclaredValue(e.target.value)}
+                      placeholder="e.g. 1500"
+                      className="w-full pl-8 pr-4 py-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#F28C18] focus:border-transparent transition-all"
+                      required
+                      min="0"
+                    />
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full bg-[#F28C18] hover:bg-[#F28C18]/90 text-white font-bold py-4 px-8 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  Estimate Costs <ArrowRight className="w-5 h-5" />
+                </button>
+
+                {estimatedDuty !== null && (
+                  <div className="mt-6 p-6 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                    <p className="text-sm text-slate-500 font-medium mb-1">Estimated Duty</p>
+                    <p className="text-3xl font-bold text-[#081F3D]">
+                      ${estimatedDuty.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-2">*This is an estimate. Final charges determined by CBP.</p>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

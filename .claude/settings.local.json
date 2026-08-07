@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc -t markdown \"/Users/codelord01/Downloads/Nauterio_Logistics_Complete_Product_and_Technical_Specification_v1.0.docx\" -o spec.md)",
+      "Bash(npx eslint *)",
+      "Bash(grep -rniE \"IT[0-9]{8,}|P\\\\.IVA|EORI:|\\\\+39 [0-9]|support@nauterio|@nauterio\\\\.com|Via [A-Z][a-z]+ [0-9]+,|Newark, NJ|nauteriologistics\\\\.com\" src/)"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@nauterio/testing",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nauterio/contracts": "workspace:*",
+    "@nauterio/database": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

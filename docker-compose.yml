@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: nauterio_dev
+      POSTGRES_USER: nauterio
+      POSTGRES_PASSWORD: nauterio_dev_only
+    ports:
+      - "5433:5432"
+    volumes:
+      - nauterio_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nauterio -d nauterio_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nauterio_postgres_data:

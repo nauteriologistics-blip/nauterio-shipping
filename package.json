@@ -1,0 +1,25 @@
+{
+  "name": "nauterio-logistics",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.20.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @nauterio/web dev",
+    "dev:admin": "pnpm --filter @nauterio/admin dev",
+    "dev:api": "pnpm --filter @nauterio/api start:dev",
+    "dev:worker": "pnpm --filter @nauterio/worker start:dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @nauterio/database generate",
+    "db:migrate": "pnpm --filter @nauterio/database migrate:dev",
+    "db:seed": "pnpm --filter @nauterio/database seed"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
