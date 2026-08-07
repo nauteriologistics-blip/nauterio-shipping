@@ -1,4 +1,7 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { IdempotencyInterceptor } from "./common/interceptors/idempotency.interceptor";
 import { AuditModule } from "./modules/audit/audit.module";
 import { IdentityModule } from "./modules/identity/identity.module";
 import { OrganisationsModule } from "./modules/organisations/organisations.module";
@@ -26,6 +29,12 @@ import { IntegrationsModule } from "./modules/integrations/integrations.module";
  */
 @Module({
   imports: [
+    // Global default: generous enough for normal authenticated use; public
+    // endpoints override it with a tighter per-route limit (spec section 31:
+    // "tracking enumeration" is the named threat this exists for). Tracked
+    // by caller IP - see ADR 0001 section 5.3 for the production WAF layer
+    // this complements rather than replaces.
+    ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 120 }]),
     AuditModule,
     IdentityModule,
     OrganisationsModule,
@@ -45,6 +54,10 @@ import { IntegrationsModule } from "./modules/integrations/integrations.module";
     ContentModule,
     ReportingModule,
     IntegrationsModule,
+  ],
+  providers: [
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

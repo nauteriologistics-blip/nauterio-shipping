@@ -8,6 +8,15 @@ import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/http-exception.filter";
 import { CorrelationIdInterceptor } from "./common/interceptors/correlation-id.interceptor";
 
+// Money columns are Prisma BigInt (spec: never a float - see schema.prisma).
+// JSON.stringify has no native BigInt support and throws; serialize as a
+// string so precision is never silently lost (a plain Number cast would
+// risk that for very large minor-unit amounts). This is the standard
+// workaround for BigInt + Express's res.json() - see Prisma's own docs.
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+  return this.toString();
+};
+
 async function bootstrap() {
   const config = loadApiConfig();
   const app = await NestFactory.create(AppModule);

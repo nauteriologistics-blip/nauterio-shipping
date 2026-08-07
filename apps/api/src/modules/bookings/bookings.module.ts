@@ -4,6 +4,7 @@ import { IsObject, IsOptional, IsString } from "class-validator";
 import { getPrismaClient } from "@nauterio/database";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 
 /** Bookings module (spec section 24): draft flow, declarations, confirmation,
@@ -39,6 +40,7 @@ class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
+  @RequireIdempotencyKey()
   async saveDraft(@CurrentUser() user: AuthenticatedUser, @Body() dto: SaveDraftDto) {
     return this.bookingsService.saveDraft(user.userId, dto);
   }

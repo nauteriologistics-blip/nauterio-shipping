@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { getPrismaClient } from "@nauterio/database";
 import { randomUUID } from "node:crypto";
+import { STAFF_ROLES, type AppRole } from "@nauterio/contracts";
+import { paginateCursor } from "../../common/pagination/paginate-cursor";
 
 /**
  * Owns the Shipment lifecycle (spec section 24.1's module ownership rule -
@@ -11,8 +13,42 @@ import { randomUUID } from "node:crypto";
  * (ShipmentCreated) are follow-up work once BillingModule exists to react
  * to it - see ADR 0001 section 3.3's event-vs-direct-call rule.
  */
+export interface ShipmentListScope {
+  role: AppRole;
+  userId: string;
+  organisationId?: string;
+}
+
 @Injectable()
 export class ShipmentsService {
+  /**
+   * List scoping happens here, not in PermissionGuard: the guard only knows
+   * the caller's role at route-entry time, before any records are loaded
+   * (spec section 27.3's "record relationship" check needs the record to
+   * exist first). Staff see every shipment within their baseline action set;
+   * organisation members see their organisation's shipments; customers see
+   * only shipments they own.
+   */
+  async list(scope: ShipmentListScope, pagination: { cursor?: string; limit?: number }) {
+    const prisma = getPrismaClient();
+    const isStaff = (STAFF_ROLES as readonly string[]).includes(scope.role);
+    const where = isStaff
+      ? {}
+      : scope.organisationId
+        ? { organisationId: scope.organisationId }
+        : { ownerUserId: scope.userId };
+
+    return paginateCursor(
+      (page) =>
+        prisma.shipment.findMany({
+          where,
+          orderBy: { id: "desc" },
+          ...page,
+        }),
+      pagination
+    );
+  }
+
   async getById(id: string) {
     const prisma = getPrismaClient();
     const shipment = await prisma.shipment.findUnique({

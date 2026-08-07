@@ -23,6 +23,7 @@ class IdentityService {
       fullName: user.fullName,
       status: user.status,
       preferredLanguage: user.preferredLanguage,
+      staffRole: user.staffRole,
     };
   }
 }

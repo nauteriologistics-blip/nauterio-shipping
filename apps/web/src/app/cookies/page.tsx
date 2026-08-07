@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  Database,
-  ShieldCheck,
-  Sliders,
-  Globe,
-  Lock,
+import { 
+  Database, 
+  ShieldCheck, 
+  Sliders, 
+  Globe, 
+  Lock, 
   ChevronRight,
   Printer,
   FileCheck
@@ -63,33 +63,33 @@ export default function CookiePolicyPage() {
   return (
     <div className="min-h-screen bg-slate-50/50 text-[#081F3D]">
       {/* Hero Header */}
-      <section className="bg-white border-b border-slate-200 py-16 lg:py-20">
+      <section className="bg-white border-b border-slate-200 py-12 lg:py-16">
         <div className="max-w-7xl mx-auto px-6">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-            <Link href="/" className="hover:text-[#F28C18] transition-colors">
+            <Link href="/" className="hover:text-[#F28C18] transition-colors font-medium">
               Home
             </Link>
             <ChevronRight className="w-4 h-4 text-slate-400" />
-            <span className="font-medium text-[#081F3D]">Legal</span>
+            <span className="font-medium text-slate-500">Legal</span>
             <ChevronRight className="w-4 h-4 text-slate-400" />
-            <span className="font-medium text-[#F28C18]">Cookie Policy</span>
+            <span className="font-semibold text-[#081F3D]">Cookie Policy</span>
           </div>
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold uppercase tracking-wider mb-4 border border-slate-200">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold uppercase tracking-wider mb-4 border border-slate-200">
                 <Database className="w-3.5 h-3.5 text-[#F28C18]" /> Web Telemetry &amp; Storage
               </div>
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-[#081F3D]">
                 Cookie Policy
               </h1>
-              <p className="text-slate-500 text-base mt-3 max-w-2xl">
+              <p className="text-slate-600 text-base mt-3 max-w-2xl leading-relaxed">
                 Clear information on how Nauterio utilizes cookies, local storage, and tracking technologies to deliver our digital freight services.
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-slate-600">
                 <p><strong className="text-[#081F3D]">Last Updated:</strong> August 1, 2026</p>
                 <p className="mt-1"><strong className="text-[#081F3D]">Compliance:</strong> ePrivacy Directive / GDPR</p>
@@ -98,7 +98,7 @@ export default function CookiePolicyPage() {
                 onClick={() => window.print()} 
                 className="hidden sm:flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
               >
-                <Printer className="w-4 h-4 text-slate-500" /> Print / Save
+                <Printer className="w-4 h-4 text-slate-500" /> Print Policy
               </button>
             </div>
           </div>
@@ -107,7 +107,7 @@ export default function CookiePolicyPage() {
 
       {/* Main Content Layout */}
       <div className="max-w-7xl mx-auto px-6 py-12 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
           {/* Sticky Navigation Sidebar */}
           <aside className="lg:col-span-4">
@@ -115,7 +115,7 @@ export default function CookiePolicyPage() {
               {/* Document Nav Box */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
-                  Table of Contents
+                  Navigation Index
                 </h3>
                 <nav className="space-y-1">
                   {sections.map((sec) => (
@@ -140,7 +140,7 @@ export default function CookiePolicyPage() {
               {/* Quick Switcher */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                  Other Policies
+                  Related Policies
                 </h3>
                 <div className="space-y-2 text-sm">
                   <Link href="/terms" className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all font-medium text-slate-700">
@@ -161,18 +161,18 @@ export default function CookiePolicyPage() {
           </aside>
 
           {/* Main Article Content */}
-          <main className="lg:col-span-8 space-y-10">
+          <main className="lg:col-span-8 space-y-8">
             
             {/* Section 1 */}
             <section id="what" className="bg-white border border-slate-200 rounded-2xl p-8 lg:p-10 shadow-sm scroll-mt-28">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold text-sm">
                   01
                 </div>
                 <h2 className="text-2xl font-bold text-[#081F3D]">What Are Cookies?</h2>
               </div>
               
-              <p className="text-slate-600 leading-relaxed text-base">
+              <p className="text-slate-600 leading-relaxed text-sm">
                 Cookies are small text files placed on your computer or mobile device when you interact with web applications. They allow websites to remember user preferences, maintain active login sessions across pages, and analyze platform performance.
               </p>
             </section>
@@ -180,7 +180,7 @@ export default function CookiePolicyPage() {
             {/* Section 2 */}
             <section id="usage" className="bg-white border border-slate-200 rounded-2xl p-8 lg:p-10 shadow-sm scroll-mt-28">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold text-sm">
                   02
                 </div>
                 <h2 className="text-2xl font-bold text-[#081F3D]">How Nauterio Uses Cookies</h2>
@@ -190,7 +190,7 @@ export default function CookiePolicyPage() {
                 <p>
                   On the Nauterio Logistics platform, cookies serve specific operational functions:
                 </p>
-                <ul className="list-disc pl-6 space-y-2">
+                <ul className="list-disc pl-5 space-y-2 text-xs text-slate-600">
                   <li>Preserving draft package dimensions and addresses as you move through the 4-step Quote Calculator.</li>
                   <li>Maintaining your selected language preference (English / Italian).</li>
                   <li>Securing login sessions to the Customer Portal and Business Dashboard.</li>
@@ -202,7 +202,7 @@ export default function CookiePolicyPage() {
             {/* Section 3 */}
             <section id="categories" className="bg-white border border-slate-200 rounded-2xl p-8 lg:p-10 shadow-sm scroll-mt-28">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold text-sm">
                   03
                 </div>
                 <h2 className="text-2xl font-bold text-[#081F3D]">Categories &amp; Purposes</h2>
@@ -210,7 +210,7 @@ export default function CookiePolicyPage() {
 
               <div className="space-y-4">
                 <div className="p-5 border border-slate-200 rounded-xl bg-slate-50">
-                  <div className="flex items-center gap-2 font-bold text-[#081F3D] text-base mb-1">
+                  <div className="flex items-center gap-2 font-bold text-[#081F3D] text-sm mb-1">
                     <Lock className="w-4 h-4 text-green-600" /> Essential / Strictly Necessary Cookies
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
@@ -219,7 +219,7 @@ export default function CookiePolicyPage() {
                 </div>
 
                 <div className="p-5 border border-slate-200 rounded-xl bg-slate-50">
-                  <div className="flex items-center gap-2 font-bold text-[#081F3D] text-base mb-1">
+                  <div className="flex items-center gap-2 font-bold text-[#081F3D] text-sm mb-1">
                     <Globe className="w-4 h-4 text-[#F28C18]" /> Functional Preference Cookies
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
@@ -228,7 +228,7 @@ export default function CookiePolicyPage() {
                 </div>
 
                 <div className="p-5 border border-slate-200 rounded-xl bg-slate-50">
-                  <div className="flex items-center gap-2 font-bold text-[#081F3D] text-base mb-1">
+                  <div className="flex items-center gap-2 font-bold text-[#081F3D] text-sm mb-1">
                     <Sliders className="w-4 h-4 text-blue-600" /> Privacy-First Analytics Cookies
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
@@ -241,7 +241,7 @@ export default function CookiePolicyPage() {
             {/* Section 4 */}
             <section id="management" className="bg-white border border-slate-200 rounded-2xl p-8 lg:p-10 shadow-sm scroll-mt-28">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold text-sm">
                   04
                 </div>
                 <h2 className="text-2xl font-bold text-[#081F3D]">Managing Cookie Preferences</h2>
@@ -274,14 +274,14 @@ export default function CookiePolicyPage() {
             {/* Section 5 */}
             <section id="contact" className="bg-white border border-slate-200 rounded-2xl p-8 lg:p-10 shadow-sm scroll-mt-28">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-[#081F3D] font-bold text-sm">
                   05
                 </div>
                 <h2 className="text-2xl font-bold text-[#081F3D]">Contact &amp; Questions</h2>
               </div>
 
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-sm text-slate-600">
-                <p>A confirmed contact email for cookie and telemetry questions will be published here once available.</p>
+                <p>For questions regarding our web telemetry and cookie policies, email <a href="mailto:privacy@nauterio.com" className="text-[#F28C18] font-medium hover:underline">privacy@nauterio.com</a>.</p>
               </div>
             </section>
 

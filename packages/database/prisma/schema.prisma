@@ -1186,6 +1186,38 @@ model InboxEvent {
 // Partner/business API integration identity
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Idempotency (spec section 26.1: create/financial/booking operations that
+// may be retried must be safe to retry with the same Idempotency-Key header)
+// ---------------------------------------------------------------------------
+
+enum IdempotencyRecordStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// One row per (scope, key) pair. `scope` identifies the controller action
+/// (never shared across endpoints, so the same key value on two different
+/// endpoints does not collide). `requestHash` detects a key being reused
+/// with a different payload, which is a client bug, not a legitimate retry.
+model IdempotencyRecord {
+  id               String                  @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  scope            String
+  key              String                  @map("idempotency_key")
+  requestHash      String                  @map("request_hash")
+  userId           String?                 @map("user_id") @db.Uuid
+  status           IdempotencyRecordStatus @default(IN_PROGRESS)
+  responseStatus   Int?                    @map("response_status")
+  responseBodyJson Json?                   @map("response_body_json")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  completedAt      DateTime?               @map("completed_at")
+  expiresAt        DateTime                @map("expires_at")
+
+  @@unique([scope, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
 model ApiClient {
   id             String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   organisationId String   @map("organisation_id") @db.Uuid

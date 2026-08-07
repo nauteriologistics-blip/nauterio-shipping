@@ -1,5 +1,8 @@
 import { Global, Injectable, Module } from "@nestjs/common";
-import { getPrismaClient } from "@nauterio/database";
+import { getPrismaClient, Prisma } from "@nauterio/database";
+
+/** The callback parameter type from `prisma.$transaction(async (tx) => ...)`. */
+export type AuditTransactionClient = Prisma.TransactionClient;
 
 export interface RecordAuditEventInput {
   actorUserId?: string;
@@ -17,17 +20,21 @@ export interface RecordAuditEventInput {
 /**
  * Audit module (spec section 24, 27.4): append-only high-risk activity.
  * @Global so every other module can inject AuditService without importing
- * AuditModule explicitly everywhere - matches the "record every write from
- * AdminController... in the SAME transaction as the business change" rule
- * in ADR 0001 section 6.3 (callers pass a Prisma transaction client in a
- * follow-up iteration; this version writes directly, which is the gap to
- * close before this module is relied on for real compliance evidence).
+ * AuditModule explicitly everywhere.
+ *
+ * Callers that write a business change in a `prisma.$transaction(async (tx)
+ * => ...)` block MUST pass that same `tx` as the second argument here (ADR
+ * 0001 section 6.3: "record every write in the SAME transaction as the
+ * business change" - otherwise a crash between the two writes could leave
+ * a change with no audit trail, or an audit entry for a change that never
+ * committed). `tx` is optional only for genuinely standalone audit events
+ * that have no accompanying write to be atomic with.
  */
 @Injectable()
 export class AuditService {
-  async record(input: RecordAuditEventInput): Promise<void> {
-    const prisma = getPrismaClient();
-    await prisma.auditEvent.create({
+  async record(input: RecordAuditEventInput, tx?: AuditTransactionClient): Promise<void> {
+    const client = tx ?? getPrismaClient();
+    await client.auditEvent.create({
       data: {
         actorUserId: input.actorUserId,
         action: input.action,
