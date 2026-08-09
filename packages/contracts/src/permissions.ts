@@ -36,6 +36,7 @@ export type PermissionAction =
   | "bank_transfer:confirm"
   | "refund:approve"
   | "claim:approve"
+  | "claim:reject"
   | "staff:manage"
   | "data:export";
 
@@ -58,6 +59,7 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
     "bank_transfer:confirm",
     "refund:approve",
     "claim:approve",
+    "claim:reject",
     "staff:manage",
     "data:export",
   ],
@@ -70,6 +72,7 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
     "customer_pii:view",
     "refund:approve",
     "claim:approve",
+    "claim:reject",
     "data:export",
   ],
   WAREHOUSE: ["shipment:read", "tracking_event:add", "customer_pii:view"],

@@ -1,0 +1,19 @@
+FROM node:22-alpine AS builder
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY packages ./packages
+COPY apps/worker ./apps/worker
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @nauterio/worker build
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
+
+COPY --from=builder /app ./
+
+CMD ["pnpm", "--filter", "@nauterio/worker", "start"]

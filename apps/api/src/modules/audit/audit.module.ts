@@ -11,7 +11,9 @@ export interface RecordAuditEventInput {
   entityId: string;
   beforeJson?: unknown;
   afterJson?: unknown;
-  correlationId: string;
+  /** Omit only when the caller genuinely has no request context to thread
+   * through (e.g. a background job) - prefer passing the real one. */
+  correlationId?: string;
   ipAddress?: string;
   reason?: string;
   approvalReference?: string;
@@ -42,7 +44,7 @@ export class AuditService {
         entityId: input.entityId,
         beforeJson: input.beforeJson as never,
         afterJson: input.afterJson as never,
-        correlationId: input.correlationId,
+        correlationId: input.correlationId ?? "unknown",
         ipAddress: input.ipAddress,
         reason: input.reason,
         approvalReference: input.approvalReference,

@@ -3,12 +3,14 @@ import { getPrismaClient, disconnectPrisma } from "../src/index";
 import { SERVICES } from "@nauterio/contracts";
 
 /**
- * Synthetic fixtures only (spec section 32.2: production data must never be
- * copied into development). Safe to run repeatedly - upserts, not inserts.
+ * Synthetic seed data for development and testing environment.
+ * Complies with spec section 32.2 (no production data in dev).
+ * Idempotent (upserts or skip-if-exists).
  */
 async function main() {
   const prisma = getPrismaClient();
 
+  // 1. Seed Services
   for (const service of SERVICES) {
     await prisma.service.upsert({
       where: { id: mapServiceId(service.id) },
@@ -23,7 +25,8 @@ async function main() {
   }
   console.log(`Seeded ${SERVICES.length} services.`);
 
-  const warehouse = await prisma.warehouse.upsert({
+  // 2. Seed Warehouses
+  const warehouseMilan = await prisma.warehouse.upsert({
     where: { id: "00000000-0000-7000-8000-000000000001" },
     update: {},
     create: {
@@ -33,9 +36,133 @@ async function main() {
       city: "Milano",
     },
   });
-  console.log("Seeded warehouse:", warehouse.name);
 
-  await seedSampleShipment(prisma, {
+  const warehouseNYC = await prisma.warehouse.upsert({
+    where: { id: "00000000-0000-7000-8000-000000000002" },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000002",
+      name: "Nauterio Gateway New York",
+      countryCode: "US",
+      city: "Jamaica",
+    },
+  });
+  console.log("Seeded warehouses:", warehouseMilan.name, warehouseNYC.name);
+
+  // 3. Seed Users (Dev tokens match local auth sub)
+  const devUser = await prisma.user.upsert({
+    where: { cognitoSub: "local-dev-user-id" },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000100",
+      cognitoSub: "local-dev-user-id",
+      email: "customer@example.com",
+      emailVerifiedAt: new Date(),
+      status: "ACTIVE",
+      fullName: "Dev Customer",
+      preferredLanguage: "en",
+    },
+  });
+
+  const staffUser = await prisma.user.upsert({
+    where: { cognitoSub: "local-staff-user-id" },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000101",
+      cognitoSub: "local-staff-user-id",
+      email: "operator@nauterio.com",
+      emailVerifiedAt: new Date(),
+      status: "ACTIVE",
+      fullName: "Warehouse Operator",
+      staffRole: "LOGISTICS_OPERATOR",
+      staffWarehouseIds: [warehouseMilan.id],
+      preferredLanguage: "it",
+    },
+  });
+
+  const adminUser = await prisma.user.upsert({
+    where: { cognitoSub: "local-admin-user-id" },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000102",
+      cognitoSub: "local-admin-user-id",
+      email: "admin@nauterio.com",
+      emailVerifiedAt: new Date(),
+      status: "ACTIVE",
+      fullName: "System Admin",
+      staffRole: "SYSTEM_ADMINISTRATOR",
+      preferredLanguage: "en",
+    },
+  });
+  console.log("Seeded 3 users (customer, operator, admin).");
+
+  // 4. Seed Organisation
+  const org = await prisma.organisation.upsert({
+    where: { id: "00000000-0000-7000-8000-000000000200" },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000200",
+      legalName: "Acme Logistics S.r.l.",
+      tradingName: "Acme Express",
+      vatNumber: "IT12345678901",
+      eoriNumber: "IT12345678901EORI",
+      status: "APPROVED",
+      creditLimitAmountMinorUnits: BigInt(500000), // €5,000.00
+      creditLimitCurrency: "EUR",
+    },
+  });
+
+  await prisma.organisationMember.upsert({
+    where: { organisationId_userId: { organisationId: org.id, userId: devUser.id } },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000201",
+      organisationId: org.id,
+      userId: devUser.id,
+      role: "ORGANISATION_ADMIN",
+      status: "ACTIVE",
+    },
+  });
+  console.log("Seeded organisation:", org.legalName);
+
+  // 5. Seed Addresses
+  await prisma.address.upsert({
+    where: { id: "00000000-0000-7000-8000-000000000300" },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000300",
+      userId: devUser.id,
+      organisationId: org.id,
+      line1: "Via Monte Napoleone 8",
+      city: "Milano",
+      region: "Lombardia",
+      postalCode: "20121",
+      countryCode: "IT",
+      providerValidated: true,
+      customerConfirmed: true,
+    },
+  });
+
+  await prisma.address.upsert({
+    where: { id: "00000000-0000-7000-8000-000000000301" },
+    update: {},
+    create: {
+      id: "00000000-0000-7000-8000-000000000301",
+      userId: devUser.id,
+      organisationId: org.id,
+      line1: "350 5th Ave",
+      line2: "Suite 500",
+      city: "New York",
+      region: "NY",
+      postalCode: "10118",
+      countryCode: "US",
+      providerValidated: true,
+      customerConfirmed: true,
+    },
+  });
+
+  // 6. Seed Sample Shipments & Tracking Events
+  await seedSampleShipment(prisma, devUser.id, org.id, {
     trackingNumber: "NT-782914-US",
     serviceId: "AIR_EXPRESS",
     sender: { city: "Milano", countryCode: "IT" },
@@ -50,7 +177,7 @@ async function main() {
     ],
   });
 
-  await seedSampleShipment(prisma, {
+  await seedSampleShipment(prisma, devUser.id, org.id, {
     trackingNumber: "NT-902148-US",
     serviceId: "AIR_ECONOMY",
     sender: { city: "Florence", countryCode: "IT" },
@@ -65,7 +192,7 @@ async function main() {
     ],
   });
 
-  await seedSampleShipment(prisma, {
+  await seedSampleShipment(prisma, devUser.id, org.id, {
     trackingNumber: "NT-112349-US",
     serviceId: "AIR_ECONOMY",
     sender: { city: "Venice", countryCode: "IT" },
@@ -100,6 +227,8 @@ interface SampleShipmentSpec {
 
 async function seedSampleShipment(
   prisma: ReturnType<typeof getPrismaClient>,
+  userId: string,
+  organisationId: string,
   spec: SampleShipmentSpec
 ) {
   const existing = await prisma.shipment.findUnique({ where: { trackingNumber: spec.trackingNumber } });
@@ -113,16 +242,18 @@ async function seedSampleShipment(
     data: {
       trackingNumber: spec.trackingNumber,
       serviceId: spec.serviceId,
-      senderNameSnapshot: "Sample Shipper",
+      ownerUserId: userId,
+      organisationId: organisationId,
+      senderNameSnapshot: "Acme Italy S.r.l.",
       senderAddressSnapshot: spec.sender,
-      receiverNameSnapshot: "Sample Recipient",
+      receiverNameSnapshot: "Acme USA Inc.",
       receiverAddressSnapshot: spec.receiver,
       totalActualWeightKg: spec.weightKg,
       totalVolumetricWeightKg: spec.weightKg,
       totalChargeableWeightKg: spec.weightKg,
-      declaredValueAmountMinorUnits: 30000,
+      declaredValueAmountMinorUnits: BigInt(30000),
       declaredValueCurrency: "EUR",
-      totalAmountMinorUnits: 11300,
+      totalAmountMinorUnits: BigInt(11300),
       currency: "EUR",
       lifecycleStatus: spec.lifecycleStatus,
       actionRequiredReason: spec.actionRequiredReason,

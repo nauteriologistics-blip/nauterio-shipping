@@ -1,19 +1,76 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgres:18
+    image: postgres:18-alpine
+    container_name: nauterio-postgres
     environment:
-      POSTGRES_DB: nauterio_dev
-      POSTGRES_USER: nauterio
-      POSTGRES_PASSWORD: nauterio_dev_only
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: nauterio
     ports:
-      - "5433:5432"
-    volumes:
-      - nauterio_postgres_data:/var/lib/postgresql/data
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nauterio -d nauterio_dev"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nauterio"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: nauterio-api
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/nauterio?schema=public
+      LOCAL_AUTH_MODE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: nauterio-web
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NAUTERIO_API_URL: http://api:4000
+    depends_on:
+      - api
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    container_name: nauterio-admin
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      NAUTERIO_API_URL: http://api:4000
+    depends_on:
+      - api
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: nauterio-worker
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/nauterio?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
-  nauterio_postgres_data:
+  postgres_data:

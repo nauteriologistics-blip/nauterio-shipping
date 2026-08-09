@@ -95,7 +95,7 @@ export function evaluatePermission(
   // 7. Separation of duties: the same person who submits a claim/refund
   // request must not also be the one who approves it.
   if (
-    (req.action === "refund:approve" || req.action === "claim:approve") &&
+    (req.action === "refund:approve" || req.action === "claim:approve" || req.action === "claim:reject") &&
     req.recordOwnerUserId === ctx.userId
   ) {
     return deny("Separation of duties: approver must differ from the record owner/submitter");
