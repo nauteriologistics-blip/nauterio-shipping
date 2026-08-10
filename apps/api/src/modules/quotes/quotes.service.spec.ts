@@ -1,6 +1,7 @@
 import { Test } from "@nestjs/testing";
 import { BadRequestException } from "@nestjs/common";
 import { QuotesService } from "./quotes.service";
+import { AuditService } from "../audit/audit.module";
 import * as databaseModule from "@nauterio/database";
 import type { CreateQuoteDto } from "./dto/create-quote.dto";
 
@@ -11,18 +12,28 @@ jest.mock("@nauterio/database", () => ({
   getPrismaClient: jest.fn(),
 }));
 
+// Only the fields this spec file actually asserts on - not a full model of
+// Prisma's real QuoteCreateArgs, which the mock below never type-checks
+// against anyway.
+interface MockQuoteCreateArgs {
+  data: { isIndicative: boolean; currency: string };
+}
+
 describe("QuotesService", () => {
   let service: QuotesService;
-  let mockQuoteCreate: jest.Mock;
+  let mockQuoteCreate: jest.Mock<Promise<{ id: string }>, [MockQuoteCreateArgs]>;
 
   beforeEach(async () => {
-    mockQuoteCreate = jest.fn().mockResolvedValue({ id: "quote-1" });
+    mockQuoteCreate = jest.fn<Promise<{ id: string }>, [MockQuoteCreateArgs]>().mockResolvedValue({ id: "quote-1" });
+    const mockAuditEventCreate = jest.fn().mockResolvedValue({});
+    const mockTx = { quote: { create: mockQuoteCreate }, auditEvent: { create: mockAuditEventCreate } };
     (databaseModule.getPrismaClient as jest.Mock).mockReturnValue({
       quote: { create: mockQuoteCreate },
+      $transaction: jest.fn((callback: (tx: typeof mockTx) => unknown) => callback(mockTx)),
     });
 
     const module = await Test.createTestingModule({
-      providers: [QuotesService],
+      providers: [QuotesService, AuditService],
     }).compile();
 
     service = module.get(QuotesService);

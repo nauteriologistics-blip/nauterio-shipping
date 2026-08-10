@@ -1,5 +1,7 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
+import { Prisma } from "@nauterio/database";
 import type { Request, Response } from "express";
+import { apiLogger } from "../../logger";
 
 /**
  * Structured error shape from spec section 26.1: code, user-safe message,
@@ -15,31 +17,31 @@ interface StructuredError {
   retryable: boolean;
 }
 
+// DATA-016(b)/SEC-013: these are permanent client errors, not transient
+// server failures - a well-behaved client honouring `retryable` would
+// otherwise retry a request that can never succeed (and, per DATA-003,
+// each retry churns an idempotency-record row). Mapped explicitly instead
+// of falling through to the generic 500/retryable:true branch.
+const PRISMA_ERROR_MAPPING: Record<string, { status: HttpStatus; message: string }> = {
+  P2002: { status: HttpStatus.CONFLICT, message: "A record with this value already exists." },
+  P2003: { status: HttpStatus.UNPROCESSABLE_ENTITY, message: "The request references a record that does not exist." },
+  P2023: { status: HttpStatus.BAD_REQUEST, message: "The request contains a malformed identifier." },
+  P2025: { status: HttpStatus.NOT_FOUND, message: "The requested record was not found." },
+};
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger(AllExceptionsFilter.name);
-
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const correlationId = String(request.headers["x-correlation-id"] ?? "unknown");
+    const correlationId = request.correlationId ?? "unknown";
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = "INTERNAL_ERROR";
     let message = "An unexpected error occurred.";
     let fieldErrors: Record<string, string[]> | undefined;
-
-    // Every 5xx is logged server-side with correlation ID (spec section 34.1
-    // telemetry requirement) - the client response never gets this detail,
-    // but it must never be silently swallowed either.
-    if (!(exception instanceof HttpException) || exception.getStatus() >= 500) {
-      this.logger.error(
-        `Unhandled exception [correlationId=${correlationId}]: ${
-          exception instanceof Error ? exception.stack : String(exception)
-        }`
-      );
-    }
+    let retryable = true;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -56,6 +58,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
           message = b.message ?? message;
         }
       }
+      retryable = status >= HttpStatus.INTERNAL_SERVER_ERROR;
+    } else if (exception instanceof Prisma.PrismaClientKnownRequestError && PRISMA_ERROR_MAPPING[exception.code]) {
+      const mapped = PRISMA_ERROR_MAPPING[exception.code];
+      status = mapped.status;
+      code = HttpStatus[status] ?? "ERROR";
+      message = mapped.message;
+      retryable = false;
+    }
+
+    // Every 5xx is logged server-side with correlation ID (spec section 34.1
+    // telemetry requirement) - the client response never gets this detail,
+    // but it must never be silently swallowed either. A malformed ID or
+    // other now-mapped client error no longer reaches this branch, so it no
+    // longer floods the error log or an error-budget alert at ERROR level.
+    // REL-011: structured JSON via pino (correlationId as a real field, the
+    // stack as `err`), not an interpolated string a log processor can't
+    // parse or filter on.
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      apiLogger.child({ correlationId }).error({ err: exception }, "Unhandled exception");
     }
 
     const structured: StructuredError = {
@@ -63,7 +84,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message,
       fieldErrors,
       correlationId,
-      retryable: status >= 500,
+      retryable,
     };
 
     response.status(status).json(structured);

@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setStoredToken } from "@/lib/auth";
+import { login } from "@/lib/auth";
 
 function LoginForm() {
   const router = useRouter();
@@ -19,25 +19,17 @@ function LoginForm() {
     setStatus("checking");
     setErrorMessage("");
 
-    try {
-      const res = await fetch("/api/v1/me", {
-        headers: { Authorization: `Bearer ${token.trim()}` },
-      });
-      if (!res.ok) {
-        setStatus("error");
-        setErrorMessage(
-          res.status === 401
-            ? "No staff account is linked to that identity."
-            : `Sign-in check failed (HTTP ${res.status}).`
-        );
-        return;
-      }
-      setStoredToken(token.trim());
-      router.push("/");
-    } catch {
+    // SEC-015: the identity check and staff-role gate now happen entirely
+    // server-side in app/api/auth/login/route.ts, which sets the httpOnly
+    // session cookie directly - this page never sees the token again after
+    // the user types it into the form.
+    const result = await login(token.trim());
+    if (!result.ok) {
       setStatus("error");
-      setErrorMessage("Could not reach the API. Is it running on localhost:4000?");
+      setErrorMessage(result.error);
+      return;
     }
+    router.push("/");
   }
 
   return (

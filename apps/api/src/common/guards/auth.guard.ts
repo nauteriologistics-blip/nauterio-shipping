@@ -56,6 +56,14 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException("No Nauterio account linked to this identity");
     }
 
+    // Enforced here, not only inside evaluatePermission, because
+    // PermissionGuard/evaluatePermission only run on routes that declare
+    // @RequirePermission - account suspension must revoke access on every
+    // route, not only the ones that happen to check permissions (SEC-006).
+    if (user.status !== "ACTIVE") {
+      throw new UnauthorizedException(`Account status is ${user.status}, not ACTIVE`);
+    }
+
     const membership = await prisma.organisationMember.findFirst({
       where: { userId: user.id, status: "ACTIVE" },
     });
@@ -67,9 +75,14 @@ export class AuthGuard implements CanActivate {
       organisationId: membership?.organisationId,
       warehouseIds: user.staffWarehouseIds,
       accountStatus: user.status,
-      approvalLimitAmountMinorUnits: membership?.approvalLimitAmountMinorUnits
-        ? Number(membership.approvalLimitAmountMinorUnits)
-        : undefined,
+      // `!= null` rather than truthy: an approval limit of exactly 0 ("may
+      // approve nothing") must not be coerced to `undefined` ("unlimited",
+      // per evaluatePermission's treatment of a missing limit pre-fix, and
+      // still the fallback for a caller with no membership row at all).
+      approvalLimitAmountMinorUnits:
+        membership?.approvalLimitAmountMinorUnits != null
+          ? Number(membership.approvalLimitAmountMinorUnits)
+          : undefined,
     };
     return true;
   }

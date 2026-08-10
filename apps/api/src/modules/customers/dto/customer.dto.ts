@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
 
 export class CreateAddressDto {
   @ApiProperty({ description: "Street address line 1" })
@@ -85,4 +85,20 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   marketingConsent?: boolean;
+
+  /**
+   * DATA-007: optimistic-locking guard. `User.version` was previously dead
+   * schema - never read or incremented by any code, despite a header
+   * comment describing this exact `WHERE version = $expected` pattern.
+   * Optional so an older client that has never seen this field still works
+   * (falls back to an unconditional update, same as before); a client that
+   * DOES supply it gets a real lost-update guard: if the record changed
+   * since it was fetched, the update is rejected with a conflict instead of
+   * silently overwriting a concurrent edit.
+   */
+  @ApiProperty({ required: false, description: "The version the client last fetched, for optimistic-locking conflict detection" })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  expectedVersion?: number;
 }

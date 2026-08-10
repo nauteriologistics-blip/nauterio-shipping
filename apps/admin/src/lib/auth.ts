@@ -1,24 +1,30 @@
-const TOKEN_STORAGE_KEY = "nauterio_admin_token";
-
 /**
- * LOCAL DEV ONLY. AuthGuard (apps/api/src/common/guards/auth.guard.ts)
- * currently treats the bearer token as a Cognito sub directly and refuses
- * to run that passthrough outside development - this sign-in page is the
- * admin-side half of that same stopgap, storing the token in localStorage
- * instead of a real Cognito-issued session. Replace both halves together
- * when a real Cognito User Pool + Hosted UI exists (ADR 0001 section 11):
- * this becomes an OAuth redirect into an httpOnly session cookie, not
- * client-readable storage.
+ * SEC-015: the token itself is no longer readable from client JS at all -
+ * it lives in an httpOnly cookie set by `app/api/auth/login/route.ts` and
+ * never leaves the server (see `lib/session.ts`'s doc comment for the full
+ * design). This file now only reads the CSRF cookie, which is
+ * deliberately NOT httpOnly (the page's own JS must echo it back as a
+ * header on mutating requests - the double-submit CSRF pattern).
  */
-export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_STORAGE_KEY);
+export function getCsrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|; )nauterio_admin_csrf=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
-export function setStoredToken(token: string): void {
-  window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+export async function login(token: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    return { ok: false, error: body?.error ?? `Sign-in failed (HTTP ${res.status}).` };
+  }
+  return { ok: true };
 }
 
-export function clearStoredToken(): void {
-  window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+export async function logout(): Promise<void> {
+  await fetch("/api/auth/logout", { method: "POST" });
 }

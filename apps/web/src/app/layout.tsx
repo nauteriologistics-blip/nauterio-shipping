@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: "Nauterio Logistics | Shipping from Italy to the United States Made Clear",
@@ -15,17 +11,21 @@ export const metadata: Metadata = {
   keywords: ["Italy to USA shipping", "air freight Milan to JFK", "customs broker Italy US", "parcel shipping Italy to America", "Nauterio Logistics"],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang={locale} className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-white text-gray-800 pt-[80px]">
-        <Header />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        <NextIntlClientProvider>
+          <Header />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -5,11 +5,20 @@ import { STAFF_ROLES } from "@nauterio/contracts";
 import { AuditService } from "../audit/audit.module";
 import { SubmitClaimDto, DecideClaimDto } from "./dto/submit-claim.dto";
 import { sliceCursorPage } from "../../common/pagination/paginate-cursor";
+import { getScopedShipmentOrThrow } from "../../common/authorization/shipment-scope";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 
 function isStaff(role: string): boolean {
   return (STAFF_ROLES as readonly string[]).includes(role);
 }
+
+// A claim only makes sense once a shipment has actually moved or resolved -
+// not while it is still a draft, and not once it has been cancelled or
+// archived. REQUIRES_BUSINESS_EVIDENCE: the exact claimable lifecycle set
+// is a policy decision (spec does not enumerate one); this is a
+// conservative default, not a business rate/rule invented outright.
+const CLAIMABLE_LIFECYCLE_STATUSES = ["ACTIVE", "ACTION_REQUIRED", "DELIVERED"] as const;
+const OPEN_CLAIM_STATUSES = ["SUBMITTED", "UNDER_REVIEW"] as const;
 
 @Injectable()
 export class ClaimsReturnsService {
@@ -60,8 +69,35 @@ export class ClaimsReturnsService {
   async submit(user: AuthenticatedUser, dto: SubmitClaimDto, correlationId?: string) {
     const prisma = getPrismaClient();
 
-    const shipment = await prisma.shipment.findUnique({ where: { id: dto.shipmentId } });
-    if (!shipment) throw new NotFoundException(`Shipment ${dto.shipmentId} not found`);
+    // SEC-004/DATA-006: resolve the shipment through the same scope helper
+    // every other shipment-adjacent route uses - a claim against a
+    // shipment the caller cannot see 404s instead of silently succeeding
+    // against someone else's consignment.
+    const shipment = await getScopedShipmentOrThrow(dto.shipmentId, {
+      role: user.role,
+      userId: user.userId,
+      organisationId: user.organisationId,
+    });
+
+    if (!(CLAIMABLE_LIFECYCLE_STATUSES as readonly string[]).includes(shipment.lifecycleStatus)) {
+      throw new BadRequestException(
+        `Shipment ${dto.shipmentId} is not in a claimable state (${shipment.lifecycleStatus})`
+      );
+    }
+
+    const existingOpenClaim = await prisma.claim.findFirst({
+      where: {
+        shipmentId: dto.shipmentId,
+        submittedByUserId: user.userId,
+        reasonCategory: dto.reasonCategory,
+        status: { in: [...OPEN_CLAIM_STATUSES] },
+      },
+    });
+    if (existingOpenClaim) {
+      throw new BadRequestException(
+        `An open ${dto.reasonCategory} claim already exists for this shipment (${existingOpenClaim.id})`
+      );
+    }
 
     return prisma.$transaction(async (tx) => {
       const claim = await tx.claim.create({

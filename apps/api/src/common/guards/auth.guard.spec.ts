@@ -1,6 +1,4 @@
-import { AuthGuard } from "./auth.guard";
 import { verifyCognitoToken } from "./cognito-jwt-verifier";
-import { ExecutionContext, UnauthorizedException } from "@nestjs/common";
 
 describe("verifyCognitoToken", () => {
   it("allows local dev token in development environment with LOCAL_AUTH_MODE=true", async () => {

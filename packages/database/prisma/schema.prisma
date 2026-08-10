@@ -58,6 +58,10 @@ model User {
   version           Int        @default(1)
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
+  // SEC-011/ADR 0002: non-null once this row has been pseudonymised via a
+  // GDPR erasure request - the row is never deleted (see AuditEvent.actorUser
+  // below for why), so this is what "erased" means for a User.
+  erasedAt          DateTime?  @map("erased_at")
 
   organisationMemberships OrganisationMember[]
   addresses               Address[]
@@ -70,6 +74,21 @@ model User {
   notifications           Notification[]
   auditEventsAsActor      AuditEvent[]          @relation("AuditActorUser")
   claims                  Claim[]
+  // DATA-009: reverse sides of the FK relations added to close the audit's
+  // "31 unconstrained reference columns" finding - grouped here rather
+  // than scattered, since none of these need special handling beyond
+  // existing (this User row can be referenced by any number of these).
+  pickupsAssignedAsDriver   Pickup[]           @relation("PickupAssignedDriver")
+  deliveriesAssignedAsDriver Delivery[]        @relation("DeliveryAssignedDriver")
+  documentVersionsUploaded  DocumentVersion[]
+  packageMovementsScanned  PackageMovement[]   @relation("PackageMovementScannedBy")
+  refundsApproved          Refund[]
+  claimDecisions           ClaimDecision[]
+  rateCardsApproved        RateCard[]
+  invoicesAsCustomer       Invoice[]
+  idempotencyRecords       IdempotencyRecord[]
+  shipmentsCreated         Shipment[]          @relation("ShipmentCreatedByUser")
+  emailVerificationTokens  EmailVerificationToken[]
 
   @@index([status])
   @@map("users")
@@ -213,6 +232,8 @@ model Service {
   routes    Route[]
   rateCards RateCard[]
   shipments Shipment[]
+  quotes    Quote[]
+  manifests Manifest[]
 
   @@map("services")
 }
@@ -247,6 +268,7 @@ model RateCard {
   effectiveTo   DateTime? @map("effective_to")
   approved      Boolean   @default(false)
   approvedById  String?   @map("approved_by_id") @db.Uuid
+  approvedBy    User?     @relation(fields: [approvedById], references: [id], onDelete: SetNull)
   createdAt     DateTime  @default(now()) @map("created_at")
 
   rules RateRule[]
@@ -288,6 +310,7 @@ model Quote {
   organisationId        String?     @map("organisation_id") @db.Uuid
   organisation          Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
   serviceId             ServiceId   @map("service_id")
+  service               Service     @relation(fields: [serviceId], references: [id])
   status                QuoteStatus @default(DRAFT)
   inputSnapshotJson      Json        @map("input_snapshot_json")
   actualWeightKg        Float       @map("actual_weight_kg")
@@ -301,9 +324,13 @@ model Quote {
 
   lines    QuoteLine[]
   bookings Booking[]
+  shipments Shipment[]
 
   @@index([userId])
   @@index([organisationId])
+  // REL-015: supports the retention sweep's
+  // `status = 'DRAFT' AND expires_at < now()` predicate.
+  @@index([status, expiresAt])
   @@map("quotes")
 }
 
@@ -347,6 +374,7 @@ model Booking {
   currentStep    BookingStep @default(PACKAGE_DETAILS) @map("current_step")
   draftDataJson  Json        @map("draft_data_json")
   convertedShipmentId String? @unique @map("converted_shipment_id") @db.Uuid
+  convertedShipment   Shipment? @relation(fields: [convertedShipmentId], references: [id], onDelete: SetNull)
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
@@ -400,7 +428,14 @@ model Shipment {
   declaredValueAmountMinorUnits BigInt  @map("declared_value_amount_minor_units")
   declaredValueCurrency         String  @db.Char(3) @map("declared_value_currency")
   isDeMinimisEligible            Boolean @default(true) @map("is_de_minimis_eligible")
-  customsCaseId                   String? @unique @map("customs_case_id") @db.Uuid
+  // DATA-009: was a second, independently-unconstrained `customs_case_id`
+  // column duplicating CustomsCase.shipmentId's own unique column, forming
+  // two unrelated unique pointers instead of one real 1:1 relation - the
+  // exact "both sides of the shipment<->customs-case link" the audit named.
+  // Removed (unused anywhere in application code, confirmed by grep) in
+  // favour of the single real relation declared on CustomsCase below, which
+  // Prisma infers the reverse side of automatically.
+  customsCase                      CustomsCase?
 
   // Timing (UTC; source timezone captured on TrackingEvent, not here)
   pickupTargetAt      DateTime? @map("pickup_target_at")
@@ -416,12 +451,14 @@ model Shipment {
 
   // Financial
   quoteId          String? @map("quote_id") @db.Uuid
+  quote            Quote?  @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   totalAmountMinorUnits BigInt @map("total_amount_minor_units")
   currency          String  @db.Char(3)
   outstandingAmountMinorUnits BigInt @default(0) @map("outstanding_amount_minor_units")
 
   // Control
   createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  createdByUser   User?    @relation("ShipmentCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
   source          String   @default("web") @map("source") // web | admin | api | import
   version         Int      @default(1)
   legalHold       Boolean  @default(false) @map("legal_hold")
@@ -438,10 +475,19 @@ model Shipment {
   invoices       InvoiceLine[]
   claims         Claim[]
   manifestItems  ManifestItem[]
+  booking             Booking?
+  supportLinks        SupportLink[]
+  originalForReturns  Return[]      @relation("ReturnOriginalShipment")
+  returnShipmentFor   Return?       @relation("ReturnShipment")
 
   @@index([lifecycleStatus])
-  @@index([organisationId])
-  @@index([ownerUserId])
+  // REL-016: list endpoints filter on organisationId/ownerUserId and sort
+  // on id (UUIDv7, time-ordered) - a single-column index can seek the
+  // filter but must still sort the whole matching set. These composites
+  // serve both in one index scan; the single-column indexes they replace
+  // covered no query this schema's callers actually run.
+  @@index([organisationId, id])
+  @@index([ownerUserId, id])
   @@index([currentTrackingCode])
   @@map("shipments")
 }
@@ -460,6 +506,7 @@ model Package {
   chargeableWeightKg Float    @map("chargeable_weight_kg")
   condition          String   @default("GOOD") // GOOD | DAMAGED | UNDER_REVIEW
   labelDocumentId    String?  @map("label_document_id") @db.Uuid
+  labelDocument      Document? @relation("PackageLabelDocument", fields: [labelDocumentId], references: [id], onDelete: SetNull)
   currentStorageLocationId String? @map("current_storage_location_id") @db.Uuid
   currentStorageLocation   StorageLocation? @relation(fields: [currentStorageLocationId], references: [id], onDelete: SetNull)
   createdAt          DateTime @default(now()) @map("created_at")
@@ -529,13 +576,25 @@ model TrackingEvent {
   sourceType            TrackingEventSourceType  @map("source_type")
   sourceId              String?                  @map("source_id")
   sourceEventId         String?                  @map("source_event_id")
-  dedupKey               String?                 @unique @map("dedup_key")
+  // DATA-017: was `dedupKey String? @unique` - a nullable-unique column
+  // Postgres permits unlimited NULLs on, so it deduplicated only rows a
+  // producer chose to populate it for, and protected nothing since no
+  // ingestion adapter exists yet to ever set it (confirmed unused anywhere
+  // in application code). Replaced with a compound unique on fields that
+  // already exist and are NOT NULL where it matters: `sourceEventId` is
+  // still optional (STAFF/SYSTEM_AUTOMATION events have no external event
+  // to dedupe against - dedup doesn't semantically apply to those), but for
+  // the case this finding is actually about - the same CARRIER_API/
+  // PARTNER_WEBHOOK event delivered twice - a real adapter populating
+  // sourceEventId gets real, enforced, NOT-NULL-backed deduplication rather
+  // than an opt-in column nothing ever opted into.
   eventTime              DateTime                @map("event_time")
   sourceTimezone         String?                 @map("source_timezone")
   receivedTime            DateTime               @default(now()) @map("received_time")
   locationJson            Json?                  @map("location_json")
   visibility               TrackingEventVisibility @default(AUTHENTICATED_CUSTOMER)
   evidenceDocumentId       String?                @map("evidence_document_id") @db.Uuid
+  evidenceDocument          Document?             @relation("TrackingEventEvidenceDocument", fields: [evidenceDocumentId], references: [id], onDelete: SetNull)
   correctionOfId           String?                @map("correction_of_id") @db.Uuid
   correctionOf              TrackingEvent?        @relation("TrackingEventCorrection", fields: [correctionOfId], references: [id], onDelete: SetNull)
   corrections               TrackingEvent[]       @relation("TrackingEventCorrection")
@@ -543,9 +602,16 @@ model TrackingEvent {
   reason                    String?
   notificationState          String               @default("NOT_ELIGIBLE") @map("notification_state") // NOT_ELIGIBLE | ELIGIBLE | QUEUED | SENT | SUPPRESSED
   createdAt                  DateTime              @default(now()) @map("created_at")
+  externalMappings           ExternalTrackingEvent[]
 
   @@index([shipmentId, eventTime])
   @@index([canonicalCode])
+  // DATA-017: real deduplication for externally-sourced events - see the
+  // comment on the (now-removed) dedupKey field above. NULLs in
+  // sourceEventId still don't collide (Postgres unique-index semantics),
+  // which is correct here: a NULL sourceEventId means "not externally
+  // sourced," and those rows aren't supposed to dedupe against each other.
+  @@unique([shipmentId, sourceType, sourceEventId])
   @@map("tracking_events")
 }
 
@@ -558,6 +624,7 @@ model ExternalTrackingEvent {
   providerEventId String  @map("provider_event_id")
   rawPayloadJson  Json    @map("raw_payload_json")
   mappedTrackingEventId String? @map("mapped_tracking_event_id") @db.Uuid
+  mappedTrackingEvent   TrackingEvent? @relation(fields: [mappedTrackingEventId], references: [id], onDelete: SetNull)
   receivedAt      DateTime @default(now()) @map("received_at")
 
   @@unique([provider, providerEventId])
@@ -584,8 +651,10 @@ model Pickup {
   windowEnd       DateTime     @map("window_end")
   status          PickupStatus @default(REQUESTED)
   assignedDriverUserId String? @map("assigned_driver_user_id") @db.Uuid
+  assignedDriverUser   User?   @relation("PickupAssignedDriver", fields: [assignedDriverUserId], references: [id], onDelete: SetNull)
   attemptCount     Int         @default(0) @map("attempt_count")
   evidenceDocumentId String?   @map("evidence_document_id") @db.Uuid
+  evidenceDocument   Document? @relation("PickupEvidenceDocument", fields: [evidenceDocumentId], references: [id], onDelete: SetNull)
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
@@ -610,9 +679,12 @@ model Delivery {
   windowEnd            DateTime?      @map("window_end")
   status               DeliveryStatus @default(SCHEDULED)
   assignedDriverUserId String?        @map("assigned_driver_user_id") @db.Uuid
+  assignedDriverUser   User?          @relation("DeliveryAssignedDriver", fields: [assignedDriverUserId], references: [id], onDelete: SetNull)
   attemptCount         Int            @default(0) @map("attempt_count")
   signatureDocumentId  String?        @map("signature_document_id") @db.Uuid
+  signatureDocument    Document?      @relation("DeliverySignatureDocument", fields: [signatureDocumentId], references: [id], onDelete: SetNull)
   proofPhotoDocumentId String?        @map("proof_photo_document_id") @db.Uuid
+  proofPhotoDocument   Document?      @relation("DeliveryProofPhotoDocument", fields: [proofPhotoDocumentId], references: [id], onDelete: SetNull)
   recipientName        String?        @map("recipient_name")
   createdAt            DateTime       @default(now()) @map("created_at")
   updatedAt            DateTime       @updatedAt @map("updated_at")
@@ -649,6 +721,8 @@ model StorageLocation {
   children    StorageLocation[] @relation("StorageLocationHierarchy")
 
   packages  Package[]
+  movementsFrom PackageMovement[] @relation("PackageMovementFromLocation")
+  movementsTo   PackageMovement[] @relation("PackageMovementToLocation")
 
   @@unique([warehouseId, code])
   @@map("storage_locations")
@@ -661,8 +735,11 @@ model PackageMovement {
   packageId       String   @map("package_id") @db.Uuid
   package         Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
   fromLocationId  String?  @map("from_location_id") @db.Uuid
+  fromLocation    StorageLocation? @relation("PackageMovementFromLocation", fields: [fromLocationId], references: [id], onDelete: SetNull)
   toLocationId    String?  @map("to_location_id") @db.Uuid
+  toLocation      StorageLocation? @relation("PackageMovementToLocation", fields: [toLocationId], references: [id], onDelete: SetNull)
   scannedByUserId String?  @map("scanned_by_user_id") @db.Uuid
+  scannedByUser   User?    @relation("PackageMovementScannedBy", fields: [scannedByUserId], references: [id], onDelete: SetNull)
   scannedAt       DateTime @default(now()) @map("scanned_at")
 
   @@index([packageId])
@@ -682,6 +759,7 @@ model Manifest {
   warehouse    Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
   carrierName  String         @map("carrier_name")
   serviceId    ServiceId      @map("service_id")
+  service      Service        @relation(fields: [serviceId], references: [id])
   status       ManifestStatus @default(OPEN)
   dispatchedAt DateTime?      @map("dispatched_at")
   createdAt    DateTime       @default(now()) @map("created_at")
@@ -720,6 +798,7 @@ enum CustomsCaseStatus {
 model CustomsCase {
   id            String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
   shipmentId    String            @unique @map("shipment_id") @db.Uuid
+  shipment      Shipment          @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
   status        CustomsCaseStatus @default(OPEN)
   actionType    String?           @map("action_type") // e.g. "INVOICE_REQUESTED", "FDA_PRIOR_NOTICE"
   deadlineAt    DateTime?         @map("deadline_at")
@@ -771,10 +850,18 @@ model Document {
   shipment         Shipment?             @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
   type             DocumentType
   currentVersionId String?               @unique @map("current_version_id") @db.Uuid
+  currentVersion   DocumentVersion?      @relation("DocumentCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   reviewStatus     DocumentReviewStatus  @default(PROCESSING) @map("review_status")
   createdAt        DateTime              @default(now()) @map("created_at")
 
   versions DocumentVersion[]
+  pickupsAsEvidence          Pickup[]        @relation("PickupEvidenceDocument")
+  deliveriesAsSignature      Delivery[]      @relation("DeliverySignatureDocument")
+  deliveriesAsProofPhoto     Delivery[]      @relation("DeliveryProofPhotoDocument")
+  trackingEventsAsEvidence   TrackingEvent[] @relation("TrackingEventEvidenceDocument")
+  claimEvidenceUses          ClaimEvidence[]
+  invoicesAttached           Invoice[]
+  packagesAsLabel            Package[]       @relation("PackageLabelDocument")
 
   @@index([shipmentId])
   @@map("documents")
@@ -796,7 +883,9 @@ model DocumentVersion {
   locale            String? // for generated documents
   generatorSourceHash String? @map("generator_source_hash")
   uploadedByUserId   String? @map("uploaded_by_user_id") @db.Uuid
+  uploadedByUser     User?   @relation(fields: [uploadedByUserId], references: [id], onDelete: SetNull)
   createdAt          DateTime @default(now()) @map("created_at")
+  isCurrentVersionFor Document? @relation("DocumentCurrentVersion")
 
   @@unique([documentId, versionNumber])
   @@map("document_versions")
@@ -842,6 +931,7 @@ model Invoice {
   organisationId String?       @map("organisation_id") @db.Uuid
   organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   customerUserId String?       @map("customer_user_id") @db.Uuid
+  customerUser   User?         @relation(fields: [customerUserId], references: [id], onDelete: SetNull)
   invoiceNumber  String        @unique @map("invoice_number")
   status         InvoiceStatus @default(DRAFT)
   totalAmountMinorUnits BigInt @map("total_amount_minor_units")
@@ -849,6 +939,7 @@ model Invoice {
   issuedAt       DateTime?     @map("issued_at")
   dueAt          DateTime?     @map("due_at")
   documentId     String?       @map("document_id") @db.Uuid
+  document       Document?     @relation(fields: [documentId], references: [id], onDelete: SetNull)
   version        Int           @default(1)
   createdAt      DateTime      @default(now()) @map("created_at")
 
@@ -915,13 +1006,21 @@ model PaymentEvent {
   id                String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   paymentId         String   @map("payment_id") @db.Uuid
   payment           Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  // DATA-018: was a bare String with no provider column at all, so the
+  // webhook-replay defence (`@@unique([providerEventId])`) was global
+  // across every provider - a PayPal event whose id happened to equal a
+  // Stripe event id would be rejected as a false replay. `Payment` already
+  // gets this right (`@@unique([provider, providerPaymentId])`); mirrored
+  // here while the table is still empty, per the audit's own suggestion to
+  // do it now rather than after a real webhook handler ships.
+  provider          PaymentProvider
   providerEventId   String   @map("provider_event_id")
   eventType         String   @map("event_type")
   signatureVerified Boolean  @map("signature_verified")
   rawPayloadJson    Json     @map("raw_payload_json")
   receivedAt        DateTime @default(now()) @map("received_at")
 
-  @@unique([providerEventId])
+  @@unique([provider, providerEventId])
   @@map("payment_events")
 }
 
@@ -954,6 +1053,7 @@ model Refund {
   currency          String       @db.Char(3)
   reason            String
   approvedByUserId  String?      @map("approved_by_user_id") @db.Uuid
+  approvedByUser    User?        @relation(fields: [approvedByUserId], references: [id], onDelete: SetNull)
   providerRefundId  String?      @map("provider_refund_id")
   createdAt         DateTime     @default(now()) @map("created_at")
   processedAt       DateTime?    @map("processed_at")
@@ -998,6 +1098,7 @@ model ClaimEvidence {
   claimId    String   @map("claim_id") @db.Uuid
   claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
   documentId String   @map("document_id") @db.Uuid
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
   note       String?
   createdAt  DateTime @default(now()) @map("created_at")
 
@@ -1010,6 +1111,7 @@ model ClaimDecision {
   claim             Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
   decision          String   // APPROVED | REJECTED | PARTIAL
   decidedByUserId   String   @map("decided_by_user_id") @db.Uuid
+  decidedByUser     User     @relation(fields: [decidedByUserId], references: [id], onDelete: Restrict)
   compensationAmountMinorUnits BigInt? @map("compensation_amount_minor_units")
   compensationCurrency        String? @db.Char(3) @map("compensation_currency")
   reason            String
@@ -1023,7 +1125,9 @@ model Return {
   claimId             String?  @map("claim_id") @db.Uuid
   claim               Claim?   @relation(fields: [claimId], references: [id], onDelete: SetNull)
   originalShipmentId  String   @map("original_shipment_id") @db.Uuid
+  originalShipment    Shipment @relation("ReturnOriginalShipment", fields: [originalShipmentId], references: [id], onDelete: Restrict)
   returnShipmentId    String?  @unique @map("return_shipment_id") @db.Uuid
+  returnShipment      Shipment? @relation("ReturnShipment", fields: [returnShipmentId], references: [id], onDelete: SetNull)
   status              String   @default("REQUESTED") // REQUESTED | IN_TRANSIT | COMPLETED
   createdAt           DateTime @default(now()) @map("created_at")
 
@@ -1040,6 +1144,7 @@ model SupportLink {
   userId           String?  @map("user_id") @db.Uuid
   user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   shipmentId       String?  @map("shipment_id") @db.Uuid
+  shipment         Shipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
   zendeskTicketId  String   @unique @map("zendesk_ticket_id")
   priority         String   @default("NORMAL") // per spec 17.2 ticket priority
   escalated        Boolean  @default(false)
@@ -1071,7 +1176,10 @@ model Notification {
 
   deliveryAttempts DeliveryAttempt[]
 
-  @@index([userId])
+  // REL-016: composite instead of a single-column index, so the notification
+  // centre's `where: {userId}, orderBy: {id: "desc"}` list query is served
+  // by one index scan instead of a filter-then-sort.
+  @@index([userId, id])
   @@map("notifications")
 }
 
@@ -1084,6 +1192,10 @@ model DeliveryAttempt {
   status          String      // QUEUED | SENT | DELIVERED | BOUNCED | FAILED | COMPLAINED
   attemptedAt     DateTime    @default(now()) @map("attempted_at")
 
+  // REL-009: Postgres does not auto-index foreign keys, and this one had no
+  // index at all - `include: {deliveryAttempts: true}` on the notification
+  // list sequentially scanned this table on every page load.
+  @@index([notificationId, attemptedAt])
   @@map("delivery_attempts")
 }
 
@@ -1097,6 +1209,7 @@ model ContentPage {
   titleEn  String @map("title_en")
   titleIt  String @map("title_it")
   currentPolicyVersionId String? @unique @map("current_policy_version_id") @db.Uuid
+  currentPolicyVersion   PolicyVersion? @relation("ContentPageCurrentPolicyVersion", fields: [currentPolicyVersionId], references: [id], onDelete: SetNull)
 
   policyVersions PolicyVersion[]
 
@@ -1113,6 +1226,7 @@ model PolicyVersion {
   approved      Boolean     @default(false)
   effectiveAt   DateTime?   @map("effective_at")
   createdAt     DateTime    @default(now()) @map("created_at")
+  isCurrentFor  ContentPage? @relation("ContentPageCurrentPolicyVersion")
 
   @@unique([contentPageId, versionNumber])
   @@map("policy_versions")
@@ -1125,7 +1239,13 @@ model PolicyVersion {
 model AuditEvent {
   id             String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   actorUserId    String?  @map("actor_user_id") @db.Uuid
-  actorUser      User?    @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  // SEC-011/ADR 0002: was `SetNull`, which made a `DELETE FROM users` for any
+  // audited user issue an implicit UPDATE on this append-only table -
+  // rejected by the trigger with a confusing error, aborting the whole
+  // delete. `Restrict` makes the real constraint explicit (a user with audit
+  // history cannot be deleted, full stop) instead of failing by accident.
+  // Erasure is handled by pseudonymising the User row, never by deleting it.
+  actorUser      User?    @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: Restrict)
   action         String
   entityType     String   @map("entity_type")
   entityId       String   @map("entity_id")
@@ -1149,7 +1269,14 @@ model AuditEvent {
 
 enum OutboxEventStatus {
   PENDING
+  /// Claimed by a relay worker, publish in progress - a row stuck here
+  /// past LEASE_TIMEOUT_MS (worker crashed mid-publish) is reclaimed back
+  /// to PENDING by the next poll (REL-006).
+  PUBLISHING
   PUBLISHED
+  /// Exceeded MAX_ATTEMPTS (REL-005) - a human must look at it; the relay
+  /// never retries a DEAD_LETTERED row again.
+  DEAD_LETTERED
   FAILED
 }
 
@@ -1163,10 +1290,18 @@ model OutboxEvent {
   payloadJson   Json              @map("payload_json")
   status        OutboxEventStatus @default(PENDING)
   attempts      Int               @default(0)
+  /// REL-005: backoff schedule - a failed publish pushes this forward
+  /// instead of being retried on the very next 2s tick forever.
+  nextAttemptAt DateTime          @default(now()) @map("next_attempt_at")
+  /// REL-006: set when claimed for publishing; lets a crashed worker's
+  /// claim be reclaimed after a lease timeout instead of blocking the row
+  /// (and therefore the whole FIFO batch) forever.
+  claimedAt     DateTime?         @map("claimed_at")
   createdAt     DateTime          @default(now()) @map("created_at")
   publishedAt   DateTime?         @map("published_at")
 
   @@index([status, createdAt])
+  @@index([status, nextAttemptAt])
   @@map("outbox_events")
 }
 
@@ -1194,18 +1329,27 @@ model InboxEvent {
 enum IdempotencyRecordStatus {
   IN_PROGRESS
   COMPLETED
+  /// The handler raised an ambiguous-outcome error (5xx/unknown - may or
+  /// may not have committed). Never auto-reclaimed like a client-error
+  /// failure is; only cleared by TTL expiry, so a possibly-already-run
+  /// operation is never silently retried (SEC-005/DATA-003).
+  FAILED
 }
 
-/// One row per (scope, key) pair. `scope` identifies the controller action
-/// (never shared across endpoints, so the same key value on two different
-/// endpoints does not collide). `requestHash` detects a key being reused
-/// with a different payload, which is a client bug, not a legitimate retry.
+/// One row per (scope, userId, key) triple - SEC-005/DATA-001: the
+/// principal is part of the uniqueness domain, not an incidental column,
+/// so one caller's key can never collide with another caller's. `scope`
+/// identifies the controller action (never shared across endpoints, so the
+/// same key value on two different endpoints does not collide).
+/// `requestHash` detects a key being reused with a different payload,
+/// which is a client bug, not a legitimate retry.
 model IdempotencyRecord {
   id               String                  @id @default(dbgenerated("uuidv7()")) @db.Uuid
   scope            String
   key              String                  @map("idempotency_key")
   requestHash      String                  @map("request_hash")
-  userId           String?                 @map("user_id") @db.Uuid
+  userId           String                  @map("user_id") @db.Uuid
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
   status           IdempotencyRecordStatus @default(IN_PROGRESS)
   responseStatus   Int?                    @map("response_status")
   responseBodyJson Json?                   @map("response_body_json")
@@ -1213,9 +1357,29 @@ model IdempotencyRecord {
   completedAt      DateTime?               @map("completed_at")
   expiresAt        DateTime                @map("expires_at")
 
-  @@unique([scope, key])
+  @@unique([scope, userId, key])
   @@index([expiresAt])
   @@map("idempotency_records")
+}
+
+/// Short-lived single-use registration verification tokens (spec 27.1:
+/// "email verification required before sensitive actions"). Only the hash
+/// is stored, same as ApiKey.hashedKey - the raw token exists only in the
+/// dev-mode verification URL/response, never persisted. Real production
+/// email delivery is not wired (no SES identity configured in this
+/// environment - REQUIRES_BUSINESS_EVIDENCE); this table's purpose today is
+/// the dev/staging stand-in for that delivery step, not a permanent design.
+model EmailVerificationToken {
+  id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }
 
 model ApiClient {

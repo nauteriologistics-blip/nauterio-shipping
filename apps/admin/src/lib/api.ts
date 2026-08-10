@@ -1,4 +1,5 @@
-import { clearStoredToken, getStoredToken } from "./auth";
+import { getCsrfToken } from "./auth";
+import { CSRF_HEADER, CSRF_PROTECTED_METHODS } from "./session";
 
 /** Matches AllExceptionsFilter's StructuredError shape (apps/api/src/common/filters/http-exception.filter.ts). */
 export interface ApiErrorBody {
@@ -20,22 +21,31 @@ export class ApiError extends Error {
 
 /**
  * Every admin API call goes through here so 401 handling (redirect to
- * sign-in - the stored dev token is invalid/expired) and error shape
+ * sign-in - the session cookie is invalid/expired/absent) and error shape
  * parsing happen in exactly one place.
+ *
+ * SEC-015: no `Authorization` header is attached here anymore - the
+ * session lives in an httpOnly cookie the browser sends automatically, and
+ * `app/api/v1/[...path]/route.ts` is what turns it into the real API's
+ * Authorization header, server-side. This function's job is now just the
+ * CSRF header for mutating requests (double-submit pattern) and the
+ * existing error handling.
  */
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getStoredToken();
+  const method = (init?.method ?? "GET").toUpperCase();
+
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json");
+  if (CSRF_PROTECTED_METHODS.has(method)) {
+    headers.set(CSRF_HEADER, getCsrfToken() ?? "");
+  }
+
   const res = await fetch(`/api/v1${path}`, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
+    headers,
   });
 
   if (res.status === 401) {
-    clearStoredToken();
     if (typeof window !== "undefined") {
       window.location.href = "/login?sessionExpired=1";
     }

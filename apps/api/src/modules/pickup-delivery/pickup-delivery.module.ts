@@ -1,7 +1,12 @@
-import { Controller, Get, Injectable, Module, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Injectable, Module, Param, ParseUUIDPipe, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { getPrismaClient } from "@nauterio/database";
 import { AuthGuard } from "../../common/guards/auth.guard";
+import { PermissionGuard } from "../../common/guards/permission.guard";
+import { RequirePermission } from "../../common/decorators/require-permission.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthenticatedUser } from "../../common/guards/auth.guard";
+import { getScopedShipmentOrThrow } from "../../common/authorization/shipment-scope";
 
 /** Pickup/delivery module (spec section 24): time windows, assignments,
  * attempts, proof, partner workflow. Read path only for now - assignment
@@ -9,7 +14,9 @@ import { AuthGuard } from "../../common/guards/auth.guard";
  * roadmap) that doesn't exist yet. */
 @Injectable()
 class PickupDeliveryService {
-  async listByShipment(shipmentId: string) {
+  async listByShipment(shipmentId: string, caller: AuthenticatedUser) {
+    await getScopedShipmentOrThrow(shipmentId, caller);
+
     const prisma = getPrismaClient();
     const [pickups, deliveries] = await Promise.all([
       prisma.pickup.findMany({ where: { shipmentId } }),
@@ -21,14 +28,18 @@ class PickupDeliveryService {
 
 @ApiTags("pickup-delivery")
 @ApiBearerAuth()
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 @Controller("shipments/:shipmentId/pickup-delivery")
 class PickupDeliveryController {
   constructor(private readonly service: PickupDeliveryService) {}
 
   @Get()
-  async list(@Param("shipmentId") shipmentId: string) {
-    return this.service.listByShipment(shipmentId);
+  @RequirePermission("shipment:read")
+  async list(
+    @Param("shipmentId", ParseUUIDPipe) shipmentId: string,
+    @CurrentUser() user: AuthenticatedUser
+  ) {
+    return this.service.listByShipment(shipmentId, user);
   }
 }
 

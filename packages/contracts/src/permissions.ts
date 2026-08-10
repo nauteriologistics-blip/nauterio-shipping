@@ -33,12 +33,18 @@ export type PermissionAction =
   | "tracking_event:correct"
   | "customer_pii:view"
   | "identity_document:view"
+  | "document:read"
+  | "invoice:read"
+  | "invoice:manage"
+  | "organisation:read"
+  | "warehouse:read"
   | "bank_transfer:confirm"
   | "refund:approve"
   | "claim:approve"
   | "claim:reject"
   | "staff:manage"
-  | "data:export";
+  | "data:export"
+  | "user:erase";
 
 /**
  * Baseline role -> allowed-action map mirroring Appendix E's matrix.
@@ -56,12 +62,21 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
     "tracking_event:correct",
     "customer_pii:view",
     "identity_document:view",
+    "document:read",
+    "invoice:read",
+    "invoice:manage",
+    "organisation:read",
+    "warehouse:read",
     "bank_transfer:confirm",
     "refund:approve",
     "claim:approve",
     "claim:reject",
     "staff:manage",
     "data:export",
+    // SEC-011/ADR 0002: GDPR erasure is the most sensitive action in the
+    // catalogue - SUPER_ADMIN only, not shared with OPERATIONS or any other
+    // staff role.
+    "user:erase",
   ],
   OPERATIONS: [
     "shipment:create",
@@ -70,15 +85,53 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
     "tracking_event:add",
     "tracking_event:correct",
     "customer_pii:view",
+    "document:read",
+    "invoice:read",
+    "invoice:manage",
+    "organisation:read",
+    "warehouse:read",
     "refund:approve",
     "claim:approve",
     "claim:reject",
     "data:export",
   ],
-  WAREHOUSE: ["shipment:read", "tracking_event:add", "customer_pii:view"],
-  SUPPORT: ["shipment:read", "customer_pii:view"],
-  FINANCE: ["shipment:read", "customer_pii:view", "bank_transfer:confirm"],
-  CUSTOMS: ["shipment:read", "tracking_event:add", "customer_pii:view", "identity_document:view", "data:export"],
+  WAREHOUSE: ["shipment:read", "tracking_event:add", "customer_pii:view", "warehouse:read"],
+  SUPPORT: ["shipment:read", "customer_pii:view", "document:read", "invoice:read", "organisation:read"],
+  FINANCE: [
+    "shipment:read",
+    "customer_pii:view",
+    "bank_transfer:confirm",
+    "invoice:read",
+    "invoice:manage",
+    "organisation:read",
+  ],
+  CUSTOMS: [
+    "shipment:read",
+    "tracking_event:add",
+    "customer_pii:view",
+    "identity_document:view",
+    "document:read",
+    "data:export",
+  ],
   DRIVER: ["shipment:read", "tracking_event:add"],
-  AUDITOR: ["shipment:read"],
+  AUDITOR: ["shipment:read", "document:read", "invoice:read", "organisation:read"],
 };
+
+/**
+ * Baseline actions available to every non-staff (customer/organisation)
+ * caller, before the record-relationship check in the evaluator narrows it
+ * to records they actually own (spec section 27.3). Deliberately does not
+ * include anything staff-only (refund:approve, claim:approve, staff:manage,
+ * data:export, bank_transfer:confirm) - a customer must never be granted
+ * those regardless of what record context is or isn't supplied. Historical
+ * note: prior to this list existing, non-staff roles were exempted from any
+ * baseline check at all on the assumption the record-relationship check
+ * would compensate - it structurally cannot, since PermissionGuard runs
+ * before any record is loaded (see permission-evaluator.ts step 2).
+ */
+export const CUSTOMER_BASELINE_ACTIONS: PermissionAction[] = [
+  "shipment:read",
+  "document:read",
+  "invoice:read",
+  "organisation:read",
+];

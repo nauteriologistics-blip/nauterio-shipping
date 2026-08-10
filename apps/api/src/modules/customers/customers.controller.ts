@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Body, Param, ParseUUIDPipe, UseGuards, Req } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
+import { NoPermissionRequired } from "../../common/decorators/no-permission-required.decorator";
 import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
 import { CustomersService } from "./customers.service";
 import { CreateAddressDto, UpdateAddressDto, UpdateProfileDto } from "./dto/customer.dto";
@@ -15,6 +16,7 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   @Get("profile")
+  @NoPermissionRequired()
   @ApiOperation({ summary: "Get current user profile and addresses" })
   async getProfile(@Req() req: Request) {
     const userId = req.user!.userId;
@@ -22,6 +24,7 @@ export class CustomersController {
   }
 
   @Patch("profile")
+  @NoPermissionRequired()
   @ApiOperation({ summary: "Update current user profile" })
   async updateProfile(@Body() dto: UpdateProfileDto, @Req() req: Request) {
     const userId = req.user!.userId;
@@ -29,6 +32,7 @@ export class CustomersController {
   }
 
   @Get("addresses")
+  @NoPermissionRequired()
   @ApiOperation({ summary: "List user address book" })
   async listAddresses(@Req() req: Request) {
     const userId = req.user!.userId;
@@ -36,6 +40,7 @@ export class CustomersController {
   }
 
   @Post("addresses")
+  @NoPermissionRequired()
   @RequireIdempotencyKey()
   @ApiOperation({ summary: "Add address to address book" })
   async addAddress(@Body() dto: CreateAddressDto, @Req() req: Request) {
@@ -44,15 +49,17 @@ export class CustomersController {
   }
 
   @Patch("addresses/:id")
+  @NoPermissionRequired()
   @ApiOperation({ summary: "Update an address" })
-  async updateAddress(@Param("id") id: string, @Body() dto: UpdateAddressDto, @Req() req: Request) {
+  async updateAddress(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateAddressDto, @Req() req: Request) {
     const userId = req.user!.userId;
     return this.customersService.updateAddress(id, userId, dto);
   }
 
   @Delete("addresses/:id")
+  @NoPermissionRequired()
   @ApiOperation({ summary: "Delete an address" })
-  async deleteAddress(@Param("id") id: string, @Req() req: Request) {
+  async deleteAddress(@Param("id", ParseUUIDPipe) id: string, @Req() req: Request) {
     const userId = req.user!.userId;
     return this.customersService.deleteAddress(id, userId);
   }

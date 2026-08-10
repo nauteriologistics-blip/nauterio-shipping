@@ -1,3 +1,5 @@
+import type { Prisma } from "@nauterio/database";
+
 /**
  * Provider-neutral queue interface, matching the typed-adapter pattern used
  * throughout packages/integrations (ADR 0001 section 9.1). Consumers below
@@ -30,7 +32,19 @@ export interface QueueMessage {
   payload: Record<string, unknown>;
 }
 
-export type QueueHandler = (message: QueueMessage) => Promise<void>;
+/**
+ * DATA-005/REL-008: `tx` is the SAME transaction the adapter used to claim
+ * this message's InboxEvent row - a handler MUST perform its own writes
+ * through it, not through a separate `getPrismaClient()` call, or the
+ * inbox claim and the handler's side effects can commit independently
+ * (exactly the non-atomicity that let a duplicate delivery send the same
+ * email twice). This also documents the delivery contract explicitly: a
+ * handler must be safe to invoke under at-least-once and out-of-order
+ * delivery - real SQS provides neither exactly-once nor ordering
+ * guarantees, and LocalQueueAdapter's single-process, never-redelivering
+ * behaviour must not be mistaken for either.
+ */
+export type QueueHandler = (message: QueueMessage, tx: Prisma.TransactionClient) => Promise<void>;
 
 export interface QueueAdapter {
   publish(queue: QueueName, message: QueueMessage): Promise<void>;

@@ -1,4 +1,4 @@
-import { createPublicKey, verify as cryptoVerify } from "node:crypto";
+import { createPublicKey, verify as cryptoVerify, type JsonWebKey } from "node:crypto";
 
 export interface CognitoVerifierConfig {
   userPoolId?: string;
@@ -57,12 +57,28 @@ export async function verifyCognitoToken(token: string, config: CognitoVerifierC
 
   const [headerB64, payloadB64, signatureB64] = parts;
 
-  let header: { kid?: string; alg?: string };
-  let payload: { sub?: string; exp?: number; iss?: string; client_id?: string; aud?: string; token_use?: string };
+  interface JwtHeader {
+    kid?: string;
+    alg?: string;
+  }
+  interface JwtPayload {
+    sub?: string;
+    exp?: number;
+    iss?: string;
+    client_id?: string;
+    aud?: string;
+    token_use?: string;
+  }
+
+  let header: JwtHeader;
+  let payload: JwtPayload;
 
   try {
-    header = JSON.parse(base64UrlDecode(headerB64));
-    payload = JSON.parse(base64UrlDecode(payloadB64));
+    // JSON.parse has no way to guarantee the decoded token actually matches
+    // these shapes - the signature verification below is what makes the
+    // token trustworthy, not this cast.
+    header = JSON.parse(base64UrlDecode(headerB64)) as JwtHeader;
+    payload = JSON.parse(base64UrlDecode(payloadB64)) as JwtPayload;
   } catch {
     return null;
   }
@@ -105,7 +121,11 @@ export async function verifyCognitoToken(token: string, config: CognitoVerifierC
   }
 
   try {
-    const publicKey = createPublicKey({ key: matchingJwk as any, format: "jwk" });
+    // JWK (our decoded-JWKS-response shape) and Node's JsonWebKey don't
+    // structurally overlap enough for a direct assertion - TS itself
+    // requires routing through `unknown` for what is, at runtime, the same
+    // JSON object either way.
+    const publicKey = createPublicKey({ key: matchingJwk as unknown as JsonWebKey, format: "jwk" });
     const dataToVerify = Buffer.from(`${headerB64}.${payloadB64}`);
     const signature = Buffer.from(signatureB64.replace(/-/g, "+").replace(/_/g, "/"), "base64");
 

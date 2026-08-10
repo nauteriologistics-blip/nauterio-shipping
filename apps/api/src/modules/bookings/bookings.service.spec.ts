@@ -1,6 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BookingsService } from "./bookings.service";
 import { AuditService } from "../audit/audit.module";
+import { ShipmentsService } from "../shipments/shipments.service";
 import { NotFoundException } from "@nestjs/common";
 
 describe("BookingsService", () => {
@@ -9,12 +10,16 @@ describe("BookingsService", () => {
   const mockAuditService = {
     record: jest.fn().mockResolvedValue(undefined),
   };
+  const mockShipmentsService = {
+    generateTrackingNumber: jest.fn().mockResolvedValue("NT-0000000000-US"),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BookingsService,
         { provide: AuditService, useValue: mockAuditService },
+        { provide: ShipmentsService, useValue: mockShipmentsService },
       ],
     }).compile();
 

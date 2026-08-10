@@ -60,7 +60,7 @@ describe("evaluatePermission", () => {
   it("denies a refund request exceeding the caller's approval limit", () => {
     const decision = evaluatePermission(
       { ...baseCtx, approvalLimitAmountMinorUnits: 10_000 },
-      { action: "refund:approve", requestedAmountMinorUnits: 50_000 }
+      { action: "refund:approve", recordOwnerUserId: "someone-else", requestedAmountMinorUnits: 50_000 }
     );
     expect(decision.allowed).toBe(false);
     expect(decision.reason).toMatch(/exceeds approval limit/);
@@ -69,17 +69,36 @@ describe("evaluatePermission", () => {
   it("allows a refund request within the caller's approval limit", () => {
     const decision = evaluatePermission(
       { ...baseCtx, approvalLimitAmountMinorUnits: 100_000 },
-      { action: "refund:approve", requestedAmountMinorUnits: 50_000 }
+      { action: "refund:approve", recordOwnerUserId: "someone-else", requestedAmountMinorUnits: 50_000 }
     );
     expect(decision.allowed).toBe(true);
   });
 
+  it("SEC-010 item 5: denies (rather than silently skipping the amount check) when a refund:approve call supplies an owner but forgets the amount", () => {
+    const decision = evaluatePermission(
+      { ...baseCtx, approvalLimitAmountMinorUnits: 100_000 },
+      { action: "refund:approve", recordOwnerUserId: "someone-else" }
+    );
+    expect(decision.allowed).toBe(false);
+    expect(decision.reason).toMatch(/requires requestedAmountMinorUnits/);
+  });
+
+  it("SEC-010 item 5: does not require record context for the guard's bare coarse check", () => {
+    const decision = evaluatePermission(baseCtx, { action: "refund:approve" });
+    // No record context supplied at all (the guard's shape) - the missing-
+    // field assertion must not fire, only the role-baseline check applies.
+    expect(decision.allowed).toBe(true);
+  });
+
   it("enforces separation of duties: approver must differ from record owner", () => {
-    const decision = evaluatePermission(baseCtx, {
-      action: "refund:approve",
-      recordOwnerUserId: "user-1", // same as ctx.userId
-      requestedAmountMinorUnits: 100,
-    });
+    const decision = evaluatePermission(
+      { ...baseCtx, approvalLimitAmountMinorUnits: 100_000 }, // within limit, so this fails on separation of duties specifically, not on the amount
+      {
+        action: "refund:approve",
+        recordOwnerUserId: "user-1", // same as ctx.userId
+        requestedAmountMinorUnits: 100,
+      }
+    );
     expect(decision.allowed).toBe(false);
     expect(decision.reason).toMatch(/Separation of duties/);
   });

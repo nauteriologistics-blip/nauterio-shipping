@@ -15,17 +15,32 @@ import { Pool } from "pg";
  */
 function createPool(): Pool {
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not set - see packages/database/.env.example");
-  }
-  return new Pool({
-    connectionString,
+  const poolOptions = {
     max: Number(process.env.DATABASE_POOL_MAX ?? 10),
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
     statement_timeout: 15_000,
     query_timeout: 15_000,
-  });
+  };
+
+  if (connectionString) {
+    return new Pool({ connectionString, ...poolOptions });
+  }
+
+  // REL-014: ECS Secrets Manager references can only inject individual
+  // string fields, not an assembled connection URL (CDK cannot resolve a
+  // secret's value at synth time to build one, and should not be made to
+  // try). `pg.Pool` already reads the standard libpq PGHOST/PGPORT/
+  // PGDATABASE/PGUSER/PGPASSWORD environment variables itself when no
+  // `connectionString` is given, so passing no connection config at all is
+  // the correct production shape - only fail fast if genuinely nothing is set.
+  if (!process.env.PGHOST) {
+    throw new Error(
+      "Neither DATABASE_URL nor PGHOST is set - see packages/database/.env.example for local dev, " +
+        "or infra/cdk/lib/compute-stack.ts for the ECS Secrets Manager wiring."
+    );
+  }
+  return new Pool(poolOptions);
 }
 
 let pool: Pool | undefined;

@@ -2,6 +2,8 @@ import { Stack, StackProps, Tags, Duration } from "aws-cdk-lib";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as budgets from "aws-cdk-lib/aws-budgets";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 
 export interface ObservabilityStackProps extends StackProps {
@@ -51,6 +53,48 @@ export class ObservabilityStack extends Stack {
       evaluationPeriods: 3,
       alarmDescription: "RDS freeable memory low for 3 consecutive periods",
     }).addAlarmAction({ bind: () => ({ alarmActionArn: alertTopic.topicArn }) });
+
+    // REL-013: an AWS Budgets alarm needs no application resource and was
+    // flagged as addable today. Threshold is REQUIRES_BUSINESS_EVIDENCE - no
+    // approved monthly AWS spend target exists yet; $500/month is a
+    // conservative placeholder for a launch-scale single-region deployment,
+    // not a business figure. Budgets requires the SNS topic to explicitly
+    // allow the budgets service principal to publish.
+    alertTopic.addToResourcePolicy(
+      new iam.PolicyStatement({
+        actions: ["sns:Publish"],
+        principals: [new iam.ServicePrincipal("budgets.amazonaws.com")],
+        resources: [alertTopic.topicArn],
+      })
+    );
+
+    new budgets.CfnBudget(this, "NauterioMonthlyCostBudget", {
+      budget: {
+        budgetType: "COST",
+        timeUnit: "MONTHLY",
+        budgetLimit: { amount: 500, unit: "USD" }, // REQUIRES_BUSINESS_EVIDENCE - placeholder, not an approved figure
+      },
+      notificationsWithSubscribers: [
+        {
+          notification: {
+            notificationType: "ACTUAL",
+            comparisonOperator: "GREATER_THAN",
+            threshold: 80,
+            thresholdType: "PERCENTAGE",
+          },
+          subscribers: [{ subscriptionType: "SNS", address: alertTopic.topicArn }],
+        },
+        {
+          notification: {
+            notificationType: "FORECASTED",
+            comparisonOperator: "GREATER_THAN",
+            threshold: 100,
+            thresholdType: "PERCENTAGE",
+          },
+          subscribers: [{ subscriptionType: "SNS", address: alertTopic.topicArn }],
+        },
+      ],
+    });
 
     new cloudwatch.Dashboard(this, "NauterioOperationalDashboard", {
       dashboardName: "nauterio-operational",

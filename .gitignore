@@ -53,3 +53,7 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local Redis persistence (created by running redis-server from the repo root
+# during local dev/testing)
+dump.rdb

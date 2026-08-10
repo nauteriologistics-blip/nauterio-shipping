@@ -1,13 +1,16 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { getPrismaClient } from "@nauterio/database";
 import { AuditService } from "../audit/audit.module";
+import { ShipmentsService } from "../shipments/shipments.service";
 import { SaveDraftDto, ConfirmBookingDto } from "./dto/booking.dto";
 import { sliceCursorPage } from "../../common/pagination/paginate-cursor";
-import { randomBytes } from "node:crypto";
 
 @Injectable()
 export class BookingsService {
-  constructor(private readonly auditService: AuditService) {}
+  constructor(
+    private readonly auditService: AuditService,
+    private readonly shipmentsService: ShipmentsService
+  ) {}
 
   async listBookings(params: { userId: string; organisationId?: string; after?: string; limit?: number }) {
     const prisma = getPrismaClient();
@@ -135,7 +138,13 @@ export class BookingsService {
     }
 
     const draft = booking.draftDataJson as Record<string, unknown> | null;
-    const trackingNumber = `NT-${randomBytes(3).toString("hex").toUpperCase()}-US`;
+    // DATA-013/REL-018: this used to generate its own tracking number
+    // inline (`randomBytes(3)` - 24 bits, the exact low-entropy scheme
+    // those findings flagged) instead of the shared, DB-verified generator -
+    // the one real caller of shipment creation was bypassing the fix
+    // entirely. `generateTrackingNumber()` is the single source of truth for
+    // this format now.
+    const trackingNumber = await this.shipmentsService.generateTrackingNumber();
 
     const result = await prisma.$transaction(async (tx) => {
       const shipment = await tx.shipment.create({

@@ -26,7 +26,7 @@ class WarehouseController {
   constructor(private readonly service: WarehouseService) {}
 
   @Get()
-  @RequirePermission("shipment:read")
+  @RequirePermission("warehouse:read")
   async list() {
     return this.service.listWarehouses();
   }

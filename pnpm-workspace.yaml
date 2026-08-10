@@ -2,9 +2,17 @@ packages:
   - "apps/*"
   - "packages/*"
   - "infra/*"
+overrides:
+  # SEC-016: @nestjs/swagger@11.4.6 pins js-yaml to exactly 5.2.1, one patch
+  # behind the fix for GHSA-pm4m-ph32-ghv5 (ReDoS in flow collections). No
+  # newer @nestjs/swagger release exists yet - remove this override once one
+  # does and audit is clean without it.
+  js-yaml: ^5.2.2
 allowBuilds:
+  '@parcel/watcher': true
   '@prisma/engines': true
   '@scarf/scarf': false
+  '@swc/core': true
   esbuild: true
   prisma: true
   unrs-resolver: true

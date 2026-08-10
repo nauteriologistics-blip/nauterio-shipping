@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Users, BarChart3, LogOut } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { clearStoredToken, getStoredToken } from "@/lib/auth";
+import { logout } from "@/lib/auth";
 
 interface Profile {
   id: string;
@@ -18,6 +18,8 @@ interface Profile {
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/shipments", label: "Shipments", icon: Package },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/reports", label: "Reports & Analytics", icon: BarChart3 },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -27,10 +29,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!getStoredToken()) {
-      router.replace("/login");
-      return;
-    }
+    // SEC-015: no client-readable token to check for presence anymore - the
+    // session cookie is httpOnly, so the only way to know if it's valid is
+    // to actually try a request. `apiFetch` already redirects to /login on
+    // a 401 (missing/expired cookie), which covers "not signed in" too.
     apiFetch<Profile>("/me")
       .then(setProfile)
       .catch(() => {
@@ -38,10 +40,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         // leave the header without a name rather than blocking the page.
       })
       .finally(() => setChecked(true));
-  }, [router]);
+  }, []);
 
-  function signOut() {
-    clearStoredToken();
+  async function signOut() {
+    await logout();
     router.replace("/login");
   }
 
@@ -85,7 +87,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <p className="text-white/50">{profile.staffRole ?? "No staff role"}</p>
             </div>
           )}
-          <button onClick={signOut} className="flex items-center gap-1.5 text-white/70 hover:text-white">
+          <button onClick={() => void signOut()} className="flex items-center gap-1.5 text-white/70 hover:text-white">
             <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
             Sign out
           </button>

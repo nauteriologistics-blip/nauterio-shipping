@@ -3,6 +3,7 @@ import { ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { QuotesService } from "./quotes.service";
 import { CreateQuoteDto } from "./dto/create-quote.dto";
+import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 
 @ApiTags("quotes")
 @Controller("quotes")
@@ -15,7 +16,7 @@ export class QuotesController {
    * per call. */
   @Post()
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  async create(@Body() dto: CreateQuoteDto) {
-    return this.quotesService.calculate(dto);
+  async create(@Body() dto: CreateQuoteDto, @CorrelationId() correlationId: string) {
+    return this.quotesService.calculate(dto, correlationId);
   }
 }

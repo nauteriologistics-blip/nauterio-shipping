@@ -1,22 +1,14 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
-// Proxies browser calls to /api/v1/* through to the real NestJS API
-// (apps/api) - same-origin from the browser's point of view, so no CORS
-// configuration is needed on either side. NAUTERIO_API_URL points at the
-// real API's origin (its own routes are already prefixed with /v1 - see
-// apps/api/src/main.ts's setGlobalPrefix), defaulting to the local dev port.
-const apiOrigin = process.env.NAUTERIO_API_URL ?? "http://localhost:4000";
-
+// /api/v1/* is handled by this app's own Route Handler
+// (`src/app/api/v1/[...path]/route.ts`), not a `rewrites()` passthrough -
+// a plain rewrite forwards the browser's request verbatim and can't turn
+// an httpOnly session cookie into the real API's `Authorization` header.
 const nextConfig: NextConfig = {
   output: "standalone",
-  async rewrites() {
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${apiOrigin}/v1/:path*`,
-      },
-    ];
-  },
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

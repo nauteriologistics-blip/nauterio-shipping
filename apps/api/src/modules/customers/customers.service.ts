@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { getPrismaClient } from "@nauterio/database";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { getPrismaClient, Prisma } from "@nauterio/database";
 import { AuditService } from "../audit/audit.module";
 import { CreateAddressDto, UpdateAddressDto, UpdateProfileDto } from "./dto/customer.dto";
 
@@ -99,14 +99,47 @@ export class CustomersService {
     return user;
   }
 
+  /**
+   * DATA-007: `User.version` is real optimistic locking now, not dead
+   * schema - see `UpdateProfileDto.expectedVersion`'s doc comment. Every
+   * successful update increments it regardless of whether the caller
+   * supplied `expectedVersion`, so the counter stays meaningful for the
+   * next caller even if this one didn't opt in to the conflict check.
+   */
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const prisma = getPrismaClient();
+    const { expectedVersion, ...data } = dto;
 
     const updated = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.update({
-        where: { id: userId },
-        data: dto,
-      });
+      let user;
+      if (expectedVersion !== undefined) {
+        try {
+          user = await tx.user.update({
+            where: { id: userId, version: expectedVersion },
+            data: { ...data, version: { increment: 1 } },
+          });
+        } catch (err) {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+            // P2025 means the compound WHERE matched no row - disambiguate
+            // "id doesn't exist" (genuine 404) from "id exists but version
+            // moved on" (a real concurrent-edit conflict) rather than
+            // reporting one as the other.
+            const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true } });
+            if (!exists) {
+              throw new NotFoundException(`User ${userId} not found`);
+            }
+            throw new ConflictException(
+              `Profile was modified since you last loaded it (expected version ${expectedVersion}). Reload and retry.`
+            );
+          }
+          throw err;
+        }
+      } else {
+        user = await tx.user.update({
+          where: { id: userId },
+          data: { ...data, version: { increment: 1 } },
+        });
+      }
 
       await this.auditService.record({
         actorUserId: userId,

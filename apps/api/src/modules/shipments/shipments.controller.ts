@@ -1,11 +1,11 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
-import { CursorPaginationQueryDto } from "../../common/pagination/cursor-pagination.dto";
+import { ListShipmentsQueryDto } from "./dto/list-shipments.dto";
 import { ShipmentsService } from "./shipments.service";
 
 @ApiTags("shipments")
@@ -17,16 +17,21 @@ export class ShipmentsController {
 
   @Get()
   @RequirePermission("shipment:read")
-  async list(@CurrentUser() user: AuthenticatedUser, @Query() pagination: CursorPaginationQueryDto) {
+  async list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListShipmentsQueryDto) {
     return this.shipmentsService.list(
       { role: user.role, userId: user.userId, organisationId: user.organisationId },
-      pagination
+      { cursor: query.cursor, limit: query.limit },
+      { status: query.status, createdAfter: query.createdAfter, createdBefore: query.createdBefore }
     );
   }
 
   @Get(":id")
   @RequirePermission("shipment:read")
-  async getById(@Param("id") id: string) {
-    return this.shipmentsService.getById(id);
+  async getById(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.shipmentsService.getById(id, {
+      role: user.role,
+      userId: user.userId,
+      organisationId: user.organisationId,
+    });
   }
 }

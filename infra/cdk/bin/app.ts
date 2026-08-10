@@ -30,8 +30,13 @@ const data = new DataStack(app, "Nauterio-Data", {
   env,
   vpc: network.vpc,
 });
-new ComputeStack(app, "Nauterio-Compute", { env, vpc: network.vpc });
-new EdgeStack(app, "Nauterio-Edge", { env });
+const compute = new ComputeStack(app, "Nauterio-Compute", {
+  env,
+  vpc: network.vpc,
+  databaseProxy: data.databaseProxy,
+  databaseCredentialsSecret: data.databaseCredentialsSecret,
+});
+new EdgeStack(app, "Nauterio-Edge", { env, alb: compute.alb });
 new ObservabilityStack(app, "Nauterio-Observability", { env, database: data.database });
 
 cdk.Tags.of(app).add("nauterio:project", "logistics-platform");

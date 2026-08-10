@@ -5,6 +5,7 @@ import * as elasticache from "aws-cdk-lib/aws-elasticache";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as kms from "aws-cdk-lib/aws-kms";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 
 export interface DataStackProps extends StackProps {
@@ -35,6 +36,8 @@ export interface DataStackProps extends StackProps {
  */
 export class DataStack extends Stack {
   public readonly database: rds.DatabaseInstance;
+  public readonly databaseProxy: rds.DatabaseProxy;
+  public readonly databaseCredentialsSecret: secretsmanager.Secret;
   public readonly quarantineBucket: s3.Bucket;
   public readonly documentsBucket: s3.Bucket;
   public readonly dataKey: kms.Key;
@@ -56,9 +59,16 @@ export class DataStack extends Stack {
 
     // Owned here, not in SecurityStack - see this file's class doc comment
     // for why (avoids a circular cross-stack dependency with RDS Proxy).
-    const databaseCredentialsSecret = new secretsmanager.Secret(this, "DatabaseCredentials", {
+    // Deliberately on the default AWS-managed key, not `dataKey` - once
+    // ComputeStack's ECS task execution roles also need to read this
+    // secret (REL-014), a customer-managed key's grantDecrypt() modifies
+    // the key's own resource policy to reference the grantee's role ARN,
+    // which for a cross-stack grantee creates the exact
+    // DependencyCycle SecurityStack's doc comment already describes -
+    // reproduced here for real while wiring REL-014, same fix applied
+    // (see security-stack.ts's Stripe secret for the sibling case).
+    this.databaseCredentialsSecret = new secretsmanager.Secret(this, "DatabaseCredentials", {
       description: "RDS PostgreSQL master credentials",
-      encryptionKey: this.dataKey,
       generateSecretString: {
         secretStringTemplate: JSON.stringify({ username: "nauterio_admin" }),
         generateStringKey: "password",
@@ -69,10 +79,11 @@ export class DataStack extends Stack {
 
     this.database = new rds.DatabaseInstance(this, "NauterioDatabase", {
       engine: rds.DatabaseInstanceEngine.postgres({ version: rds.PostgresEngineVersion.VER_18 }),
+      databaseName: "nauterio", // must match compute-stack.ts's DATABASE_NAME constant
       vpc: props.vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [dbSecurityGroup],
-      credentials: rds.Credentials.fromSecret(databaseCredentialsSecret),
+      credentials: rds.Credentials.fromSecret(this.databaseCredentialsSecret),
       storageEncryptionKey: this.dataKey,
       multiAz: true, // spec 33.3: "Multi-AZ RDS, automated backups and point-in-time recovery"
       backupRetention: Duration.days(35), // spec Appendix G: "Database point-in-time backups: 35 days"
@@ -83,10 +94,25 @@ export class DataStack extends Stack {
       cloudwatchLogsExports: ["postgresql"],
     });
 
+    // REL-013: `cloudwatchLogsExports` auto-creates a CloudWatch log group
+    // with no expiry - RDS creates it itself once logs first flow, so it
+    // can't be modeled as a normal `logs.LogGroup` construct (that would
+    // try to create a group RDS already owns). `logs.LogRetention` is the
+    // CDK-idiomatic way to set retention on a log group by name regardless
+    // of who creates it or when.
+    new logs.LogRetention(this, "DatabaseLogRetention", {
+      logGroupName: `/aws/rds/instance/${this.database.instanceIdentifier}/postgresql`,
+      retention: logs.RetentionDays.ONE_MONTH,
+    });
+
     // RDS Proxy - see class doc comment above for why this is not optional.
-    new rds.DatabaseProxy(this, "NauterioDatabaseProxy", {
+    // REL-014: previously created but never exported, so nothing could
+    // ever point at it - DATABASE_URL was never wired into any task
+    // definition at all, meaning the API could not have started even once
+    // the health check (REL-001) was fixed.
+    this.databaseProxy = new rds.DatabaseProxy(this, "NauterioDatabaseProxy", {
       proxyTarget: rds.ProxyTarget.fromInstance(this.database),
-      secrets: [databaseCredentialsSecret],
+      secrets: [this.databaseCredentialsSecret],
       vpc: props.vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [dbSecurityGroup],
