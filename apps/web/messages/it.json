@@ -106,5 +106,106 @@
     "guidanceBody": "Hai spedizioni dirette verso {countries}. Tieni pronte le fatture commerciali e le liste di imballaggio per lo sdoganamento negli Stati Uniti -",
     "guidanceLink": "consulta la nostra guida doganale",
     "guidanceSuffix": "per sapere cosa richiede solitamente la Dogana statunitense (CBP)."
+  },
+  "ServiceCatalog": {
+    "airExpress": {
+      "name": "Air Express",
+      "transitLabel": "2-5 giorni lavorativi dopo l'accettazione all'esportazione",
+      "description": "Trasporto aereo prioritario per documenti e pacchi urgenti, con tracciamento porta a porta."
+    },
+    "airEconomy": {
+      "name": "Air Economy",
+      "transitLabel": "5-10 giorni lavorativi dopo l'accettazione all'esportazione",
+      "description": "Trasporto aereo economico per pacchi non urgenti, con tracciamento completo e gestione standard."
+    },
+    "oceanFreight": {
+      "name": "Ocean Freight (LCL)",
+      "transitLabel": "In base al calendario - partenza e transito esatti mostrati al momento del preventivo",
+      "description": "Trasporto marittimo groupage (LCL) per spedizioni più pesanti o voluminose che condividono lo spazio del container."
+    }
+  },
+  "Home": {
+    "heroTitle": "Spedisci dall'Italia agli Stati Uniti con fiducia.",
+    "heroSubtitle": "Logistica premium per le aziende. Sdoganamento rapido, tracciamento in tempo reale e assistenza dedicata per la tua supply chain transatlantica.",
+    "getInstantQuote": "Preventivo Immediato",
+    "trackShipmentButton": "Traccia Spedizione",
+    "quickTrackLabel": "Traccia Rapida",
+    "quickTrackPlaceholder": "Inserisci il numero di tracciamento (es. NT-782914-US)",
+    "statusUpdateLabel": "Aggiornamento di Stato",
+    "clearedCustoms": "Sdoganata negli USA",
+    "trustBar": [
+      { "title": "Assistenza Integrata", "desc": "Assistenza con ticket tramite l'area riservata" },
+      { "title": "Pratiche Doganali Guidate", "desc": "Fattura commerciale inclusa nella prenotazione" },
+      { "title": "Tracciamento delle Tappe", "desc": "Aggiornamenti dal ritiro alla consegna" },
+      { "title": "Protezione Facoltativa", "desc": "Protezione della spedizione disponibile al checkout" }
+    ],
+    "servicesHeading": "I Nostri Servizi di Spedizione",
+    "servicesSubheading": "Soluzioni logistiche su misura per la rotta Italia-USA, bilanciando velocità ed efficienza dei costi.",
+    "learnMore": "Scopri di più",
+    "howItWorksHeading": "Come funziona",
+    "howItWorksSubheading": "Un processo digitale snello pensato per farti risparmiare tempo ed eliminare la burocrazia.",
+    "steps": [
+      { "title": "Preventivo", "desc": "Ottieni subito un prezzo trasparente." },
+      { "title": "Prenota", "desc": "Conferma la tua spedizione online." },
+      { "title": "Spedisci", "desc": "Ritiriamo e gestiamo la dogana." },
+      { "title": "Consegna", "desc": "Consegna dell'ultimo miglio negli USA." }
+    ],
+    "routeHeading": "Gli Esperti della Rotta Italia-USA",
+    "routeParagraph": "Siamo specializzati esclusivamente nelle spedizioni transatlantiche tra Italia e Stati Uniti. Concentrandoci su questa singola rotta commerciale, offriamo un'affidabilità senza pari, competenza doganale consolidata e tempi di transito ottimizzati.",
+    "routeFeature1Title": "Pratiche Doganali Guidate",
+    "routeFeature1Desc": "Fattura commerciale inclusa nella prenotazione",
+    "routeFeature2Title": "Tracciamento delle Tappe",
+    "routeFeature2Desc": "Aggiornamenti dal ritiro in Italia alla consegna negli USA",
+    "milan": "Milano",
+    "newYork": "New York",
+    "genoa": "Genova",
+    "newark": "Newark",
+    "faqHeading": "Domande Frequenti",
+    "faqSubheading": "Tutto quello che devi sapere sulle spedizioni con Nauterio.",
+    "faqs": [
+      {
+        "question": "Quanto tempo richiede solitamente una spedizione dall'Italia agli USA?",
+        "answer": "Air Express punta a 2-5 giorni lavorativi dopo l'accettazione all'esportazione, e Air Economy a 5-10 giorni lavorativi. Ocean Freight (LCL) segue un calendario, con partenza e transito esatti mostrati al momento della richiesta di preventivo."
+      },
+      {
+        "question": "Gestite lo sdoganamento negli Stati Uniti?",
+        "answer": "La piattaforma è progettata per guidarti nella compilazione della fattura commerciale e dei dati doganali durante la prenotazione. La piena intermediazione doganale richiede una partnership confermata con un broker, non ancora finalizzata."
+      },
+      {
+        "question": "Le mie spedizioni sono assicurate?",
+        "answer": "La protezione facoltativa della spedizione sarà offerta al checkout una volta finalizzati i termini assicurativi con un partner. Non è ancora disponibile su questo sito di anteprima."
+      },
+      {
+        "question": "Posso tracciare la mia spedizione in tempo reale?",
+        "answer": "Riceverai aggiornamenti sulle tappe dal ritiro alla consegna nella pagina di tracciamento. Questa anteprima utilizza dati di esempio; l'integrazione live con i corrieri non è ancora attiva."
+      },
+      {
+        "question": "Che tipo di merci potete spedire?",
+        "answer": "Ci occupiamo di merci commerciali e personali sulla rotta Italia-USA. Consulta la pagina Dogana per le categorie di articoli proibiti e soggetti a restrizioni prima di prenotare."
+      }
+    ],
+    "ctaHeading": "Pronto a spedire?",
+    "ctaSubtitle": "Ottieni una stima immediata e avvia la tua spedizione in pochi minuti.",
+    "ctaButton": "Ottieni il Tuo Preventivo Gratuito"
+  },
+  "Footer": {
+    "brandDescription": "Una piattaforma di spedizione dedicata alla rotta Italia–Stati Uniti: trasporto aereo, marittimo e pacchi, con assistenza doganale e tracciamento in un unico posto.",
+    "registrationPending": "I dati di registrazione dell'azienda e i contatti saranno pubblicati qui una volta finalizzata la registrazione legale.",
+    "servicesHeading": "Servizi",
+    "airExpress": "Air Express",
+    "airEconomy": "Air Economy",
+    "oceanFreight": "Ocean Freight",
+    "compareAllServices": "Confronta tutti i servizi",
+    "resourcesHeading": "Risorse",
+    "trackShipment": "Traccia Spedizione",
+    "customsCompliance": "Dogana e Conformità",
+    "businessSolutions": "Soluzioni per Aziende",
+    "customerPortal": "Area Clienti",
+    "legalHeading": "Legale",
+    "privacyPolicy": "Informativa sulla Privacy",
+    "termsOfService": "Termini di Servizio",
+    "cookiePolicy": "Cookie Policy",
+    "copyright": "© {year} Nauterio Logistics. Tutti i diritti riservati.",
+    "previewNotice": "Questo sito è un'anteprima pre-lancio. Date del servizio, copertura e prezzi mostrati sono indicativi e non ancora confermati."
   }
 }

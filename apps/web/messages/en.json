@@ -106,5 +106,106 @@
     "guidanceBody": "You have shipments heading to {countries}. Keep commercial invoices and packing lists ready for US customs clearance -",
     "guidanceLink": "see our customs guide",
     "guidanceSuffix": "for what US Customs and Border Protection typically requires."
+  },
+  "ServiceCatalog": {
+    "airExpress": {
+      "name": "Air Express",
+      "transitLabel": "2-5 business days after export acceptance",
+      "description": "Priority air freight for urgent documents and parcels, with door-to-door tracking."
+    },
+    "airEconomy": {
+      "name": "Air Economy",
+      "transitLabel": "5-10 business days after export acceptance",
+      "description": "Lower-cost air freight for non-urgent parcels, with full tracking and standard handling."
+    },
+    "oceanFreight": {
+      "name": "Ocean Freight (LCL)",
+      "transitLabel": "Schedule-based - exact sailing and transit shown at quote time",
+      "description": "Less-than-container-load sea freight for heavier or bulkier shipments sharing container space."
+    }
+  },
+  "Home": {
+    "heroTitle": "Ship from Italy to the United States with confidence.",
+    "heroSubtitle": "Premium logistics for businesses. Fast customs clearance, real-time tracking, and dedicated support for your transatlantic supply chain.",
+    "getInstantQuote": "Get Instant Quote",
+    "trackShipmentButton": "Track Shipment",
+    "quickTrackLabel": "Quick Track",
+    "quickTrackPlaceholder": "Enter tracking number (e.g. NT-782914-US)",
+    "statusUpdateLabel": "Status Update",
+    "clearedCustoms": "Cleared US Customs",
+    "trustBar": [
+      { "title": "Support Built In", "desc": "Ticketed support through the portal" },
+      { "title": "Guided Customs Filing", "desc": "Commercial invoice built into booking" },
+      { "title": "Milestone Tracking", "desc": "Updates from pickup to delivery" },
+      { "title": "Optional Protection", "desc": "Shipment protection available at checkout" }
+    ],
+    "servicesHeading": "Our Shipping Services",
+    "servicesSubheading": "Tailored logistics solutions for the Italy-USA trade lane, balancing speed and cost efficiency.",
+    "learnMore": "Learn more",
+    "howItWorksHeading": "How it works",
+    "howItWorksSubheading": "A streamlined digital process designed to save you time and eliminate paperwork.",
+    "steps": [
+      { "title": "Quote", "desc": "Get instant transparent pricing." },
+      { "title": "Book", "desc": "Confirm your shipment online." },
+      { "title": "Ship", "desc": "We pick up and handle customs." },
+      { "title": "Deliver", "desc": "Final mile delivery in the US." }
+    ],
+    "routeHeading": "The Italy-USA Corridor Experts",
+    "routeParagraph": "We specialize exclusively in transatlantic shipping between Italy and the United States. By focusing on this single trade lane, we offer unmatched reliability, consolidated customs expertise, and optimized transit times.",
+    "routeFeature1Title": "Guided Customs Filing",
+    "routeFeature1Desc": "Commercial invoice built into booking",
+    "routeFeature2Title": "Milestone Tracking",
+    "routeFeature2Desc": "Updates from Italian pickup to US delivery",
+    "milan": "Milan",
+    "newYork": "New York",
+    "genoa": "Genoa",
+    "newark": "Newark",
+    "faqHeading": "Frequently Asked Questions",
+    "faqSubheading": "Everything you need to know about shipping with Nauterio.",
+    "faqs": [
+      {
+        "question": "How long does shipping from Italy to the USA typically take?",
+        "answer": "Air Express targets 2-5 business days after export acceptance, and Air Economy targets 5-10 business days. Ocean Freight (LCL) is schedule-based, with exact sailing and transit shown when you request a quote."
+      },
+      {
+        "question": "Do you handle US Customs clearance?",
+        "answer": "The platform is built to guide you through commercial invoice and customs data as part of booking. Full customs brokerage requires a confirmed broker partnership, which is not yet finalised."
+      },
+      {
+        "question": "Are my shipments insured?",
+        "answer": "Optional shipment protection will be offered at checkout once insurance terms are finalised with a partner. It is not yet available on this preview site."
+      },
+      {
+        "question": "Can I track my shipment in real-time?",
+        "answer": "You'll receive milestone updates from pickup through delivery on the tracking page. This preview uses sample tracking data; live carrier integration is not yet connected."
+      },
+      {
+        "question": "What types of goods can you ship?",
+        "answer": "We're focused on commercial and personal goods on the Italy-USA lane. See the Customs page for prohibited and restricted item categories before booking."
+      }
+    ],
+    "ctaHeading": "Ready to ship?",
+    "ctaSubtitle": "Get an instant estimate and start your shipment in minutes.",
+    "ctaButton": "Get Your Free Quote"
+  },
+  "Footer": {
+    "brandDescription": "A dedicated shipping platform for the Italy–United States corridor: air, ocean, and parcel freight with customs guidance and tracking in one place.",
+    "registrationPending": "Company registration and contact details will be published here once legal registration is finalised.",
+    "servicesHeading": "Services",
+    "airExpress": "Air Express",
+    "airEconomy": "Air Economy",
+    "oceanFreight": "Ocean Freight",
+    "compareAllServices": "Compare all services",
+    "resourcesHeading": "Resources",
+    "trackShipment": "Track Shipment",
+    "customsCompliance": "Customs & Compliance",
+    "businessSolutions": "Business Solutions",
+    "customerPortal": "Customer Portal",
+    "legalHeading": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "cookiePolicy": "Cookie Policy",
+    "copyright": "© {year} Nauterio Logistics. All rights reserved.",
+    "previewNotice": "This site is a pre-launch preview. Service dates, coverage, and pricing shown are indicative and not yet confirmed."
   }
 }

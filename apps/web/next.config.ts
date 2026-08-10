@@ -7,6 +7,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 // an httpOnly session cookie into the real API's `Authorization` header.
 const nextConfig: NextConfig = {
   output: "standalone",
+  transpilePackages: ["@nauterio/contracts"],
 };
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
