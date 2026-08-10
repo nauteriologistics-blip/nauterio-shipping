@@ -2,10 +2,18 @@
 
 import { AlertCircle, ShieldCheck, CheckCircle2, FileCheck, Calculator, ArrowRight } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 export default function CustomsPage() {
+  const t = useTranslations("CustomsPage");
   const [declaredValue, setDeclaredValue] = useState("");
   const [estimatedDuty, setEstimatedDuty] = useState<number | null>(null);
+
+  const prohibitedItems = t.raw("prohibitedItems") as string[];
+  const restrictedItems = t.raw("restrictedItems") as string[];
+  const allowedItems = t.raw("allowedItems") as string[];
+  const invoiceItems = t.raw("invoiceItems") as string[];
+  const waybillItems = t.raw("waybillItems") as string[];
 
   const calculateDuty = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,10 +30,10 @@ export default function CustomsPage() {
       <section className="py-24 md:py-32 bg-slate-50 flex flex-col items-center text-center px-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8">
-            Customs & Compliance
+            {t("heroTitle")}
           </h1>
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto">
-            Navigate international shipping with confidence. Understand Italy-USA customs requirements and ensure your shipments arrive without delay.
+            {t("heroSubtitle")}
           </p>
         </div>
       </section>
@@ -39,13 +47,13 @@ export default function CustomsPage() {
               <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
                 <AlertCircle className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold">Prohibited Items</h2>
+              <h2 className="text-2xl font-bold">{t("prohibitedTitle")}</h2>
             </div>
             <p className="text-slate-600 mb-8 flex-grow">
-              Items strictly forbidden from entering the USA. Shipping these will result in confiscation and potential fines.
+              {t("prohibitedDesc")}
             </p>
             <ul className="space-y-4">
-              {["Fresh meats & produce", "Counterfeit goods", "Illegal drugs", "Explosives & firearms", "Most agricultural products"].map((item, idx) => (
+              {prohibitedItems.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-3 text-slate-700">
                   <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 flex-shrink-0" />
                   <span>{item}</span>
@@ -60,13 +68,13 @@ export default function CustomsPage() {
               <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
                 <ShieldCheck className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold">Restricted Items</h2>
+              <h2 className="text-2xl font-bold">{t("restrictedTitle")}</h2>
             </div>
             <p className="text-slate-600 mb-8 flex-grow">
-              Items requiring special permits, FDA approval, or specific documentation before shipping.
+              {t("restrictedDesc")}
             </p>
             <ul className="space-y-4">
-              {["Alcoholic beverages", "Medications (prescription)", "Commercial food products", "High-value art & antiques", "Certain cosmetics"].map((item, idx) => (
+              {restrictedItems.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-3 text-slate-700">
                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
                   <span>{item}</span>
@@ -81,13 +89,13 @@ export default function CustomsPage() {
               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold">Freely Allowed</h2>
+              <h2 className="text-2xl font-bold">{t("allowedTitle")}</h2>
             </div>
             <p className="text-slate-600 mb-8 flex-grow">
-              Common items that typically clear customs easily without specialized documentation.
+              {t("allowedDesc")}
             </p>
             <ul className="space-y-4">
-              {["Personal clothing", "Books & documents", "Consumer electronics", "Packaged dry snacks", "Souvenirs & gifts"].map((item, idx) => (
+              {allowedItems.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-3 text-slate-700">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
                   <span>{item}</span>
@@ -102,9 +110,9 @@ export default function CustomsPage() {
       <section className="py-24 bg-slate-50 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-6">Required Documentation</h2>
+            <h2 className="text-4xl font-bold mb-6">{t("documentationHeading")}</h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Ensure you have the right paperwork for a smooth border crossing.
+              {t("documentationSubheading")}
             </p>
           </div>
 
@@ -112,28 +120,26 @@ export default function CustomsPage() {
             <div className="bg-white p-8 rounded-3xl shadow-sm">
               <div className="flex items-center gap-4 mb-6">
                 <FileCheck className="text-[#F28C18] w-8 h-8" />
-                <h3 className="text-2xl font-bold">Commercial Invoice</h3>
+                <h3 className="text-2xl font-bold">{t("invoiceTitle")}</h3>
               </div>
-              <p className="text-slate-600 mb-4">Required for all non-document shipments. Must include:</p>
+              <p className="text-slate-600 mb-4">{t("invoiceIntro")}</p>
               <ul className="space-y-3 text-slate-700">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Sender and receiver addresses</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Detailed item description</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Quantity and unit value</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Country of origin</li>
+                {invoiceItems.map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> {item}</li>
+                ))}
               </ul>
             </div>
 
             <div className="bg-white p-8 rounded-3xl shadow-sm">
               <div className="flex items-center gap-4 mb-6">
                 <FileCheck className="text-[#F28C18] w-8 h-8" />
-                <h3 className="text-2xl font-bold">Waybill</h3>
+                <h3 className="text-2xl font-bold">{t("waybillTitle")}</h3>
               </div>
-              <p className="text-slate-600 mb-4">Generated automatically when you book, containing:</p>
+              <p className="text-slate-600 mb-4">{t("waybillIntro")}</p>
               <ul className="space-y-3 text-slate-700">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Tracking number</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Selected service level</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Package dimensions & weight</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Routing information</li>
+                {waybillItems.map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> {item}</li>
+                ))}
               </ul>
             </div>
           </div>
@@ -148,17 +154,17 @@ export default function CustomsPage() {
               <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-2xl mb-6">
                 <Calculator className="w-8 h-8 text-[#F28C18]" />
               </div>
-              <h2 className="text-4xl font-bold mb-4">Duty & Tax Estimator</h2>
+              <h2 className="text-4xl font-bold mb-4">{t("estimatorHeading")}</h2>
               <p className="text-white/80 text-lg">
-                Shipments to the USA under $800 generally clear customs duty-free. Enter your shipment value to see an estimate.
+                {t("estimatorSubheading")}
               </p>
             </div>
-            
+
             <div className="flex-1 w-full bg-white rounded-2xl p-8 text-[#081F3D]">
               <form onSubmit={calculateDuty} className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Declared Value (USD)
+                    {t("declaredValueLabel")}
                   </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
@@ -166,28 +172,28 @@ export default function CustomsPage() {
                       type="number"
                       value={declaredValue}
                       onChange={(e) => setDeclaredValue(e.target.value)}
-                      placeholder="e.g. 1500"
+                      placeholder={t("declaredValuePlaceholder")}
                       className="w-full pl-8 pr-4 py-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#F28C18] focus:border-transparent transition-all"
                       required
                       min="0"
                     />
                   </div>
                 </div>
-                
+
                 <button
                   type="submit"
                   className="w-full bg-[#F28C18] hover:bg-[#F28C18]/90 text-white font-bold py-4 px-8 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
-                  Estimate Costs <ArrowRight className="w-5 h-5" />
+                  {t("estimateButton")} <ArrowRight className="w-5 h-5" />
                 </button>
 
                 {estimatedDuty !== null && (
                   <div className="mt-6 p-6 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                    <p className="text-sm text-slate-500 font-medium mb-1">Estimated Duty</p>
+                    <p className="text-sm text-slate-500 font-medium mb-1">{t("estimatedDutyLabel")}</p>
                     <p className="text-3xl font-bold text-[#081F3D]">
                       ${estimatedDuty.toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-2">*This is an estimate. Final charges determined by CBP.</p>
+                    <p className="text-xs text-slate-400 mt-2">{t("estimatorDisclaimer")}</p>
                   </div>
                 )}
               </form>
