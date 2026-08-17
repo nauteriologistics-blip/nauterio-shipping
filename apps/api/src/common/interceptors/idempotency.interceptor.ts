@@ -124,7 +124,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
             data: {
               status: "COMPLETED",
               responseStatus: declaredStatus,
-              responseBodyJson: body ?? {},
+              responseBodyJson: (body as any) ?? {},
               completedAt: new Date(),
             },
           })
