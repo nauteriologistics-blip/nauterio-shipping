@@ -1,4 +1,4 @@
-import { Controller, Get, Injectable, Module, ServiceUnavailableException } from "@nestjs/common";
+import { Controller, Get, HttpCode, Header, Injectable, Module, ServiceUnavailableException } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { getPrismaClient } from "@nauterio/database";
@@ -53,8 +53,21 @@ class HealthController {
   }
 }
 
+@ApiTags("healthz")
+@SkipThrottle()
+@Controller("healthz")
+class HealthzController {
+  @Get()
+  @HttpCode(204)
+  @Header("Cache-Control", "no-store")
+  @Header("X-Robots-Tag", "noindex, nofollow")
+  healthz() {
+    return;
+  }
+}
+
 @Module({
-  controllers: [HealthController],
+  controllers: [HealthController, HealthzController],
   providers: [HealthService],
 })
 export class HealthModule {}
