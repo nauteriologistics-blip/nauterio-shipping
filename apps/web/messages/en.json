@@ -358,33 +358,43 @@
     "verifyAndPrint": "Verify Intake & Print Label"
   },
   "Home": {
-    "heroTitle": "Ship from Italy to the United States with confidence.",
-    "heroSubtitle": "Premium logistics for businesses. Fast customs clearance, real-time tracking, and dedicated support for your transatlantic supply chain.",
-    "getInstantQuote": "Get Instant Quote",
+    "previewLabel": "Pre-launch",
+    "previewMessage": "Nauterio is currently validating its Italy–USA service before accepting live shipments.",
+    "corridorLabel": "One corridor. Clearer shipping.",
+    "heroTitle": "Italy to the United States, without the logistics guesswork.",
+    "heroSubtitle": "Plan air and ocean shipments in one place, with guided customs information, milestone visibility and a clear handoff at every stage.",
+    "getInstantQuote": "Build an Estimate",
     "trackShipmentButton": "Track Shipment",
     "quickTrackLabel": "Quick Track",
     "quickTrackPlaceholder": "Enter tracking number (e.g. NT-782914-US)",
     "statusUpdateLabel": "Status Update",
     "clearedCustoms": "Cleared US Customs",
+    "routeCardEyebrow": "Italy → USA operating corridor",
+    "routeCardTitle": "A clearer transatlantic journey",
+    "routeCardStep1": "Pickup and export readiness",
+    "routeCardStep2": "Air or ocean movement",
+    "routeCardStep3": "US clearance and delivery",
+    "milestoneExample": "Customs review completed",
+    "exampleLabel": "Example",
     "trustBar": [
       { "title": "Support Built In", "desc": "Ticketed support through the portal" },
       { "title": "Guided Customs Filing", "desc": "Commercial invoice built into booking" },
       { "title": "Milestone Tracking", "desc": "Updates from pickup to delivery" },
-      { "title": "Optional Protection", "desc": "Shipment protection available at checkout" }
+      { "title": "Pre-launch Transparency", "desc": "Unconfirmed services are labelled clearly" }
     ],
     "servicesHeading": "Our Shipping Services",
     "servicesSubheading": "Tailored logistics solutions for the Italy-USA trade lane, balancing speed and cost efficiency.",
     "learnMore": "Learn more",
     "howItWorksHeading": "How it works",
-    "howItWorksSubheading": "A streamlined digital process designed to save you time and eliminate paperwork.",
+    "howItWorksSubheading": "A guided process that shows what we need, what happens next and where your shipment stands.",
     "steps": [
-      { "title": "Quote", "desc": "Get instant transparent pricing." },
-      { "title": "Book", "desc": "Confirm your shipment online." },
-      { "title": "Ship", "desc": "We pick up and handle customs." },
-      { "title": "Deliver", "desc": "Final mile delivery in the US." }
+      { "title": "Estimate", "desc": "Share the route, dimensions and declared value." },
+      { "title": "Review", "desc": "Confirm service, documents and final commercial terms." },
+      { "title": "Move", "desc": "Follow verified milestones from Italian origin to the US." },
+      { "title": "Resolve", "desc": "See required actions and support context in one place." }
     ],
-    "routeHeading": "The Italy-USA Corridor Experts",
-    "routeParagraph": "We specialize exclusively in transatlantic shipping between Italy and the United States. By focusing on this single trade lane, we offer unmatched reliability, consolidated customs expertise, and optimized transit times.",
+    "routeHeading": "Built around one demanding corridor",
+    "routeParagraph": "Nauterio is being designed specifically for shipments between Italy and the United States. That focus keeps service selection, customs preparation and tracking centred on the real decisions this route requires—without pretending that unconfirmed carrier, broker or insurance arrangements are already live.",
     "routeFeature1Title": "Guided Customs Filing",
     "routeFeature1Desc": "Commercial invoice built into booking",
     "routeFeature2Title": "Milestone Tracking",
@@ -417,9 +427,9 @@
         "answer": "We're focused on commercial and personal goods on the Italy-USA lane. See the Customs page for prohibited and restricted item categories before booking."
       }
     ],
-    "ctaHeading": "Ready to ship?",
-    "ctaSubtitle": "Get an instant estimate and start your shipment in minutes.",
-    "ctaButton": "Get Your Free Quote"
+    "ctaHeading": "Planning an Italy–USA shipment?",
+    "ctaSubtitle": "Build an indicative estimate now. We will label what is confirmed and what still requires operational review.",
+    "ctaButton": "Build Your Estimate"
   },
   "Footer": {
     "brandDescription": "A dedicated shipping platform for the Italy–United States corridor: air, ocean, and parcel freight with customs guidance and tracking in one place.",

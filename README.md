@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nauterio Logistics
 
-## Getting Started
+Pre-launch logistics platform focused on the Italy–United States trade lane. The monorepo contains the public/customer web app, staff admin, NestJS API, background worker, shared packages, Prisma data model and AWS CDK infrastructure.
 
-First, run the development server:
+## Getting started
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Requirements: Node.js 24+, pnpm 11.20 and PostgreSQL. Copy the database environment example, generate the Prisma client, migrate and seed before starting the applications.
+
+```sh
+cp packages/database/.env.example packages/database/.env
+pnpm install --frozen-lockfile
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed
+
+pnpm dev:api
+pnpm dev:worker
+pnpm dev:web
+pnpm dev:admin
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The web app runs on `http://localhost:3000`, the API on `http://localhost:4000`, and admin on `http://localhost:4100`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quality checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
 
-## Learn More
+## Important product status
 
-To learn more about Next.js, take a look at the following resources:
+Nauterio is pre-launch. Pricing is indicative, real carrier/payment/broker integrations are not complete, and the platform must not be represented as accepting production shipments until the acceptance evidence in `docs/sections/41-39-final-acceptance-criteria.md` is complete.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The complete product and technical specification is indexed in `docs/specification-index.md`. Architectural decisions and operational runbooks live in `docs/decisions` and `docs/runbooks`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Repository layout
 
-## Deploy on Vercel
+- `apps/web` — public website, customer portal, warehouse and driver surfaces
+- `apps/admin` — staff administration console
+- `apps/api` — NestJS API
+- `apps/worker` — asynchronous jobs and outbox relay
+- `packages` — contracts, validation, database, integrations and shared tooling
+- `infra/cdk` — AWS infrastructure definitions
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Never commit real credentials or customer data. Local authentication and mock provider adapters are development-only.

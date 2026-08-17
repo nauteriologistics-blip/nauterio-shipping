@@ -358,33 +358,43 @@
     "verifyAndPrint": "Verifica Accettazione e Stampa Etichetta"
   },
   "Home": {
-    "heroTitle": "Spedisci dall'Italia agli Stati Uniti con fiducia.",
-    "heroSubtitle": "Logistica premium per le aziende. Sdoganamento rapido, tracciamento in tempo reale e assistenza dedicata per la tua supply chain transatlantica.",
-    "getInstantQuote": "Preventivo Immediato",
+    "previewLabel": "Pre-lancio",
+    "previewMessage": "Nauterio sta validando il servizio Italia–USA prima di accettare spedizioni reali.",
+    "corridorLabel": "Una rotta. Spedizioni più chiare.",
+    "heroTitle": "Dall'Italia agli Stati Uniti, senza incertezze logistiche.",
+    "heroSubtitle": "Pianifica spedizioni aeree e marittime in un unico posto, con informazioni doganali guidate, visibilità sulle tappe e passaggi di consegna chiari.",
+    "getInstantQuote": "Calcola una Stima",
     "trackShipmentButton": "Traccia Spedizione",
     "quickTrackLabel": "Traccia Rapida",
     "quickTrackPlaceholder": "Inserisci il numero di tracciamento (es. NT-782914-US)",
     "statusUpdateLabel": "Aggiornamento di Stato",
     "clearedCustoms": "Sdoganata negli USA",
+    "routeCardEyebrow": "Corridoio operativo Italia → USA",
+    "routeCardTitle": "Un percorso transatlantico più chiaro",
+    "routeCardStep1": "Ritiro e preparazione export",
+    "routeCardStep2": "Trasporto aereo o marittimo",
+    "routeCardStep3": "Dogana USA e consegna",
+    "milestoneExample": "Revisione doganale completata",
+    "exampleLabel": "Esempio",
     "trustBar": [
       { "title": "Assistenza Integrata", "desc": "Assistenza con ticket tramite l'area riservata" },
       { "title": "Pratiche Doganali Guidate", "desc": "Fattura commerciale inclusa nella prenotazione" },
       { "title": "Tracciamento delle Tappe", "desc": "Aggiornamenti dal ritiro alla consegna" },
-      { "title": "Protezione Facoltativa", "desc": "Protezione della spedizione disponibile al checkout" }
+      { "title": "Trasparenza Pre-lancio", "desc": "I servizi non confermati sono indicati chiaramente" }
     ],
     "servicesHeading": "I Nostri Servizi di Spedizione",
     "servicesSubheading": "Soluzioni logistiche su misura per la rotta Italia-USA, bilanciando velocità ed efficienza dei costi.",
     "learnMore": "Scopri di più",
     "howItWorksHeading": "Come funziona",
-    "howItWorksSubheading": "Un processo digitale snello pensato per farti risparmiare tempo ed eliminare la burocrazia.",
+    "howItWorksSubheading": "Un processo guidato che mostra ciò che serve, cosa succede dopo e a che punto si trova la spedizione.",
     "steps": [
-      { "title": "Preventivo", "desc": "Ottieni subito un prezzo trasparente." },
-      { "title": "Prenota", "desc": "Conferma la tua spedizione online." },
-      { "title": "Spedisci", "desc": "Ritiriamo e gestiamo la dogana." },
-      { "title": "Consegna", "desc": "Consegna dell'ultimo miglio negli USA." }
+      { "title": "Stima", "desc": "Inserisci rotta, dimensioni e valore dichiarato." },
+      { "title": "Revisione", "desc": "Conferma servizio, documenti e condizioni commerciali finali." },
+      { "title": "Trasporto", "desc": "Segui le tappe verificate dall'origine italiana agli USA." },
+      { "title": "Assistenza", "desc": "Vedi azioni richieste e contesto di supporto in un unico posto." }
     ],
-    "routeHeading": "Gli Esperti della Rotta Italia-USA",
-    "routeParagraph": "Siamo specializzati esclusivamente nelle spedizioni transatlantiche tra Italia e Stati Uniti. Concentrandoci su questa singola rotta commerciale, offriamo un'affidabilità senza pari, competenza doganale consolidata e tempi di transito ottimizzati.",
+    "routeHeading": "Progettato attorno a una rotta impegnativa",
+    "routeParagraph": "Nauterio è progettato specificamente per le spedizioni tra Italia e Stati Uniti. Questa focalizzazione mantiene la scelta del servizio, la preparazione doganale e il tracciamento centrati sulle decisioni reali della rotta, senza presentare come già attivi accordi con vettori, broker o assicuratori non ancora confermati.",
     "routeFeature1Title": "Pratiche Doganali Guidate",
     "routeFeature1Desc": "Fattura commerciale inclusa nella prenotazione",
     "routeFeature2Title": "Tracciamento delle Tappe",
@@ -417,9 +427,9 @@
         "answer": "Ci occupiamo di merci commerciali e personali sulla rotta Italia-USA. Consulta la pagina Dogana per le categorie di articoli proibiti e soggetti a restrizioni prima di prenotare."
       }
     ],
-    "ctaHeading": "Pronto a spedire?",
-    "ctaSubtitle": "Ottieni una stima immediata e avvia la tua spedizione in pochi minuti.",
-    "ctaButton": "Ottieni il Tuo Preventivo Gratuito"
+    "ctaHeading": "Stai pianificando una spedizione Italia–USA?",
+    "ctaSubtitle": "Calcola ora una stima indicativa. Indicheremo chiaramente cosa è confermato e cosa richiede ancora una revisione operativa.",
+    "ctaButton": "Calcola la Tua Stima"
   },
   "Footer": {
     "brandDescription": "Una piattaforma di spedizione dedicata alla rotta Italia–Stati Uniti: trasporto aereo, marittimo e pacchi, con assistenza doganale e tracciamento in un unico posto.",

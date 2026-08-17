@@ -7,8 +7,12 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 import { getScopedShipmentOrThrow } from "../../common/authorization/shipment-scope";
+import { IsString, MinLength } from "class-validator";
+import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
 
 class DeliveryConfirmDto {
+  @IsString()
+  @MinLength(2)
   recipientName: string;
 }
 
@@ -89,6 +93,7 @@ class PickupDeliveryController {
 
   @Post("delivery-confirm")
   @RequirePermission("tracking_event:add")
+  @RequireIdempotencyKey()
   async confirmDelivery(
     @Param("shipmentId", ParseUUIDPipe) shipmentId: string,
     @Body() dto: DeliveryConfirmDto,

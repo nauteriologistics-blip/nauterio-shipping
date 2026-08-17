@@ -72,8 +72,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen font-sans text-slate-900 bg-white">
+      <div className="mt-[77px] bg-[#081F3D] px-6 py-2.5 text-center text-xs font-medium tracking-wide text-white">
+        <span className="mr-2 inline-flex rounded-full bg-[#F28C18] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#081F3D]">
+          {t("previewLabel")}
+        </span>
+        {t("previewMessage")}
+      </div>
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[85vh] flex items-center pt-24 pb-16 overflow-hidden">
+      <section className="relative min-h-[76vh] flex items-center pt-12 pb-16 overflow-hidden">
         {/* Subtle background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-orange-50/30 -z-10" />
 
@@ -82,6 +88,10 @@ export default function Home() {
 
             {/* Left Content */}
             <div className="max-w-2xl space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#081F3D]/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#081F3D] shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-[#F28C18]" />
+                {t("corridorLabel")}
+              </div>
               <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-[#081F3D] leading-[1.1]">
                 {t("heroTitle")}
               </h1>
@@ -128,50 +138,47 @@ export default function Home() {
             </div>
 
             {/* Right Visual */}
-            <div className="hidden lg:block relative h-[600px] w-full">
-              {/* Abstract decorative geometric representation of a route */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-lg mx-auto">
-                  {/* Map dots */}
-                  <div className="absolute top-[30%] left-[20%] w-6 h-6 bg-[#F28C18] rounded-full shadow-lg shadow-orange-500/40 z-20 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
+            <div className="hidden lg:block relative w-full">
+              <div className="absolute -inset-10 rounded-full bg-gradient-to-br from-orange-100/60 to-blue-100/70 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[#081F3D] p-8 text-white shadow-2xl shadow-blue-950/20">
+                <div className="mb-10 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F28C18]">{t("routeCardEyebrow")}</p>
+                    <p className="mt-2 text-2xl font-bold">{t("routeCardTitle")}</p>
                   </div>
-                  <div className="absolute bottom-[40%] right-[20%] w-8 h-8 bg-[#081F3D] rounded-full shadow-lg shadow-blue-900/40 z-20 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white rounded-full"></div>
+                  <PlaneTakeoff className="h-8 w-8 text-[#F28C18]" aria-hidden="true" />
+                </div>
+                <div className="flex items-center gap-5">
+                  <div>
+                    <p className="text-4xl font-black">MXP</p>
+                    <p className="mt-1 text-xs text-blue-100/70">{t("milan")}, IT</p>
                   </div>
-
-                  {/* Connecting Arc (SVG) */}
-                  <svg className="absolute inset-0 w-full h-full z-10 drop-shadow-xl" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <path
-                      d="M 25 35 Q 60 10, 80 55"
-                      fill="none"
-                      stroke="url(#gradient)"
-                      strokeWidth="0.8"
-                      strokeDasharray="2, 2"
-                      className="animate-pulse"
-                    />
-                    <defs>
-                      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#F28C18" />
-                        <stop offset="100%" stopColor="#081F3D" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-
-                  {/* Decorative circles */}
-                  <div className="absolute top-[10%] right-[10%] w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60"></div>
-                  <div className="absolute bottom-[20%] left-[10%] w-72 h-72 bg-orange-50 rounded-full blur-3xl opacity-60"></div>
-
-                  {/* Floating card */}
-                  <div className="absolute top-[45%] right-[10%] bg-white p-5 rounded-2xl shadow-xl z-30 border border-slate-100 flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                      <PackageCheck className="h-5 w-5 text-emerald-600" />
+                  <div className="relative flex-1">
+                    <div className="border-t border-dashed border-white/40" />
+                    <div className="absolute -top-1.5 left-[62%] h-3 w-3 rounded-full border-2 border-[#081F3D] bg-[#F28C18]" />
+                  </div>
+                  <div className="text-right">
+                    <p className="text-4xl font-black">JFK</p>
+                    <p className="mt-1 text-xs text-blue-100/70">{t("newYork")}, US</p>
+                  </div>
+                </div>
+                <div className="mt-10 grid grid-cols-3 gap-3 border-t border-white/10 pt-6">
+                  {(["routeCardStep1", "routeCardStep2", "routeCardStep3"] as const).map((key, index) => (
+                    <div key={key} className="rounded-2xl bg-white/[0.06] p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#F28C18]">0{index + 1}</p>
+                      <p className="mt-2 text-sm font-semibold leading-snug">{t(key)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium">{t("statusUpdateLabel")}</p>
-                      <p className="text-sm font-bold text-[#081F3D]">{t("clearedCustoms")}</p>
-                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white p-4 text-[#081F3D]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                    <PackageCheck className="h-5 w-5 text-emerald-700" aria-hidden="true" />
                   </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t("statusUpdateLabel")}</p>
+                    <p className="text-sm font-bold">{t("milestoneExample")}</p>
+                  </div>
+                  <span className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t("exampleLabel")}</span>
                 </div>
               </div>
             </div>
