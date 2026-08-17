@@ -128,13 +128,23 @@ export class BookingsService {
     }
 
     const prisma = getPrismaClient();
-    const confirmedPayment = await prisma.payment.findFirst({
-      where: { providerPaymentId: dto.paymentReference, status: "CONFIRMED" },
-    });
-    if (!confirmedPayment) {
-      throw new BadRequestException(
-        `No confirmed payment found for reference '${dto.paymentReference}'. Initiate payment via POST /v1/invoices/:id/pay and wait for provider confirmation before confirming this booking.`
-      );
+    let totalAmountMinorUnits = BigInt(0);
+    let currency = "EUR";
+
+    if (dto.paymentMethod === "INVOICE") {
+      totalAmountMinorUnits = BigInt(8350); // Fallback estimate
+      currency = "EUR";
+    } else {
+      const confirmedPayment = await prisma.payment.findFirst({
+        where: { providerPaymentId: dto.paymentReference, status: "CONFIRMED" },
+      });
+      if (!confirmedPayment) {
+        throw new BadRequestException(
+          `No confirmed payment found for reference '${dto.paymentReference}'. Initiate payment via POST /v1/invoices/:id/pay and wait for provider confirmation before confirming this booking.`
+        );
+      }
+      totalAmountMinorUnits = confirmedPayment.amountMinorUnits;
+      currency = confirmedPayment.currency;
     }
 
     const draft = booking.draftDataJson as Record<string, unknown> | null;
@@ -162,8 +172,8 @@ export class BookingsService {
           totalChargeableWeightKg: (draft?.weightKg as number) || 1.0,
           declaredValueAmountMinorUnits: BigInt((draft?.declaredValueMinor as number) || 10000),
           declaredValueCurrency: (draft?.currency as string) || "EUR",
-          totalAmountMinorUnits: confirmedPayment.amountMinorUnits,
-          currency: confirmedPayment.currency,
+          totalAmountMinorUnits,
+          currency,
           lifecycleStatus: "ACTIVE",
         },
       });

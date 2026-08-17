@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Package, MapPin, Plane, Ship, Check, ArrowRight, ArrowLeft,
@@ -146,33 +146,45 @@ function QuoteCalculator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value]);
 
+  const router = useRouter();
+
   const handleBook = () => {
-    setIsBooked(true);
+    // Build query params to pre-populate the booking wizard from the quote
+    const params = new URLSearchParams();
+    if (selectedQuote) {
+      params.set("service", formData.serviceId);
+      params.set("weightKg", formData.weight);
+      params.set("lengthCm", formData.length);
+      params.set("widthCm", formData.width);
+      params.set("heightCm", formData.height);
+      params.set("declaredValueEur", formData.value || "0");
+      params.set("pickupCity", formData.pickupCity);
+      params.set("deliveryCity", formData.deliveryCity);
+    }
+    // Fire confetti as a nice touch, then redirect
     confetti({
       particleCount: 150,
       spread: 70,
       origin: { y: 0.6 },
       colors: ["#F28C18", "#081F3D", "#ffffff"],
     });
+    setIsBooked(true);
+    setTimeout(() => {
+      router.push(`/portal/bookings/new?${params.toString()}`);
+    }, 800);
   };
 
   if (isBooked) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-12 max-w-lg w-full text-center shadow-sm">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8">
-            <Check className="w-12 h-12 text-green-600" />
+          <div className="w-24 h-24 bg-[#F28C18]/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
+            <ArrowRight className="w-12 h-12 text-[#F28C18]" />
           </div>
-          <h1 className="text-4xl font-bold text-[#081F3D] mb-4 font-inter">{t("bookedTitle")}</h1>
-          <p className="text-lg text-slate-600 mb-4">
-            {t("bookedBody")}
+          <h1 className="text-3xl font-bold text-[#081F3D] mb-4 font-inter">{t("bookedTitle")}</h1>
+          <p className="text-lg text-slate-600">
+            Redirecting to complete your booking…
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-[#F28C18] text-white px-8 py-4 rounded-full font-medium text-lg hover:bg-[#e07a12] transition-colors"
-          >
-            {t("startAnotherQuote")}
-          </button>
         </div>
       </div>
     );

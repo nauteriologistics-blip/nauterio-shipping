@@ -4,6 +4,18 @@ import { getPrismaClient } from "@nauterio/database";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthenticatedUser } from "../../common/guards/auth.guard";
+import { Body, Post, NotFoundException } from "@nestjs/common";
+
+class IntakeDto {
+  trackingNumber: string;
+  measuredWeight: number;
+  measuredL: number;
+  measuredW: number;
+  measuredH: number;
+  uldContainer: string;
+}
 
 /** Warehouse module (spec section 24): facilities, inventory location,
  * inspection, measurements, consolidation, repacking, dispatch. Facility
@@ -15,6 +27,33 @@ class WarehouseService {
   async listWarehouses() {
     const prisma = getPrismaClient();
     return prisma.warehouse.findMany({ where: { active: true } });
+  }
+
+  async processIntake(dto: IntakeDto, caller: AuthenticatedUser) {
+    const prisma = getPrismaClient();
+    const shipment = await prisma.shipment.findUnique({
+      where: { trackingNumber: dto.trackingNumber },
+    });
+
+    if (!shipment) {
+      throw new NotFoundException(`Shipment not found`);
+    }
+
+    return prisma.$transaction(async (tx) => {
+      await tx.trackingEvent.create({
+        data: {
+          shipmentId: shipment.id,
+          canonicalCode: "RECEIVED_ORIGIN",
+          publicTitleEn: "Received at origin facility",
+          publicTitleIt: "Ricevuto presso la struttura di origine",
+          sourceType: "WAREHOUSE_SCAN",
+          eventTime: new Date(),
+          visibility: "AUTHENTICATED_CUSTOMER",
+          actorUserId: caller.userId,
+        },
+      });
+      return { success: true };
+    });
   }
 }
 
@@ -29,6 +68,12 @@ class WarehouseController {
   @RequirePermission("warehouse:read")
   async list() {
     return this.service.listWarehouses();
+  }
+
+  @Post("intake")
+  @RequirePermission("tracking_event:add")
+  async processIntake(@Body() dto: IntakeDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.processIntake(dto, user);
   }
 }
 

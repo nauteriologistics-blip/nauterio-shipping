@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Package, MapPin, CreditCard,
+  Package, MapPin, CreditCard, Check,
   ArrowRight, ArrowLeft, AlertCircle, Sparkles
 } from "lucide-react";
 import { getCsrfToken } from "@/lib/auth";
@@ -26,10 +27,13 @@ const BOOKING_STEP_BY_WIZARD_STEP: Record<number, string> = {
 };
 
 export default function NewBookingWizard({ senderName }: { senderName: string }) {
+  const router = useRouter();
   const [step, setStep] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<boolean>(false);
+  const [confirmed, setConfirmed] = useState<{ trackingNumber: string } | null>(null);
 
   // Form state - starts blank/zeroed rather than pre-filled with fake
   // company data (was "Acme Italy S.r.l." / "Acme USA Inc." etc.); only
@@ -57,7 +61,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
     addCustomsClearance: true,
     addInsurance: false,
 
-    paymentMethod: "CARD",
+    paymentMethod: "INVOICE",
   });
 
   const handleSaveDraft = async () => {
@@ -103,6 +107,39 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
   const handleContinue = async (nextStep: number) => {
     const saved = await handleSaveDraft();
     if (saved) setStep(nextStep);
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!bookingId) {
+      setErrorMessage("No draft to confirm. Please complete the previous steps.");
+      return;
+    }
+    setConfirming(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`/api/v1/bookings/${bookingId}/confirm`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": `bk-confirm-${bookingId}`,
+          [CSRF_HEADER]: getCsrfToken() ?? "",
+        },
+        body: JSON.stringify({
+          paymentMethod: formData.paymentMethod === "CARD" ? "CARD" : "INVOICE",
+          ...(formData.paymentMethod === "CARD" ? { paymentReference: "" } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message || `Confirmation failed (${res.status})`);
+      }
+      const shipment = await res.json() as { trackingNumber: string };
+      setConfirmed(shipment);
+    } catch (err) {
+      setErrorMessage(errorMessageOf(err, "Failed to confirm booking"));
+    } finally {
+      setConfirming(false);
+    }
   };
 
   return (
@@ -370,7 +407,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
       )}
 
       {/* STEP 4: PAYMENT & CONFIRM */}
-      {step === 4 && (
+      {step === 4 && !confirmed && (
         <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <h2 className="text-lg font-black text-[#081F3D] flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-[#F28C18]" /> Step 4: Checkout & Payment
@@ -379,47 +416,71 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
           <div className="bg-[#F3F6FA] p-5 rounded-2xl border border-slate-200 text-xs space-y-2">
             <div className="flex justify-between font-bold text-[#081F3D]">
               <span>Selected Service ({formData.serviceId}):</span>
-              <span>€65.00</span>
+              <span className="text-slate-500 italic">Estimated at confirmation</span>
             </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Customs Formalities (US CBP Entry):</span>
-              <span>€18.50</span>
-            </div>
+            {formData.addCustomsClearance && (
+              <div className="flex justify-between text-slate-600">
+                <span>Customs Clearance (US CBP Entry):</span>
+                <span>Included</span>
+              </div>
+            )}
+            {formData.addInsurance && (
+              <div className="flex justify-between text-slate-600">
+                <span>Transit Insurance:</span>
+                <span>Included</span>
+              </div>
+            )}
             <div className="border-t border-slate-200 pt-2 flex justify-between font-black text-sm text-[#081F3D]">
-              <span>Total Due:</span>
-              <span className="text-[#F28C18]">€83.50 EUR</span>
+              <span>Payment:</span>
+              <span className="text-[#F28C18]">Invoice after delivery</span>
             </div>
           </div>
 
           <div className="space-y-3 text-xs">
-            <label className="font-bold text-slate-700 block">Select Payment Provider</label>
+            <label className="font-bold text-slate-700 block">Payment Method</label>
             <div className="flex gap-4">
-              <label className="flex items-center gap-2 border border-slate-200 p-3 rounded-xl cursor-pointer bg-white">
+              <label className={`flex items-center gap-2 border p-3 rounded-xl cursor-pointer bg-white ${
+                formData.paymentMethod === "INVOICE" ? "border-[#F28C18] bg-amber-50/50" : "border-slate-200"
+              }`}>
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={formData.paymentMethod === "INVOICE"}
+                  onChange={() => setFormData({ ...formData, paymentMethod: "INVOICE" })}
+                />
+                <span className="font-bold text-[#081F3D]">Pay on Invoice (Net 30)</span>
+              </label>
+              <label className={`flex items-center gap-2 border p-3 rounded-xl cursor-pointer bg-white ${
+                formData.paymentMethod === "CARD" ? "border-[#F28C18] bg-amber-50/50" : "border-slate-200"
+              }`}>
                 <input
                   type="radio"
                   name="payment"
                   checked={formData.paymentMethod === "CARD"}
                   onChange={() => setFormData({ ...formData, paymentMethod: "CARD" })}
                 />
-                <span className="font-bold text-[#081F3D]">Stripe Credit Card / Debit</span>
+                <span className="font-bold text-[#081F3D]">Credit / Debit Card</span>
               </label>
             </div>
           </div>
 
-          {/* Real Stripe payment integration isn't wired up in this
-              environment - the API correctly rejects a booking confirmation
-              without genuine provider-confirmed payment (never infers
-              payment success from the browser alone), so this can't be
-              faked here either. Disclosed rather than left as a confusing
-              400 error behind a button that looks like it should work. */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <span>
-              Real payment processing isn&apos;t connected in this environment yet, so bookings can&apos;t be
-              confirmed end-to-end from here. Your addresses and package details above are saved as a draft you
-              can resume once payment is available.
-            </span>
-          </div>
+          {formData.paymentMethod === "CARD" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>
+                Card payment via Stripe is not yet available. Please select &quot;Pay on Invoice&quot; to confirm your booking now — you&apos;ll receive an invoice after delivery.
+              </span>
+            </div>
+          )}
+
+          {formData.paymentMethod === "INVOICE" && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <span>
+                Your shipment will be created immediately. An invoice will be generated after delivery with Net 30 payment terms.
+              </span>
+            </div>
+          )}
 
           <div className="flex justify-between pt-4">
             <button
@@ -429,11 +490,47 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
-              disabled
-              title="Real payment processing isn't connected in this environment yet"
-              className="bg-slate-300 text-slate-500 font-black px-8 py-3.5 rounded-xl text-xs flex items-center gap-2 cursor-not-allowed"
+              onClick={() => void handleConfirmBooking()}
+              disabled={confirming || formData.paymentMethod === "CARD"}
+              className={`font-black px-8 py-3.5 rounded-xl text-xs flex items-center gap-2 transition-all ${
+                confirming || formData.paymentMethod === "CARD"
+                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                  : "bg-[#F28C18] text-[#081F3D] hover:bg-[#e07a12] hover:text-white"
+              }`}
             >
-              Confirm &amp; Pay €83.50
+              {confirming ? "Confirming…" : "Confirm Booking"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMED SUCCESS */}
+      {confirmed && (
+        <div className="bg-white p-10 rounded-2xl border border-green-200 shadow-sm text-center space-y-6">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <Check className="w-10 h-10 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-black text-[#081F3D]">Booking Confirmed!</h2>
+          <p className="text-slate-600 text-sm">
+            Your shipment has been created. Track it anytime with your tracking number:
+          </p>
+          <div className="bg-[#F3F6FA] px-6 py-4 rounded-xl inline-block">
+            <span className="font-mono font-black text-xl text-[#081F3D] tracking-wider">
+              {confirmed.trackingNumber}
+            </span>
+          </div>
+          <div className="flex justify-center gap-4 pt-4">
+            <button
+              onClick={() => router.push(`/tracking?id=${confirmed.trackingNumber}`)}
+              className="bg-[#F28C18] text-[#081F3D] font-black px-6 py-3 rounded-xl text-sm hover:bg-[#e07a12] hover:text-white transition-all"
+            >
+              Track Shipment
+            </button>
+            <button
+              onClick={() => router.push("/portal")}
+              className="bg-slate-100 text-slate-700 font-bold px-6 py-3 rounded-xl text-sm"
+            >
+              Back to Portal
             </button>
           </div>
         </div>

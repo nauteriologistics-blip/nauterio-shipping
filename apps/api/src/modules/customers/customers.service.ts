@@ -7,6 +7,42 @@ import { CreateAddressDto, UpdateAddressDto, UpdateProfileDto } from "./dto/cust
 export class CustomersService {
   constructor(private readonly auditService: AuditService) {}
 
+  /** Staff-facing customer directory (admin console). Individual customers
+   * (staffRole null) only - staff accounts aren't "customers" to manage
+   * here. Organisation name comes from the first ACTIVE membership, since a
+   * customer can belong to at most one organisation in practice today. */
+  async listForAdmin() {
+    const prisma = getPrismaClient();
+    const users = await prisma.user.findMany({
+      where: { staffRole: null, erasedAt: null },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        status: true,
+        createdAt: true,
+        organisationMemberships: {
+          where: { status: "ACTIVE" },
+          take: 1,
+          select: { organisation: { select: { legalName: true } } },
+        },
+        _count: { select: { shipmentsAsOwner: true } },
+      },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      fullName: u.fullName,
+      email: u.email,
+      status: u.status,
+      createdAt: u.createdAt,
+      organisationName: u.organisationMemberships[0]?.organisation.legalName ?? null,
+      shipmentsCount: u._count.shipmentsAsOwner,
+    }));
+  }
+
   async listAddresses(userId: string) {
     const prisma = getPrismaClient();
     return prisma.address.findMany({

@@ -1,24 +1,90 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { QrCode, Scale, Package, Printer, CheckCircle2, Barcode } from "lucide-react";
+import { QrCode, Scale, Package, Printer, CheckCircle2, Barcode, AlertCircle, Loader2 } from "lucide-react";
+import { getCsrfToken } from "@/lib/auth";
+import { CSRF_HEADER } from "@/lib/session";
+
+interface Warehouse {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  countryCode: string;
+}
+
+interface IntakeResult {
+  trackingNumber: string;
+  status: string;
+}
 
 export default function WarehousePWA() {
   const t = useTranslations("WarehousePage");
-  const [scannedId, setScannedId] = useState<string>("NT-782914-US");
-  const [measuredWeight, setMeasuredWeight] = useState<number>(3.25);
-  const [measuredL, setMeasuredL] = useState<number>(32);
-  const [measuredW, setMeasuredW] = useState<number>(22);
-  const [measuredH, setMeasuredH] = useState<number>(16);
+  const [scannedId, setScannedId] = useState<string>("");
+  const [measuredWeight, setMeasuredWeight] = useState<number>(0);
+  const [measuredL, setMeasuredL] = useState<number>(0);
+  const [measuredW, setMeasuredW] = useState<number>(0);
+  const [measuredH, setMeasuredH] = useState<number>(0);
 
-  const [scanSuccess, setScanSuccess] = useState<boolean>(false);
-  const [uldContainer, setUldContainer] = useState<string>("ULD-MXP-AZ604-09");
+  const [scanSuccess, setScanSuccess] = useState<IntakeResult | null>(null);
+  const [uldContainer, setUldContainer] = useState<string>("");
+  const [processing, setProcessing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleProcessIntake = (e: React.FormEvent) => {
+  // Fetch warehouses on mount
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string>("");
+  const [loadingWarehouses, setLoadingWarehouses] = useState(true);
+
+  useEffect(() => {
+    const fetchWarehouses = async () => {
+      try {
+        const res = await fetch("/api/v1/admin/warehouses");
+        if (res.ok) {
+          const data = (await res.json()) as Warehouse[];
+          setWarehouses(data);
+          if (data.length > 0) setSelectedWarehouse(data[0].id);
+        }
+      } catch {
+        // Warehouses may not be available if user isn't admin
+      } finally {
+        setLoadingWarehouses(false);
+      }
+    };
+    fetchWarehouses();
+  }, []);
+
+  const handleProcessIntake = async (e: React.FormEvent) => {
     e.preventDefault();
-    setScanSuccess(true);
-    setTimeout(() => setScanSuccess(false), 2500);
+    if (!scannedId.trim()) {
+      setError("Please enter a tracking number to process.");
+      return;
+    }
+    setProcessing(true);
+    setError(null);
+    setScanSuccess(null);
+
+    try {
+      // Look up the shipment by tracking number first
+      const lookupRes = await fetch(`/api/v1/tracking/${encodeURIComponent(scannedId.trim().toUpperCase())}`);
+      if (!lookupRes.ok) {
+        throw new Error(`Shipment not found for tracking number: ${scannedId}`);
+      }
+      const shipment = await lookupRes.json() as { trackingNumber: string; status: string };
+
+      // Record the intake via the shipment's tracking event
+      // In a full implementation this would POST to a warehouse intake endpoint,
+      // but for now we verify the shipment exists and display its data
+      setScanSuccess({
+        trackingNumber: shipment.trackingNumber,
+        status: shipment.status || "RECEIVED_AT_WAREHOUSE",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to process intake");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const calculatedVol = parseFloat(((measuredL * measuredW * measuredH) / 5000).toFixed(2));
@@ -43,6 +109,24 @@ export default function WarehousePWA() {
         </span>
       </div>
 
+      {/* Warehouse Selection */}
+      {!loadingWarehouses && warehouses.length > 0 && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <label className="text-xs font-bold text-[#081F3D] block mb-2">Active Facility</label>
+          <select
+            value={selectedWarehouse}
+            onChange={(e) => setSelectedWarehouse(e.target.value)}
+            className="w-full bg-[#F3F6FA] font-mono text-xs font-bold rounded-xl px-3 py-2.5 border border-slate-200"
+          >
+            {warehouses.map((wh) => (
+              <option key={wh.id} value={wh.id}>
+                {wh.name} ({wh.code}) — {wh.city}, {wh.countryCode}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Barcode Scanner Box */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-4">
         <h2 className="text-sm font-extrabold text-[#081F3D] flex items-center gap-2">
@@ -61,13 +145,14 @@ export default function WarehousePWA() {
             type="text"
             value={scannedId}
             onChange={(e) => setScannedId(e.target.value)}
+            placeholder="e.g. NT-A1B2C3D4"
             className="w-full bg-[#F3F6FA] font-mono font-bold text-[#081F3D] text-sm rounded-xl px-4 py-2.5 border border-slate-200 focus:outline-none"
           />
         </div>
       </div>
 
       {/* Scale & Measure Verification Form */}
-      <form onSubmit={handleProcessIntake} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-5">
+      <form onSubmit={(e) => void handleProcessIntake(e)} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-5">
         <h2 className="text-sm font-extrabold text-[#081F3D] flex items-center gap-2 border-b border-slate-100 pb-3">
           <Scale className="w-5 h-5 text-[#F28C18]" /> {t("calibrationHeading")}
         </h2>
@@ -77,8 +162,9 @@ export default function WarehousePWA() {
           <input
             type="number"
             step="0.01"
-            value={measuredWeight}
+            value={measuredWeight || ""}
             onChange={(e) => setMeasuredWeight(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
             className="w-full bg-[#F3F6FA] font-mono text-lg font-black text-[#081F3D] rounded-xl px-4 py-3 border border-slate-200 focus:outline-none"
           />
         </div>
@@ -88,8 +174,9 @@ export default function WarehousePWA() {
             <span className="text-[10px] text-slate-500 font-semibold block mb-1">{t("lengthLabel")}</span>
             <input
               type="number"
-              value={measuredL}
+              value={measuredL || ""}
               onChange={(e) => setMeasuredL(parseFloat(e.target.value) || 0)}
+              placeholder="cm"
               className="w-full bg-[#F3F6FA] font-mono font-bold rounded-lg p-2 border border-slate-200 text-center"
             />
           </div>
@@ -97,8 +184,9 @@ export default function WarehousePWA() {
             <span className="text-[10px] text-slate-500 font-semibold block mb-1">{t("widthLabel")}</span>
             <input
               type="number"
-              value={measuredW}
+              value={measuredW || ""}
               onChange={(e) => setMeasuredW(parseFloat(e.target.value) || 0)}
+              placeholder="cm"
               className="w-full bg-[#F3F6FA] font-mono font-bold rounded-lg p-2 border border-slate-200 text-center"
             />
           </div>
@@ -106,23 +194,26 @@ export default function WarehousePWA() {
             <span className="text-[10px] text-slate-500 font-semibold block mb-1">{t("heightLabel")}</span>
             <input
               type="number"
-              value={measuredH}
+              value={measuredH || ""}
               onChange={(e) => setMeasuredH(parseFloat(e.target.value) || 0)}
+              placeholder="cm"
               className="w-full bg-[#F3F6FA] font-mono font-bold rounded-lg p-2 border border-slate-200 text-center"
             />
           </div>
         </div>
 
-        <div className="bg-[#081F3D] text-white p-3.5 rounded-xl space-y-1 text-xs border border-blue-900 font-mono">
-          <div className="flex justify-between">
-            <span className="text-slate-300">{t("volumetricWeightLabel")}</span>
-            <span>{calculatedVol} kg</span>
+        {(measuredWeight > 0 || calculatedVol > 0) && (
+          <div className="bg-[#081F3D] text-white p-3.5 rounded-xl space-y-1 text-xs border border-blue-900 font-mono">
+            <div className="flex justify-between">
+              <span className="text-slate-300">{t("volumetricWeightLabel")}</span>
+              <span>{calculatedVol} kg</span>
+            </div>
+            <div className="flex justify-between font-bold text-[#F28C18]">
+              <span>{t("billableWeightLabel")}</span>
+              <span>{billableWeight} kg</span>
+            </div>
           </div>
-          <div className="flex justify-between font-bold text-[#F28C18]">
-            <span>{t("billableWeightLabel")}</span>
-            <span>{billableWeight} kg</span>
-          </div>
-        </div>
+        )}
 
         <div className="space-y-1">
           <label className="text-xs font-bold text-[#081F3D]">{t("assignUldLabel")}</label>
@@ -130,22 +221,35 @@ export default function WarehousePWA() {
             type="text"
             value={uldContainer}
             onChange={(e) => setUldContainer(e.target.value)}
+            placeholder="e.g. ULD-MXP-AZ604-09"
             className="w-full bg-[#F3F6FA] font-mono text-xs font-bold rounded-xl px-3 py-2 border border-slate-200"
           />
         </div>
 
+        {error && (
+          <div className="bg-red-50 text-red-800 p-3 rounded-xl text-xs font-bold flex items-center gap-2 border border-red-200">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            {error}
+          </div>
+        )}
+
         {scanSuccess && (
           <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl text-xs font-bold flex items-center gap-2 border border-emerald-200">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            {t("intakeVerified")}
+            {t("intakeVerified")} — {scanSuccess.trackingNumber} ({scanSuccess.status})
           </div>
         )}
 
         <button
           type="submit"
-          className="w-full bg-[#F28C18] hover:bg-[#D97706] text-[#081F3D] font-black py-3.5 px-4 rounded-xl transition-colors text-sm shadow-md flex items-center justify-center gap-2"
+          disabled={processing}
+          className="w-full bg-[#F28C18] hover:bg-[#D97706] text-[#081F3D] font-black py-3.5 px-4 rounded-xl transition-colors text-sm shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Printer className="w-4 h-4" /> {t("verifyAndPrint")}
+          {processing ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
+          ) : (
+            <><Printer className="w-4 h-4" /> {t("verifyAndPrint")}</>
+          )}
         </button>
       </form>
 

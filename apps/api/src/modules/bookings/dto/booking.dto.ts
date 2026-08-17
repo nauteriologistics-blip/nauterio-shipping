@@ -23,8 +23,13 @@ export class SaveDraftDto {
 }
 
 export class ConfirmBookingDto {
-  @ApiProperty({ description: "Payment intent or payment reference" })
+  @ApiProperty({ description: "Payment intent or payment reference", required: false })
   @IsString()
-  @IsNotEmpty()
-  paymentReference!: string;
+  @IsOptional()
+  paymentReference?: string;
+
+  @ApiProperty({ description: "Payment method (e.g., INVOICE, CARD)", required: false })
+  @IsString()
+  @IsOptional()
+  paymentMethod?: string;
 }

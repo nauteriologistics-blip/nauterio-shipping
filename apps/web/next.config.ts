@@ -6,7 +6,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 // a plain rewrite forwards the browser's request verbatim and can't turn
 // an httpOnly session cookie into the real API's `Authorization` header.
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.VERCEL ? undefined : "standalone",
   transpilePackages: ["@nauterio/contracts"],
 };
 

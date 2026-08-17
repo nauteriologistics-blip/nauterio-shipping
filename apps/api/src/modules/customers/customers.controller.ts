@@ -4,6 +4,7 @@ import type { Request } from "express";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
 import { NoPermissionRequired } from "../../common/decorators/no-permission-required.decorator";
+import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
 import { CustomersService } from "./customers.service";
 import { CreateAddressDto, UpdateAddressDto, UpdateProfileDto } from "./dto/customer.dto";
@@ -62,5 +63,20 @@ export class CustomersController {
   async deleteAddress(@Param("id", ParseUUIDPipe) id: string, @Req() req: Request) {
     const userId = req.user!.userId;
     return this.customersService.deleteAddress(id, userId);
+  }
+}
+
+@ApiTags("customers")
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionGuard)
+@Controller("admin/customers")
+export class AdminCustomersController {
+  constructor(private readonly customersService: CustomersService) {}
+
+  @Get()
+  @RequirePermission("customer_pii:view")
+  @ApiOperation({ summary: "List customer accounts (staff console)" })
+  async list() {
+    return this.customersService.listForAdmin();
   }
 }
