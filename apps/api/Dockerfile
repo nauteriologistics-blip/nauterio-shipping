@@ -7,7 +7,7 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @nauterio/api build
+RUN pnpm -r build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
