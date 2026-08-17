@@ -64,3 +64,4 @@ export async function disconnectPrisma(): Promise<void> {
 }
 
 export * from "@prisma/client";
+export * from "./redis";
