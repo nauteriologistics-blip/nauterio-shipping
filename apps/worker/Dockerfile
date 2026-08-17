@@ -7,7 +7,7 @@ COPY packages ./packages
 COPY apps/worker ./apps/worker
 
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @nauterio/database generate
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @nauterio/database generate
 RUN pnpm -r build
 
 FROM node:22-alpine AS runner
