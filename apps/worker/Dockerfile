@@ -17,4 +17,4 @@ RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 
 COPY --from=builder /app ./
 
-CMD ["pnpm", "--filter", "@nauterio/worker", "start"]
+CMD ["node", "apps/worker/dist/main.js"]

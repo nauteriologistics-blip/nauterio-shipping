@@ -18,4 +18,4 @@ RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 COPY --from=builder /app ./
 
 EXPOSE 4000
-CMD ["pnpm", "--filter", "@nauterio/api", "start:prod"]
+CMD ["node", "apps/api/dist/main.js"]
