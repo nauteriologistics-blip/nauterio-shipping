@@ -10,6 +10,7 @@ const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig: NextConfig = {
   output: process.env.VERCEL ? undefined : "standalone",
+  transpilePackages: ["@nauterio/contracts"],
   async headers() {
     return [
       {
