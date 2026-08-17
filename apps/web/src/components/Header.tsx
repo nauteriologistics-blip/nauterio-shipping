@@ -22,6 +22,7 @@ export default function Header() {
     { label: t("navTrack"), href: "/tracking" },
     { label: t("navCustoms"), href: "/customs" },
     { label: t("navBusiness"), href: "/business" },
+    { label: t("navContact"), href: "/business#contact" },
   ];
 
   // Spec 8.1: "Logged-in portal navigation replaces marketing navigation

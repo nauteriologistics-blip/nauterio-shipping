@@ -16,7 +16,11 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
-  PackageCheck
+  PackageCheck,
+  CheckCircle2,
+  AlertCircle,
+  ClipboardCheck,
+  Building2
 } from "lucide-react";
 import { SERVICES, type ServiceId } from "@/lib/services";
 
@@ -47,6 +51,12 @@ interface FaqItem {
   answer: string;
 }
 
+interface ReadinessItem {
+  title: string;
+  desc: string;
+  status: "available" | "pending";
+}
+
 export default function Home() {
   const router = useRouter();
   const t = useTranslations("Home");
@@ -68,11 +78,12 @@ export default function Home() {
   const trustBar = t.raw("trustBar") as TrustBarItem[];
   const steps = t.raw("steps") as StepItem[];
   const faqs = t.raw("faqs") as FaqItem[];
+  const readinessItems = t.raw("readinessItems") as ReadinessItem[];
   const trustIcons = [Headset, FileCheck, MapPin, ShieldCheck];
 
   return (
     <div className="min-h-screen font-sans text-slate-900 bg-white">
-      <div className="mt-[77px] bg-[#081F3D] px-6 py-2.5 text-center text-xs font-medium tracking-wide text-white">
+      <div className="bg-[#081F3D] px-6 py-2.5 text-center text-xs font-medium tracking-wide text-white">
         <span className="mr-2 inline-flex rounded-full bg-[#F28C18] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#081F3D]">
           {t("previewLabel")}
         </span>
@@ -120,7 +131,8 @@ export default function Home() {
                 <label htmlFor="quick-track" className="text-sm text-slate-500 mb-3 font-medium block">
                   {t("quickTrackLabel")}
                 </label>
-                <div className="relative max-w-md">
+                <div className="relative flex max-w-lg gap-2">
+                  <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
                   </div>
@@ -133,6 +145,13 @@ export default function Home() {
                     placeholder={t("quickTrackPlaceholder")}
                     className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#081F3D]/20 focus:border-[#081F3D] transition-all"
                   />
+                  </div>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-[#081F3D] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#0B2E5E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F28C18]"
+                  >
+                    {t("quickTrackButton")}
+                  </button>
                 </div>
               </form>
             </div>
@@ -205,7 +224,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. SERVICES SECTION */}
+      {/* 3. SERVICE READINESS */}
+      <section className="bg-[#081F3D] py-20 text-white">
+        <div className="container mx-auto px-6 lg:px-12">
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">{t("readinessEyebrow")}</p>
+              <h2 className="mt-4 text-4xl font-bold leading-tight">{t("readinessHeading")}</h2>
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-blue-100/75">{t("readinessBody")}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {readinessItems.map((item) => {
+                const available = item.status === "available";
+                return (
+                  <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+                    <div className="flex items-start gap-3">
+                      {available ? (
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" aria-hidden="true" />
+                      ) : (
+                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+                      )}
+                      <div>
+                        <p className="font-semibold">{item.title}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-blue-100/65">{item.desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. SERVICES SECTION */}
       <section className="py-24 lg:py-32 bg-white">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -246,7 +298,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. HOW IT WORKS */}
+      {/* 5. HOW IT WORKS */}
       <section className="py-24 lg:py-32 bg-slate-50">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="mb-16">
@@ -273,7 +325,49 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. ROUTE SHOWCASE */}
+      {/* 6. DOCUMENT READINESS */}
+      <section className="border-y border-slate-200 bg-white py-20">
+        <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-2 lg:items-center lg:px-12">
+          <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 md:p-10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#081F3D] text-white">
+                <ClipboardCheck className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F28C18]">{t("documentsEyebrow")}</p>
+                <h2 className="mt-1 text-2xl font-bold text-[#081F3D]">{t("documentsHeading")}</h2>
+              </div>
+            </div>
+            <ol className="mt-8 space-y-5">
+              {(["documentsStep1", "documentsStep2", "documentsStep3", "documentsStep4"] as const).map((key, index) => (
+                <li key={key} className="flex gap-4">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[#081F3D] shadow-sm">{index + 1}</span>
+                  <span className="text-sm leading-relaxed text-slate-600">{t(key)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">{t("proofEyebrow")}</p>
+            <h2 className="mt-4 text-4xl font-bold leading-tight text-[#081F3D]">{t("proofHeading")}</h2>
+            <p className="mt-5 text-lg leading-relaxed text-slate-600">{t("proofBody")}</p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <Link href="/customs" className="group rounded-2xl border border-slate-200 p-5 transition hover:border-[#F28C18] hover:shadow-md">
+                <FileCheck className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
+                <p className="mt-4 font-bold text-[#081F3D]">{t("proofCustomsTitle")}</p>
+                <p className="mt-1 text-sm text-slate-500">{t("proofCustomsDesc")}</p>
+              </Link>
+              <Link href="/business" className="group rounded-2xl border border-slate-200 p-5 transition hover:border-[#F28C18] hover:shadow-md">
+                <Building2 className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
+                <p className="mt-4 font-bold text-[#081F3D]">{t("proofBusinessTitle")}</p>
+                <p className="mt-1 text-sm text-slate-500">{t("proofBusinessDesc")}</p>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. ROUTE SHOWCASE */}
       <section className="py-24 lg:py-32 bg-white">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -340,7 +434,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. FAQ SECTION */}
+      {/* 8. FAQ SECTION */}
       <section className="py-24 lg:py-32 bg-white">
         <div className="container mx-auto px-6 lg:px-12 max-w-4xl">
           <div className="text-center mb-16">
@@ -386,7 +480,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. CTA SECTION */}
+      {/* 9. CTA SECTION */}
       <section className="py-24 lg:py-32 bg-[#081F3D] relative overflow-hidden">
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-3xl -mr-[200px] -mt-[200px]" aria-hidden="true"></div>

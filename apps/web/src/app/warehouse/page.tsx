@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { QrCode, Scale, Package, Printer, CheckCircle2, Barcode, AlertCircle, Loader2 } from "lucide-react";
+import { QrCode, Scale, Package, CheckCircle2, Barcode, AlertCircle, Loader2 } from "lucide-react";
 import { getCsrfToken } from "@/lib/auth";
 import { CSRF_HEADER } from "@/lib/session";
 
@@ -261,7 +261,7 @@ export default function WarehousePWA() {
           {processing ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
           ) : (
-            <><Printer className="w-4 h-4" /> {t("verifyAndPrint")}</>
+            <><CheckCircle2 className="w-4 h-4" /> {t("verifyAndPrint")}</>
           )}
         </button>
       </form>
