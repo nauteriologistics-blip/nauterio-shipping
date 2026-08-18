@@ -23,6 +23,7 @@ const SERVICE_CATALOG_KEYS: Record<ServiceId, string> = {
 };
 
 interface QuoteResult {
+  quoteId: string;
   service: ServiceId;
   chargeableWeightKg: number;
   volumetricWeightKg: number;
@@ -123,16 +124,21 @@ function QuoteCalculator() {
                 declaredValueEur: Number(formData.value) || 0,
                 service: service.id,
                 addCustoms: true,
+                addInsurance: true,
               }),
             });
-            if (!res.ok) throw new Error("Quote request failed");
+            if (!res.ok) {
+              throw new Error(res.status >= 500 ? t("quoteUnavailableMessage") : t("quoteErrorMessage"));
+            }
             const json = (await res.json()) as QuoteResult;
             return [service.id, json] as const;
           })
         );
         if (!cancelled) setQuotesByService(Object.fromEntries(entries));
-      } catch {
-        if (!cancelled) setQuoteError(t("quoteErrorMessage"));
+      } catch (cause) {
+        if (!cancelled) {
+          setQuoteError(cause instanceof Error ? cause.message : t("quoteUnavailableMessage"));
+        }
       } finally {
         if (!cancelled) setIsFetchingQuotes(false);
       }
@@ -160,6 +166,8 @@ function QuoteCalculator() {
       params.set("declaredValueEur", formData.value || "0");
       params.set("pickupCity", formData.pickupCity);
       params.set("deliveryCity", formData.deliveryCity);
+      params.set("quoteId", selectedQuote.quoteId);
+      params.set("totalPriceEur", String(selectedQuote.totalPriceEur));
     }
     // Fire confetti as a nice touch, then redirect
     confetti({
@@ -433,7 +441,7 @@ function QuoteCalculator() {
                                   <div className="text-sm text-slate-500">{t("indicativeBaseRate")}</div>
                                 </>
                               ) : (
-                                <div className="text-sm text-slate-400">{t("enterWeightHint")}</div>
+                                <div className="text-sm text-slate-400">{quoteError ? t("pricingUnavailableHint") : t("enterWeightHint")}</div>
                               )}
                             </div>
                           </div>
@@ -562,6 +570,10 @@ function QuoteCalculator() {
                 <div className="flex justify-between text-sm">
                   <span className="text-white/80">{t("customsFilingLabel")}</span>
                   <span>{selectedQuote ? `€${selectedQuote.customsFeeEur.toFixed(2)}` : "-"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/80">{t("insuranceLabel")}</span>
+                  <span>{selectedQuote ? `€${selectedQuote.insuranceFeeEur.toFixed(2)}` : "-"}</span>
                 </div>
 
                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">

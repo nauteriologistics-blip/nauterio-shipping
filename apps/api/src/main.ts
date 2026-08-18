@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import type { Request, Response, NextFunction } from "express";
 import { loadApiConfig } from "@nauterio/configuration";
 import { NestPinoLoggerAdapter } from "@nauterio/observability";
 import { AppModule } from "./app.module";
@@ -37,6 +38,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
+    rawBody: true,
   });
   // REL-011: routes Nest's own internal framework logs (route mapping,
   // lifecycle events) through the same structured pino/JSON output as every
@@ -59,6 +61,15 @@ async function bootstrap() {
   // yet"), i.e. exactly one trusted hop - this MUST become 2 the day
   // CloudFront is added in front of the ALB, not before.
   app.set("trust proxy", 1);
+
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    if (config.NODE_ENV === "production") res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    next();
+  });
 
   // Spec section 26.1: runtime validation at every external boundary.
   app.useGlobalPipes(

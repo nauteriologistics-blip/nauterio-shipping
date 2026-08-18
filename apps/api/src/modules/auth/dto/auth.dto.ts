@@ -43,3 +43,9 @@ export class VerifyEmailDto {
   @IsNotEmpty()
   token!: string;
 }
+
+export class RequestSignInDto {
+  @ApiProperty()
+  @IsEmail()
+  email!: string;
+}

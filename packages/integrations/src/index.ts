@@ -9,3 +9,5 @@ export * from "./payment/stripe-payment-adapter";
 export * from "./messaging/messaging-adapter";
 export * from "./messaging/local-mock-messaging-adapter";
 export * from "./messaging/ses-messaging-adapter";
+export * from "./messaging/resend-messaging-adapter";
+export * from "./storage/s3-compatible-storage";

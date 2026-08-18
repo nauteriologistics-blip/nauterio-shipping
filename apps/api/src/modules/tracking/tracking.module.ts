@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { TrackingController } from "./tracking.controller";
+import { AdminShipmentHoldController, AdminTrackingController, TrackingController } from "./tracking.controller";
 import { TrackingService } from "./tracking.service";
 
 @Module({
-  controllers: [TrackingController],
+  controllers: [TrackingController, AdminTrackingController, AdminShipmentHoldController],
   providers: [TrackingService],
   exports: [TrackingService],
 })

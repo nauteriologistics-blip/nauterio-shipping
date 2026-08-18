@@ -47,7 +47,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (res.status === 401) {
     if (typeof window !== "undefined") {
-      window.location.href = "/login?sessionExpired=1";
+      // This shared fetch helper runs outside React, so it cannot use
+      // useRouter; a hard redirect also clears any stale client state.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign("/login?sessionExpired=1");
     }
     throw new ApiError(401, {
       code: "UNAUTHORIZED",

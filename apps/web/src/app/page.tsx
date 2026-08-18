@@ -112,7 +112,7 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link
-                  href="/quote"
+                  href="/register"
                   className="px-8 py-4 bg-[#F28C18] hover:bg-[#d97c14] text-white rounded-full font-medium transition-colors text-lg flex items-center justify-center"
                 >
                   {t("getInstantQuote")}
@@ -286,7 +286,7 @@ export default function Home() {
                     <span className="text-sm font-medium text-slate-700">{tCatalog(`${catalogKey}.transitLabel`)}</span>
                   </div>
                   <Link
-                    href="/services"
+                    href="/register"
                     className="inline-flex items-center text-[#F28C18] font-medium hover:text-[#d97c14] transition-colors"
                   >
                     {t("learnMore")} <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
@@ -352,16 +352,16 @@ export default function Home() {
             <h2 className="mt-4 text-4xl font-bold leading-tight text-[#081F3D]">{t("proofHeading")}</h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-600">{t("proofBody")}</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <Link href="/customs" className="group rounded-2xl border border-slate-200 p-5 transition hover:border-[#F28C18] hover:shadow-md">
+              <div className="rounded-2xl border border-slate-200 p-5">
                 <FileCheck className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
                 <p className="mt-4 font-bold text-[#081F3D]">{t("proofCustomsTitle")}</p>
                 <p className="mt-1 text-sm text-slate-500">{t("proofCustomsDesc")}</p>
-              </Link>
-              <Link href="/business" className="group rounded-2xl border border-slate-200 p-5 transition hover:border-[#F28C18] hover:shadow-md">
+              </div>
+              <div className="rounded-2xl border border-slate-200 p-5">
                 <Building2 className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
                 <p className="mt-4 font-bold text-[#081F3D]">{t("proofBusinessTitle")}</p>
                 <p className="mt-1 text-sm text-slate-500">{t("proofBusinessDesc")}</p>
-              </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -495,7 +495,7 @@ export default function Home() {
               {t("ctaSubtitle")}
             </p>
             <Link
-              href="/quote"
+              href="/register"
               className="inline-block px-10 py-5 bg-[#F28C18] hover:bg-[#d97c14] text-white rounded-full font-medium transition-colors text-xl shadow-lg shadow-orange-900/50"
             >
               {t("ctaButton")}

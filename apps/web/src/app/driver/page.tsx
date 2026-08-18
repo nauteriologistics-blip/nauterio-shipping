@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Truck, MapPin, CheckCircle2, Phone, PenTool, Loader2, AlertCircle, Package } from "lucide-react";
+import { Truck, MapPin, CheckCircle2, PenTool, Loader2, AlertCircle, Package } from "lucide-react";
 import { getCsrfToken } from "@/lib/auth";
 import { CSRF_HEADER } from "@/lib/session";
 

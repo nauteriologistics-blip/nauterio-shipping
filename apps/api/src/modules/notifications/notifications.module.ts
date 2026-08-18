@@ -1,4 +1,4 @@
-import { Controller, Get, Injectable, Module, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Injectable, Module, Param, ParseUUIDPipe, Patch, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { getPrismaClient } from "@nauterio/database";
 import { AuthGuard } from "../../common/guards/auth.guard";
@@ -19,13 +19,27 @@ class NotificationsService {
     return paginateCursor(
       (page) =>
         prisma.notification.findMany({
-          where: { userId },
+          where: { userId, channel: "IN_APP" },
           include: { deliveryAttempts: true },
           orderBy: { id: "desc" },
           ...page,
         }),
       pagination
     );
+  }
+
+  async unreadCount(userId: string) {
+    return { count: await getPrismaClient().notification.count({ where: { userId, channel: "IN_APP", readAt: null } }) };
+  }
+
+  async markRead(id: string, userId: string) {
+    const result = await getPrismaClient().notification.updateMany({ where: { id, userId, channel: "IN_APP" }, data: { readAt: new Date() } });
+    return { updated: result.count === 1 };
+  }
+
+  async markAllRead(userId: string) {
+    const result = await getPrismaClient().notification.updateMany({ where: { userId, channel: "IN_APP", readAt: null }, data: { readAt: new Date() } });
+    return { updated: result.count };
   }
 }
 
@@ -39,6 +53,21 @@ class NotificationsController {
   @Get()
   async list(@CurrentUser() user: AuthenticatedUser, @Query() pagination: CursorPaginationQueryDto) {
     return this.service.listMine(user.userId, pagination);
+  }
+
+  @Get("unread-count")
+  async unreadCount(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.unreadCount(user.userId);
+  }
+
+  @Patch("read-all")
+  async markAllRead(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.markAllRead(user.userId);
+  }
+
+  @Patch(":id/read")
+  async markRead(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.markRead(id, user.userId);
   }
 }
 

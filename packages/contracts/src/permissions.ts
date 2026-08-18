@@ -28,12 +28,14 @@ export type AppRole = StaffRole | CustomerRole;
 export type PermissionAction =
   | "shipment:create"
   | "shipment:edit"
+  | "shipment:hold"
   | "shipment:read"
   | "tracking_event:add"
   | "tracking_event:correct"
   | "customer_pii:view"
   | "identity_document:view"
   | "document:read"
+  | "document:review"
   | "invoice:read"
   | "invoice:manage"
   | "organisation:read"
@@ -44,7 +46,9 @@ export type PermissionAction =
   | "claim:reject"
   | "staff:manage"
   | "data:export"
-  | "user:erase";
+  | "user:erase"
+  | "pilot:manage"
+  | "support:manage";
 
 /**
  * Baseline role -> allowed-action map mirroring Appendix E's matrix.
@@ -57,12 +61,14 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
   SUPER_ADMIN: [
     "shipment:create",
     "shipment:edit",
+    "shipment:hold",
     "shipment:read",
     "tracking_event:add",
     "tracking_event:correct",
     "customer_pii:view",
     "identity_document:view",
     "document:read",
+    "document:review",
     "invoice:read",
     "invoice:manage",
     "organisation:read",
@@ -77,15 +83,19 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
     // catalogue - SUPER_ADMIN only, not shared with OPERATIONS or any other
     // staff role.
     "user:erase",
+    "pilot:manage",
+    "support:manage",
   ],
   OPERATIONS: [
     "shipment:create",
     "shipment:edit",
+    "shipment:hold",
     "shipment:read",
     "tracking_event:add",
     "tracking_event:correct",
     "customer_pii:view",
     "document:read",
+    "document:review",
     "invoice:read",
     "invoice:manage",
     "organisation:read",
@@ -94,9 +104,11 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
     "claim:approve",
     "claim:reject",
     "data:export",
+    "pilot:manage",
+    "support:manage",
   ],
   WAREHOUSE: ["shipment:read", "tracking_event:add", "customer_pii:view", "warehouse:read"],
-  SUPPORT: ["shipment:read", "customer_pii:view", "document:read", "invoice:read", "organisation:read"],
+  SUPPORT: ["shipment:read", "customer_pii:view", "document:read", "invoice:read", "organisation:read", "pilot:manage", "support:manage"],
   FINANCE: [
     "shipment:read",
     "customer_pii:view",
@@ -111,6 +123,7 @@ export const ROLE_BASELINE_ACTIONS: Record<StaffRole, PermissionAction[]> = {
     "customer_pii:view",
     "identity_document:view",
     "document:read",
+    "document:review",
     "data:export",
   ],
   DRIVER: ["shipment:read", "tracking_event:add"],

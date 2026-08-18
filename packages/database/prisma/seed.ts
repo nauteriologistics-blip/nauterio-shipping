@@ -66,7 +66,7 @@ async function main() {
 
   const staffUser = await prisma.user.upsert({
     where: { cognitoSub: "local-staff-user-id" },
-    update: {},
+    update: { staffRole: "WAREHOUSE" },
     create: {
       id: "00000000-0000-7000-8000-000000000101",
       cognitoSub: "local-staff-user-id",
@@ -74,7 +74,7 @@ async function main() {
       emailVerifiedAt: new Date(),
       status: "ACTIVE",
       fullName: "Warehouse Operator",
-      staffRole: "LOGISTICS_OPERATOR",
+      staffRole: "WAREHOUSE",
       staffWarehouseIds: [warehouseMilan.id],
       preferredLanguage: "it",
     },
@@ -82,7 +82,7 @@ async function main() {
 
   const adminUser = await prisma.user.upsert({
     where: { cognitoSub: "local-admin-user-id" },
-    update: {},
+    update: { staffRole: "SUPER_ADMIN" },
     create: {
       id: "00000000-0000-7000-8000-000000000102",
       cognitoSub: "local-admin-user-id",
@@ -90,7 +90,7 @@ async function main() {
       emailVerifiedAt: new Date(),
       status: "ACTIVE",
       fullName: "System Admin",
-      staffRole: "SYSTEM_ADMINISTRATOR",
+      staffRole: "SUPER_ADMIN",
       preferredLanguage: "en",
     },
   });

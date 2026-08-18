@@ -42,14 +42,27 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   if (correlationId) forwardHeaders.set("x-correlation-id", correlationId);
 
   const hasBody = req.method !== "GET" && req.method !== "HEAD";
-  const upstreamRes = await fetch(upstreamUrl, {
-    method: req.method,
-    headers: forwardHeaders,
-    body: hasBody ? await req.text() : undefined,
-    // The real API's own AuthGuard is still the authoritative check - this
-    // proxy only forwards identity, it does not decide authorization.
-    redirect: "manual",
-  });
+  let upstreamRes: Response;
+  try {
+    upstreamRes = await fetch(upstreamUrl, {
+      method: req.method,
+      headers: forwardHeaders,
+      body: hasBody ? await req.text() : undefined,
+      // The real API's own AuthGuard is still the authoritative check - this
+      // proxy only forwards identity, it does not decide authorization.
+      redirect: "manual",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "The Nauterio service is temporarily unavailable. Please try again shortly.",
+        correlationId: correlationId ?? "n/a",
+        retryable: true,
+      },
+      { status: 503 }
+    );
+  }
 
   const responseBody = await upstreamRes.text();
   const res = new NextResponse(responseBody, { status: upstreamRes.status });

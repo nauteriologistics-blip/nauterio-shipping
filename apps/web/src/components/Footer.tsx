@@ -24,49 +24,13 @@ export default async function Footer() {
             <p className="text-xs text-gray-400">{t("registrationPending")}</p>
           </div>
 
-          {/* Links Columns */}
-          <div className="lg:col-span-2 lg:col-start-6">
-            <h3 className="text-[#081F3D] font-semibold mb-6">{t("servicesHeading")}</h3>
-            <ul className="space-y-4">
-              <li>
-                <Link href="/quote?service=air-express" className="text-gray-500 hover:text-[#F28C18] transition-colors">
-                  {t("airExpress")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/quote?service=air-economy" className="text-gray-500 hover:text-[#F28C18] transition-colors">
-                  {t("airEconomy")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/quote?service=ocean-freight" className="text-gray-500 hover:text-[#F28C18] transition-colors">
-                  {t("oceanFreight")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/services" className="text-gray-500 hover:text-[#F28C18] transition-colors">
-                  {t("compareAllServices")}
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div className="lg:col-span-2">
+          {/* Only operational MVP destinations are linked at launch. */}
+          <div className="lg:col-span-3 lg:col-start-7">
             <h3 className="text-[#081F3D] font-semibold mb-6">{t("resourcesHeading")}</h3>
             <ul className="space-y-4">
               <li>
                 <Link href="/tracking" className="text-gray-500 hover:text-[#F28C18] transition-colors">
                   {t("trackShipment")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/customs" className="text-gray-500 hover:text-[#F28C18] transition-colors">
-                  {t("customsCompliance")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/business" className="text-gray-500 hover:text-[#F28C18] transition-colors">
-                  {t("businessSolutions")}
                 </Link>
               </li>
               <li>
@@ -77,7 +41,7 @@ export default async function Footer() {
             </ul>
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <h3 className="text-[#081F3D] font-semibold mb-6">{t("legalHeading")}</h3>
             <ul className="space-y-4">
               <li>

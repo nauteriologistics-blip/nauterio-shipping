@@ -13,6 +13,7 @@ export interface QuoteRequest {
 }
 
 export interface QuoteResult {
+  quoteId: string;
   actualWeightKg: number;
   volumetricWeightKg: number;
   chargeableWeightKg: number;

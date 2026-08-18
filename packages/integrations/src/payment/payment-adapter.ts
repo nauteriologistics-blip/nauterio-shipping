@@ -20,6 +20,9 @@ export interface VerifiedWebhookEvent {
   providerEventId: string;
   eventType: string;
   providerPaymentId: string;
+  paymentStatus?: string;
+  amountTotalMinorUnits?: number;
+  currency?: string;
   signatureVerified: true;
 }
 

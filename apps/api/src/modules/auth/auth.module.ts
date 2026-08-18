@@ -1,14 +1,17 @@
 import { randomBytes, createHash } from "node:crypto";
-import { BadRequestException, Controller, Injectable, Module, Post, Body } from "@nestjs/common";
+import { BadRequestException, Controller, ForbiddenException, Injectable, Module, Post, Body, Req } from "@nestjs/common";
+import type { Request } from "express";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { getPrismaClient } from "@nauterio/database";
 import { loadApiConfig } from "@nauterio/configuration";
 import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 import { AuditService } from "../audit/audit.module";
-import { RegisterDto, VerifyEmailDto } from "./dto/auth.dto";
+import { RegisterDto, RequestSignInDto, VerifyEmailDto } from "./dto/auth.dto";
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h, spec 27.1 "short-lived"
+const SIGN_IN_TOKEN_TTL_MS = 15 * 60 * 1000;
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
@@ -40,6 +43,10 @@ class AuthService {
 
     const prisma = getPrismaClient();
     const config = loadApiConfig();
+    if (config.PILOT_MODE) {
+      const allowed = new Set(config.PILOT_ALLOWED_EMAILS.split(",").map((email) => email.trim().toLowerCase()).filter(Boolean));
+      if (!allowed.has(dto.email.trim().toLowerCase())) throw new ForbiddenException("Registration is currently limited to invited pilot customers.");
+    }
     const cognitoSub = `cus_${randomBytes(20).toString("base64url")}`;
     const rawVerificationToken = randomBytes(32).toString("base64url");
 
@@ -64,6 +71,16 @@ class AuthService {
         },
       });
 
+      const url = new URL("/verify-email", config.WEB_APP_URL);
+      url.searchParams.set("token", rawVerificationToken);
+      await tx.outboxEvent.create({
+        data: {
+          eventType: "user.email_verification.requested",
+          correlationId,
+          payloadJson: { userId: created.id, email: created.email, verificationUrl: url.toString() },
+        },
+      });
+
       await this.auditService.record(
         {
           actorUserId: created.id,
@@ -75,8 +92,6 @@ class AuthService {
         tx
       );
 
-      const url = new URL("/verify-email", config.WEB_APP_URL);
-      url.searchParams.set("token", rawVerificationToken);
       return { user: created, verificationUrl: url.toString() };
     });
 
@@ -85,19 +100,108 @@ class AuthService {
       userId: user.id,
       email: user.email,
       verificationRequired: true,
-      // REQUIRES_BUSINESS_EVIDENCE: no SES sending identity is configured in
-      // this environment, so the verification email is not actually sent.
-      // In non-production, the link is returned directly here instead of
-      // being emailed, so the flow is end-to-end testable without SES. This
-      // must never happen in production - a real deployment needs SES
-      // wired and this field removed from the response.
+      // Local development exposes the link for convenient testing. In
+      // production it is delivered only through the transactional outbox.
       ...(isDev ? { devVerificationUrl: verificationUrl } : {}),
     };
+  }
+
+  async requestSignIn(dto: RequestSignInDto, correlationId?: string) {
+    const prisma = getPrismaClient();
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: dto.email.trim(), mode: "insensitive" }, status: "ACTIVE" },
+    });
+
+    // Always return the same response so this endpoint cannot be used to
+    // discover which email addresses have Nauterio accounts.
+    if (!user) return { accepted: true };
+
+    const rawToken = randomBytes(32).toString("base64url");
+    const config = loadApiConfig();
+    const url = new URL("/verify-email", config.WEB_APP_URL);
+    url.searchParams.set("token", rawToken);
+    url.searchParams.set("mode", "signin");
+
+    await prisma.$transaction(async (tx) => {
+      await tx.emailVerificationToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashToken(rawToken),
+          expiresAt: new Date(Date.now() + SIGN_IN_TOKEN_TTL_MS),
+        },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          eventType: "user.signin_link.requested",
+          correlationId,
+          payloadJson: { userId: user.id, email: user.email, signInUrl: url.toString() },
+        },
+      });
+      await this.auditService.record(
+        {
+          actorUserId: user.id,
+          action: "USER_SIGNIN_LINK_REQUESTED",
+          entityType: "User",
+          entityId: user.id,
+          correlationId,
+        },
+        tx
+      );
+    });
+
+    return { accepted: true };
+  }
+
+  async requestStaffSignIn(dto: RequestSignInDto, correlationId?: string) {
+    const prisma = getPrismaClient();
+    const user = await prisma.user.findFirst({
+      where: {
+        email: { equals: dto.email.trim(), mode: "insensitive" },
+        status: "ACTIVE",
+        staffRole: { not: null },
+      },
+    });
+    if (!user) return { accepted: true };
+
+    const rawToken = randomBytes(32).toString("base64url");
+    const config = loadApiConfig();
+    const url = new URL("/verify-email", config.ADMIN_APP_URL);
+    url.searchParams.set("token", rawToken);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.emailVerificationToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashToken(rawToken),
+          expiresAt: new Date(Date.now() + SIGN_IN_TOKEN_TTL_MS),
+        },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          eventType: "user.staff_signin_link.requested",
+          correlationId,
+          payloadJson: { userId: user.id, email: user.email, signInUrl: url.toString() },
+        },
+      });
+      await this.auditService.record(
+        {
+          actorUserId: user.id,
+          action: "STAFF_SIGNIN_LINK_REQUESTED",
+          entityType: "User",
+          entityId: user.id,
+          correlationId,
+        },
+        tx
+      );
+    });
+
+    return { accepted: true };
   }
 
   async verifyEmail(dto: VerifyEmailDto, correlationId?: string) {
     const prisma = getPrismaClient();
     const tokenHash = hashToken(dto.token);
+    const rawSessionToken = `nts_${randomBytes(32).toString("base64url")}`;
 
     return prisma.$transaction(async (tx) => {
       // Read-then-write on `consumedAt` (a separate findUnique before this
@@ -128,6 +232,14 @@ class AuthService {
         },
       });
 
+      await tx.authSession.create({
+        data: {
+          userId: updated.id,
+          tokenHash: hashToken(rawSessionToken),
+          expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+        },
+      });
+
       await this.auditService.record(
         {
           actorUserId: updated.id,
@@ -144,8 +256,17 @@ class AuthService {
       // on) - verifying email and establishing a session happen together,
       // a standard "magic link" pattern, since there is no separate
       // password to sign in with in this dev-mode model.
-      return { cognitoSub: updated.cognitoSub, userId: updated.id };
+      return { sessionToken: rawSessionToken, userId: updated.id, expiresInSeconds: SESSION_TTL_MS / 1000 };
     });
+  }
+
+  async logout(rawSessionToken: string | undefined) {
+    if (!rawSessionToken) return { revoked: false };
+    const result = await getPrismaClient().authSession.updateMany({
+      where: { tokenHash: hashToken(rawSessionToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { revoked: result.count === 1 };
   }
 }
 
@@ -169,6 +290,26 @@ class AuthController {
   @ApiOperation({ summary: "Consume an email verification token and activate the account" })
   async verifyEmail(@Body() dto: VerifyEmailDto, @CorrelationId() correlationId: string) {
     return this.authService.verifyEmail(dto, correlationId);
+  }
+
+  @Post("request-signin")
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: "Email a single-use customer sign-in link" })
+  async requestSignIn(@Body() dto: RequestSignInDto, @CorrelationId() correlationId: string) {
+    return this.authService.requestSignIn(dto, correlationId);
+  }
+
+  @Post("request-staff-signin")
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: "Email a single-use staff sign-in link" })
+  async requestStaffSignIn(@Body() dto: RequestSignInDto, @CorrelationId() correlationId: string) {
+    return this.authService.requestStaffSignIn(dto, correlationId);
+  }
+
+  @Post("logout")
+  async logout(@Req() req: Request) {
+    const header = req.headers.authorization;
+    return this.authService.logout(header?.startsWith("Bearer ") ? header.slice(7) : undefined);
   }
 }
 

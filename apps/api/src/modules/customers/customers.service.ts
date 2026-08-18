@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { getPrismaClient, Prisma } from "@nauterio/database";
+import { getPrismaClient, Prisma, type User } from "@nauterio/database";
 import { AuditService } from "../audit/audit.module";
 import { CreateAddressDto, UpdateAddressDto, UpdateProfileDto } from "./dto/customer.dto";
 
@@ -147,7 +147,7 @@ export class CustomersService {
     const { expectedVersion, ...data } = dto;
 
     const updated = await prisma.$transaction(async (tx) => {
-      let user;
+      let user: User;
       if (expectedVersion !== undefined) {
         try {
           user = await tx.user.update({

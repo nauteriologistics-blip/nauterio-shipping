@@ -70,6 +70,7 @@ model User {
   bookings                Booking[]
   shipmentsAsOwner        Shipment[]            @relation("ShipmentOwnerUser")
   documents               Document[]
+  documentsReviewed       Document[]            @relation("DocumentReviewedBy")
   supportLinks            SupportLink[]
   notifications           Notification[]
   auditEventsAsActor      AuditEvent[]          @relation("AuditActorUser")
@@ -88,7 +89,14 @@ model User {
   invoicesAsCustomer       Invoice[]
   idempotencyRecords       IdempotencyRecord[]
   shipmentsCreated         Shipment[]          @relation("ShipmentCreatedByUser")
+  shipmentsHeld            Shipment[]          @relation("ShipmentHeldByUser")
   emailVerificationTokens  EmailVerificationToken[]
+  authSessions             AuthSession[]
+  pilotIssuesReported      PilotIssue[]         @relation("PilotIssueReporter")
+  pilotIssuesAssigned      PilotIssue[]         @relation("PilotIssueAssignee")
+  supportConversations     SupportConversation[] @relation("SupportConversationCustomer")
+  supportConversationsAssigned SupportConversation[] @relation("SupportConversationAssignee")
+  supportMessagesAuthored  SupportMessage[]      @relation("SupportMessageAuthor")
 
   @@index([status])
   @@map("users")
@@ -323,8 +331,9 @@ model Quote {
   createdAt             DateTime    @default(now()) @map("created_at")
 
   lines    QuoteLine[]
-  bookings Booking[]
+  booking  Booking?
   shipments Shipment[]
+  invoices  Invoice[]
 
   @@index([userId])
   @@index([organisationId])
@@ -361,6 +370,17 @@ enum BookingStep {
   CONFIRMED
 }
 
+enum ShipmentRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  AWAITING_PAYMENT
+  PAID
+  REJECTED
+  CONVERTED
+  CANCELLED
+}
+
 /// Draft flow state before conversion to a real Shipment (spec: Booking/Draft
 /// entity). Lets a customer leave and resume a booking without losing progress.
 model Booking {
@@ -369,15 +389,22 @@ model Booking {
   user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   organisationId String?     @map("organisation_id") @db.Uuid
   organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
-  quoteId        String?     @map("quote_id") @db.Uuid
+  quoteId        String?     @unique @map("quote_id") @db.Uuid
   quote          Quote?      @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   currentStep    BookingStep @default(PACKAGE_DETAILS) @map("current_step")
+  requestStatus  ShipmentRequestStatus @default(DRAFT) @map("request_status")
+  decisionReason String?     @map("decision_reason")
+  submittedAt    DateTime?   @map("submitted_at")
+  reviewedAt     DateTime?   @map("reviewed_at")
+  reviewedByUserId String?   @map("reviewed_by_user_id") @db.Uuid
   draftDataJson  Json        @map("draft_data_json")
   convertedShipmentId String? @unique @map("converted_shipment_id") @db.Uuid
   convertedShipment   Shipment? @relation(fields: [convertedShipmentId], references: [id], onDelete: SetNull)
+  invoice         Invoice?
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
+  @@index([requestStatus, id])
   @@map("bookings")
 }
 
@@ -462,6 +489,11 @@ model Shipment {
   source          String   @default("web") @map("source") // web | admin | api | import
   version         Int      @default(1)
   legalHold       Boolean  @default(false) @map("legal_hold")
+  operationalHold Boolean  @default(false) @map("operational_hold")
+  holdReason      String?  @map("hold_reason")
+  heldAt          DateTime? @map("held_at")
+  heldByUserId    String?  @map("held_by_user_id") @db.Uuid
+  heldByUser      User?    @relation("ShipmentHeldByUser", fields: [heldByUserId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -479,6 +511,8 @@ model Shipment {
   supportLinks        SupportLink[]
   originalForReturns  Return[]      @relation("ReturnOriginalShipment")
   returnShipmentFor   Return?       @relation("ReturnShipment")
+  pilotIssues         PilotIssue[]
+  supportConversations SupportConversation[]
 
   @@index([lifecycleStatus])
   // REL-016: list endpoints filter on organisationId/ownerUserId and sort
@@ -495,6 +529,7 @@ model Shipment {
 /// Physical handling unit (spec: Package entity).
 model Package {
   id                 String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  packageNumber      String   @unique @map("package_number")
   shipmentId         String   @map("shipment_id") @db.Uuid
   shipment           Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
   sequenceNumber     Int      @map("sequence_number") // e.g. "2 of 4"
@@ -852,6 +887,10 @@ model Document {
   currentVersionId String?               @unique @map("current_version_id") @db.Uuid
   currentVersion   DocumentVersion?      @relation("DocumentCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   reviewStatus     DocumentReviewStatus  @default(PROCESSING) @map("review_status")
+  reviewReason     String?               @map("review_reason")
+  reviewedAt       DateTime?             @map("reviewed_at")
+  reviewedByUserId String?               @map("reviewed_by_user_id") @db.Uuid
+  reviewedByUser   User?                 @relation("DocumentReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   createdAt        DateTime              @default(now()) @map("created_at")
 
   versions DocumentVersion[]
@@ -864,6 +903,7 @@ model Document {
   packagesAsLabel            Package[]       @relation("PackageLabelDocument")
 
   @@index([shipmentId])
+  @@index([reviewStatus, createdAt])
   @@map("documents")
 }
 
@@ -932,6 +972,10 @@ model Invoice {
   organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: Restrict)
   customerUserId String?       @map("customer_user_id") @db.Uuid
   customerUser   User?         @relation(fields: [customerUserId], references: [id], onDelete: SetNull)
+  bookingId      String?       @unique @map("booking_id") @db.Uuid
+  booking        Booking?      @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  quoteId        String?       @map("quote_id") @db.Uuid
+  quote          Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   invoiceNumber  String        @unique @map("invoice_number")
   status         InvoiceStatus @default(DRAFT)
   totalAmountMinorUnits BigInt @map("total_amount_minor_units")
@@ -947,6 +991,7 @@ model Invoice {
   allocations PaymentAllocation[]
 
   @@index([organisationId])
+  @@index([customerUserId, id])
   @@map("invoices")
 }
 
@@ -985,6 +1030,7 @@ model Payment {
   id                String          @id @default(dbgenerated("uuidv7()")) @db.Uuid
   provider          PaymentProvider
   providerPaymentId String          @map("provider_payment_id")
+  providerCheckoutUrl String?       @map("provider_checkout_url")
   status            PaymentStatus   @default(PENDING)
   amountMinorUnits  BigInt          @map("amount_minor_units")
   currency          String          @db.Char(3)
@@ -1034,6 +1080,7 @@ model PaymentAllocation {
   currency         String   @db.Char(3)
   createdAt        DateTime @default(now()) @map("created_at")
 
+  @@unique([paymentId, invoiceId])
   @@map("payment_allocations")
 }
 
@@ -1153,6 +1200,92 @@ model SupportLink {
   @@map("support_links")
 }
 
+enum SupportConversationStatus {
+  OPEN
+  WAITING_FOR_CUSTOMER
+  WAITING_FOR_AGENT
+  RESOLVED
+  CLOSED
+}
+
+enum SupportAuthorType {
+  CUSTOMER
+  STAFF
+  BOT
+  SYSTEM
+}
+
+model SupportConversation {
+  id                    String                    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  customerUserId        String                    @map("customer_user_id") @db.Uuid
+  customerUser          User                      @relation("SupportConversationCustomer", fields: [customerUserId], references: [id], onDelete: Restrict)
+  shipmentId            String?                   @map("shipment_id") @db.Uuid
+  shipment              Shipment?                 @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  assignedStaffUserId   String?                   @map("assigned_staff_user_id") @db.Uuid
+  assignedStaffUser     User?                     @relation("SupportConversationAssignee", fields: [assignedStaffUserId], references: [id], onDelete: SetNull)
+  subject               String
+  status                SupportConversationStatus @default(WAITING_FOR_AGENT)
+  lastMessageAt         DateTime                  @default(now()) @map("last_message_at")
+  createdAt             DateTime                  @default(now()) @map("created_at")
+  updatedAt             DateTime                  @updatedAt @map("updated_at")
+  messages              SupportMessage[]
+
+  @@index([customerUserId, lastMessageAt])
+  @@index([status, lastMessageAt])
+  @@map("support_conversations")
+}
+
+model SupportMessage {
+  id               String              @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  conversationId   String              @map("conversation_id") @db.Uuid
+  conversation     SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorUserId     String?             @map("author_user_id") @db.Uuid
+  authorUser       User?               @relation("SupportMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorType       SupportAuthorType   @map("author_type")
+  body             String
+  createdAt        DateTime            @default(now()) @map("created_at")
+  readAt           DateTime?           @map("read_at")
+
+  @@index([conversationId, id])
+  @@map("support_messages")
+}
+
+enum PilotIssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum PilotIssueStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  CLOSED
+}
+
+model PilotIssue {
+  id               String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  title            String
+  description      String
+  severity         PilotIssueSeverity @default(MEDIUM)
+  status           PilotIssueStatus   @default(OPEN)
+  shipmentId       String?            @map("shipment_id") @db.Uuid
+  shipment         Shipment?          @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  reportedByUserId String             @map("reported_by_user_id") @db.Uuid
+  reportedByUser   User               @relation("PilotIssueReporter", fields: [reportedByUserId], references: [id], onDelete: Restrict)
+  assignedToUserId String?            @map("assigned_to_user_id") @db.Uuid
+  assignedToUser   User?              @relation("PilotIssueAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  resolution       String?
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  resolvedAt       DateTime?          @map("resolved_at")
+
+  @@index([status, severity, createdAt])
+  @@index([shipmentId])
+  @@map("pilot_issues")
+}
+
 // ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
@@ -1172,6 +1305,7 @@ model Notification {
   channel        NotificationChannel
   renderedSubject String?            @map("rendered_subject")
   renderedBodyHash String            @map("rendered_body_hash") // hash only, per privacy-by-design; never store raw PII-laden body long-term
+  readAt         DateTime?           @map("read_at")
   createdAt      DateTime            @default(now()) @map("created_at")
 
   deliveryAttempts DeliveryAttempt[]
@@ -1180,6 +1314,7 @@ model Notification {
   // centre's `where: {userId}, orderBy: {id: "desc"}` list query is served
   // by one index scan instead of a filter-then-sort.
   @@index([userId, id])
+  @@index([userId, readAt, id])
   @@map("notifications")
 }
 
@@ -1380,6 +1515,20 @@ model EmailVerificationToken {
 
   @@index([userId])
   @@map("email_verification_tokens")
+}
+
+model AuthSession {
+  id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }
 
 model ApiClient {

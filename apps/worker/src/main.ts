@@ -5,6 +5,7 @@ import { notificationsEmailHandler } from "./jobs/notifications-email.job";
 import { runRetentionSweep } from "./jobs/retention.job";
 import { runIdempotencyCleanup } from "./jobs/idempotency-cleanup.job";
 import { runQuoteExpiryCleanup } from "./jobs/quote-expiry-cleanup.job";
+import { runAuthSessionCleanup } from "./jobs/auth-session-cleanup.job";
 import { disconnectPrisma } from "@nauterio/database";
 import { workerLogger } from "./logger";
 
@@ -60,6 +61,14 @@ function main() {
       .catch((err) => workerLogger.error({ err }, "[quote-expiry-cleanup] sweep failed"));
   }, 60 * 60_000);
 
+  const authSessionCleanupInterval = setInterval(() => {
+    runAuthSessionCleanup()
+      .then((result) => {
+        if (result.deleted > 0) workerLogger.info({ deleted: result.deleted }, "[auth-session-cleanup] deleted expired sessions");
+      })
+      .catch((err) => workerLogger.error({ err }, "[auth-session-cleanup] sweep failed"));
+  }, 60 * 60_000);
+
   workerLogger.info(
     "Nauterio worker started: outbox relay + notifications-email consumer + retention sweep + idempotency cleanup + quote expiry cleanup."
   );
@@ -69,6 +78,7 @@ function main() {
     clearInterval(retentionInterval);
     clearInterval(idempotencyCleanupInterval);
     clearInterval(quoteExpiryCleanupInterval);
+    clearInterval(authSessionCleanupInterval);
     await disconnectPrisma();
     process.exit(0);
   };

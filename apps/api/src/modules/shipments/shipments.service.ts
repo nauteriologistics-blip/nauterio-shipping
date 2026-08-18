@@ -21,11 +21,10 @@ const MAX_GENERATION_ATTEMPTS = 5;
 /**
  * Owns the Shipment lifecycle (spec section 24.1's module ownership rule -
  * other modules never write to the shipments table directly). Creation is
- * intentionally minimal at this stage: it proves the schema/API path end
- * to end. Booking-flow conversion (Booking -> Shipment), payment-gated
- * activation, and the outbox event this should publish on creation
- * (ShipmentCreated) are follow-up work once BillingModule exists to react
- * to it - see ADR 0001 section 3.3's event-vs-direct-call rule.
+ * Shipment-request approval is implemented by BookingsService, which uses
+ * this service's collision-resistant tracking-number generator and creates
+ * the shipment, first package, initial tracking event, and outbox event in
+ * one transaction. Payment is deliberately outside the launch MVP.
  */
 export type ShipmentListScope = ShipmentScopeCaller;
 
@@ -91,6 +90,7 @@ export class ShipmentsService {
       where: { id, ...shipmentScopeWhere(caller) },
       include: {
         packages: true,
+        documents: isStaff ? { where: { reviewStatus: "APPROVED" }, select: { id: true, type: true, reviewStatus: true } } : false,
         trackingEvents: {
           // SEC-003/REL-017: never return INTERNAL-visibility events or
           // internal-only fields to a non-staff caller - this mirrors the

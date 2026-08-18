@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsObject, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsNotEmpty, IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength } from "class-validator";
 
 export class SaveDraftDto {
   @ApiProperty({ description: "Current wizard step" })
@@ -22,14 +22,10 @@ export class SaveDraftDto {
   organisationId?: string;
 }
 
-export class ConfirmBookingDto {
-  @ApiProperty({ description: "Payment intent or payment reference", required: false })
+export class RejectShipmentRequestDto {
+  @ApiProperty({ description: "Customer-visible reason for rejecting the request" })
   @IsString()
-  @IsOptional()
-  paymentReference?: string;
-
-  @ApiProperty({ description: "Payment method (e.g., INVOICE, CARD)", required: false })
-  @IsString()
-  @IsOptional()
-  paymentMethod?: string;
+  @MinLength(3)
+  @MaxLength(1000)
+  reason!: string;
 }

@@ -24,6 +24,7 @@ describe("verifyCognitoToken", () => {
       nodeEnv: "production",
       userPoolId: "us-east-1_XXXXX",
       region: "us-east-1",
+      clientId: "test-client",
     });
     expect(sub).toBeNull();
   });

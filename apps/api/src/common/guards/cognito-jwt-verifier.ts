@@ -46,8 +46,8 @@ export async function verifyCognitoToken(token: string, config: CognitoVerifierC
   }
 
   // Production verification
-  if (!config.userPoolId || !config.region) {
-    throw new Error("COGNITO_USER_POOL_ID and COGNITO_REGION are required for production auth verification.");
+  if (!config.userPoolId || !config.region || !config.clientId) {
+    throw new Error("COGNITO_USER_POOL_ID, COGNITO_REGION, and COGNITO_CLIENT_ID are required for production auth verification.");
   }
 
   const parts = token.split(".");
@@ -89,7 +89,7 @@ export async function verifyCognitoToken(token: string, config: CognitoVerifierC
 
   // Check expiration
   const nowSec = Math.floor(Date.now() / 1000);
-  if (payload.exp && payload.exp < nowSec) {
+  if (!payload.exp || payload.exp < nowSec) {
     return null;
   }
 
@@ -98,6 +98,9 @@ export async function verifyCognitoToken(token: string, config: CognitoVerifierC
   if (payload.iss !== expectedIss) {
     return null;
   }
+  if (payload.token_use !== "access" && payload.token_use !== "id") return null;
+  const tokenClientId = payload.token_use === "access" ? payload.client_id : payload.aud;
+  if (tokenClientId !== config.clientId) return null;
 
   // Fetch JWKS
   const jwksUrl = `${expectedIss}/.well-known/jwks.json`;

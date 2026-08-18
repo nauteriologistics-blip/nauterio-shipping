@@ -1,11 +1,12 @@
 import { Module } from "@nestjs/common";
-import { BillingController } from "./billing.controller";
+import { BillingController, StripeWebhookController } from "./billing.controller";
 import { BillingService } from "./billing.service";
 import { AuditModule } from "../audit/audit.module";
+import { BookingsModule } from "../bookings/bookings.module";
 
 @Module({
-  imports: [AuditModule],
-  controllers: [BillingController],
+  imports: [AuditModule, BookingsModule],
+  controllers: [BillingController, StripeWebhookController],
   providers: [BillingService],
   exports: [BillingService],
 })
