@@ -5,12 +5,15 @@ const concurrentMigration = "20260809150000_concurrent_indexes";
 const concurrentMigrationFile = fileURLToPath(
   new URL(`../packages/database/prisma/migrations/${concurrentMigration}/migration.sql`, import.meta.url)
 );
-
-const prismaArgs = ["--filter", "@nauterio/database", "exec", "prisma"];
+const databaseDirectory = fileURLToPath(new URL("../packages/database/", import.meta.url));
+const prismaCli = fileURLToPath(new URL("../packages/database/node_modules/prisma/build/index.js", import.meta.url));
 
 function runPrisma(args, allowFailure = false) {
-  const result = spawnSync("pnpm", [...prismaArgs, ...args], {
-    cwd: fileURLToPath(new URL("..", import.meta.url)),
+  // Invoke the installed CLI directly. Going through pnpm revalidates the
+  // entire lockfile against registry metadata on every free-tier cold start,
+  // which can add several minutes before Render sees an open HTTP port.
+  const result = spawnSync(process.execPath, [prismaCli, ...args], {
+    cwd: databaseDirectory,
     env: process.env,
     encoding: "utf8",
   });
