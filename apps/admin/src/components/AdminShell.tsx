@@ -6,7 +6,27 @@ import Link from "next/link";
 import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { logout } from "@/lib/auth";
-import { ROLE_BASELINE_ACTIONS, STAFF_ROLES, type PermissionAction, type StaffRole } from "@nauterio/contracts";
+
+type NavigationPermission =
+  | "shipment:create"
+  | "shipment:read"
+  | "customer_pii:view"
+  | "document:review"
+  | "pilot:manage"
+  | "support:manage";
+
+// Navigation is only a convenience filter; every API route still applies the
+// canonical server-side permission policy from @nauterio/contracts.
+const NAVIGATION_PERMISSIONS_BY_ROLE: Record<string, readonly NavigationPermission[]> = {
+  SUPER_ADMIN: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "pilot:manage", "support:manage"],
+  OPERATIONS: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "pilot:manage", "support:manage"],
+  WAREHOUSE: ["shipment:read", "customer_pii:view"],
+  SUPPORT: ["shipment:read", "customer_pii:view", "pilot:manage", "support:manage"],
+  FINANCE: ["shipment:read", "customer_pii:view"],
+  CUSTOMS: ["shipment:read", "customer_pii:view", "document:review"],
+  DRIVER: ["shipment:read"],
+  AUDITOR: ["shipment:read"],
+};
 
 interface Profile {
   id: string;
@@ -24,11 +44,10 @@ const NAV_ITEMS = [
   { href: "/customers", label: "Customers", icon: Users, permission: "customer_pii:view" },
   { href: "/support", label: "Support", icon: MessagesSquare, permission: "support:manage" },
   { href: "/pilot", label: "Pilot Control", icon: Activity, permission: "pilot:manage" },
-] as const satisfies ReadonlyArray<{ href: string; label: string; icon: typeof LayoutDashboard; permission: PermissionAction }>;
+] as const satisfies ReadonlyArray<{ href: string; label: string; icon: typeof LayoutDashboard; permission: NavigationPermission }>;
 
-function permissionsFor(role: string | null | undefined): PermissionAction[] {
-  if (!role || !STAFF_ROLES.includes(role as StaffRole)) return [];
-  return ROLE_BASELINE_ACTIONS[role as StaffRole];
+function permissionsFor(role: string | null | undefined): readonly NavigationPermission[] {
+  return role ? (NAVIGATION_PERMISSIONS_BY_ROLE[role] ?? []) : [];
 }
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

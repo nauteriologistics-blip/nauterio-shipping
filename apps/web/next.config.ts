@@ -9,7 +9,6 @@ const storageOrigin = process.env.NEXT_PUBLIC_OBJECT_STORAGE_ORIGIN ?? "";
 // an httpOnly session cookie into the real API's `Authorization` header.
 const nextConfig: NextConfig = {
   output: process.env.VERCEL ? undefined : "standalone",
-  transpilePackages: ["@nauterio/contracts"],
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'${storageOrigin ? ` ${storageOrigin}` : ""}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'` },

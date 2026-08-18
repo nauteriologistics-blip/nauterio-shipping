@@ -23,9 +23,6 @@ importers:
 
   apps/admin:
     dependencies:
-      '@nauterio/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
       lucide-react:
         specifier: ^1.29.0
         version: 1.29.0(react@19.2.8)
@@ -148,9 +145,6 @@ importers:
 
   apps/web:
     dependencies:
-      '@nauterio/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
       '@types/canvas-confetti':
         specifier: ^1.9.0
         version: 1.9.0

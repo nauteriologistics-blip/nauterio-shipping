@@ -2,10 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AlertTriangle, ArrowRight, Package, Plus, ShieldCheck } from "lucide-react";
-import { SERVICES } from "@nauterio/contracts";
 import { getPortalDashboardData, type ShipmentSummary } from "@/lib/portal-data.server";
 import { formatDateRange } from "./format";
 import { PayInvoiceButton } from "./PayInvoiceButton";
+
+const SERVICE_NAMES: Record<string, string> = {
+  "air-express": "Air Express",
+  "air-economy": "Air Economy",
+  "ocean-freight": "Ocean Freight (LCL)",
+};
 
 function routeLabel(shipment: ShipmentSummary): string {
   const origin = shipment.senderAddressSnapshot?.city ?? shipment.senderAddressSnapshot?.countryCode ?? "Origin";
@@ -79,7 +84,7 @@ export default async function CustomerPortal() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">
-                    {SERVICES.find((service) => service.id === shipment.serviceId)?.name ?? shipment.serviceId} &bull; {routeLabel(shipment)}
+                    {SERVICE_NAMES[shipment.serviceId] ?? shipment.serviceId} &bull; {routeLabel(shipment)}
                   </p>
                   <p className="text-[11px] text-slate-400">
                     {t("estimatedDelivery")} {formatDateRange(shipment.estimatedDeliveryFrom, shipment.estimatedDeliveryTo)}
