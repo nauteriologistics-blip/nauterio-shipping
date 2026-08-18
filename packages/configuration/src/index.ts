@@ -75,9 +75,13 @@ export function loadApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     throw new Error("Invalid environment configuration: RESEND_API_KEY is required when EMAIL_PROVIDER=resend");
   }
   if (result.data.NODE_ENV === "production") {
-    for (const key of ["OBJECT_STORAGE_ENDPOINT", "OBJECT_STORAGE_BUCKET", "OBJECT_STORAGE_ACCESS_KEY_ID", "OBJECT_STORAGE_SECRET_ACCESS_KEY", "MALWARE_SCANNER_URL", "MALWARE_SCANNER_TOKEN"] as const) {
+    for (const key of ["OBJECT_STORAGE_ENDPOINT", "OBJECT_STORAGE_BUCKET", "OBJECT_STORAGE_ACCESS_KEY_ID", "OBJECT_STORAGE_SECRET_ACCESS_KEY"] as const) {
       if (!result.data[key]) throw new Error(`Invalid environment configuration: production requires ${key}`);
     }
+    // Malware scanning is an optional integration. Document scan requests
+    // already fail closed with a 400 response when it is not configured, so
+    // its absence must not prevent the API and unrelated worker jobs from
+    // starting in production.
     if (!result.data.STRIPE_SECRET_KEY || !result.data.STRIPE_WEBHOOK_SECRET) throw new Error("Invalid environment configuration: production requires Stripe payment credentials");
   }
   return result.data;
