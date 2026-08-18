@@ -1,4 +1,13 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+
+const migration = spawnSync(process.execPath, ["scripts/deploy-migrations.mjs"], {
+  env: process.env,
+  stdio: "inherit",
+});
+if (migration.error) throw migration.error;
+if (migration.status !== 0) {
+  throw new Error(`Production migrations failed with exit code ${migration.status ?? 1}.`);
+}
 
 const services = [
   ["api", "apps/api/dist/main.js"],
