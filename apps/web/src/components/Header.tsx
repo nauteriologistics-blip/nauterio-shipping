@@ -14,6 +14,7 @@ export default function Header() {
   const router = useRouter();
   const locale = useLocale() as Locale;
   const t = useTranslations("Header");
+  const tPortal = useTranslations("Portal");
   const isPortal = pathname?.startsWith("/portal") ?? false;
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -123,14 +124,19 @@ export default function Header() {
           </button>
 
           {isPortal ? (
-            <button
-              onClick={() => void handleSignOut()}
-              disabled={signingOut}
-              className="flex items-center gap-1.5 text-gray-600 hover:text-[#081F3D] font-medium transition-colors disabled:opacity-50"
-            >
-              <LogOut className="w-4 h-4" aria-hidden="true" />
-              {signingOut ? t("signingOut") : t("signOut")}
-            </button>
+            <>
+              <Link href="/quote" className="bg-[#F28C18] hover:bg-[#d97c14] text-white px-6 py-2.5 rounded-full font-medium transition-colors">
+                {tPortal("newShipment")}
+              </Link>
+              <button
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className="flex items-center gap-1.5 text-gray-600 hover:text-[#081F3D] font-medium transition-colors disabled:opacity-50"
+              >
+                <LogOut className="w-4 h-4" aria-hidden="true" />
+                {signingOut ? t("signingOut") : t("signOut")}
+              </button>
+            </>
           ) : (
             <>
               <Link href="/signin" className="text-gray-600 hover:text-[#081F3D] font-medium transition-colors">
@@ -194,11 +200,11 @@ export default function Header() {
               </Link>
             )}
             <Link
-              href="/register"
+              href={isPortal ? "/quote" : "/register"}
               className="bg-[#F28C18] text-white text-center px-6 py-3 rounded-full font-medium mt-2"
               onClick={() => setMobileMenuOpen(false)}
             >
-              {t("startShipping")}
+              {isPortal ? tPortal("newShipment") : t("startShipping")}
             </Link>
           </div>
         </div>

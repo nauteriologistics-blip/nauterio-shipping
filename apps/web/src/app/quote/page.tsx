@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SERVICES, getService, type ServiceId } from "@/lib/services";
+import { getCsrfToken } from "@/lib/auth";
+import { CSRF_HEADER } from "@/lib/session";
 
 const SERVICE_ICONS: Record<ServiceId, typeof Plane> = {
   "air-express": Plane,
@@ -64,6 +66,7 @@ function QuoteCalculator() {
   const [isBooked, setIsBooked] = useState(false);
   const [quotesByService, setQuotesByService] = useState<Partial<Record<ServiceId, QuoteResult>>>({});
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [isFetchingQuotes, setIsFetchingQuotes] = useState(false);
 
   const [formData, setFormData] = useState<FormData>(() => {
@@ -84,6 +87,7 @@ function QuoteCalculator() {
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormError(null);
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -113,9 +117,13 @@ function QuoteCalculator() {
       try {
         const entries = await Promise.all(
           SERVICES.map(async (service) => {
+            const csrfToken = getCsrfToken();
             const res = await fetch("/api/v1/quotes", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+              },
               body: JSON.stringify({
                 weightKg: Number(formData.weight),
                 lengthCm: Number(formData.length),
@@ -155,6 +163,10 @@ function QuoteCalculator() {
   const router = useRouter();
 
   const handleBook = () => {
+    if (!selectedQuote) {
+      setFormError(t("selectCalculatedQuoteError"));
+      return;
+    }
     // Build query params to pre-populate the booking wizard from the quote
     const params = new URLSearchParams();
     if (selectedQuote) {
@@ -180,6 +192,29 @@ function QuoteCalculator() {
     setTimeout(() => {
       router.push(`/portal/bookings/new?${params.toString()}`);
     }, 800);
+  };
+
+  const handleNext = () => {
+    setFormError(null);
+    if (currentStep === 1) {
+      const dimensions = [formData.length, formData.width, formData.height].map(Number);
+      if (Number(formData.weight) <= 0 || dimensions.some((value) => value <= 0) || Number(formData.value) <= 0) {
+        setFormError(t("packageValidationError"));
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      const routeFields = [formData.pickupCity, formData.pickupZip, formData.deliveryCity, formData.deliveryState, formData.deliveryZip];
+      if (routeFields.some((value) => !value.trim())) {
+        setFormError(t("addressValidationError"));
+        return;
+      }
+    }
+    if (currentStep === 3 && (!formData.serviceId || !selectedQuote || isFetchingQuotes || quoteError)) {
+      setFormError(t("selectCalculatedQuoteError"));
+      return;
+    }
+    setCurrentStep((previous) => Math.min(4, previous + 1));
   };
 
   if (isBooked) {
@@ -241,6 +276,13 @@ function QuoteCalculator() {
           {/* Main Content */}
           <div className="lg:col-span-8">
             <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-sm border border-slate-100">
+
+              {formError && (
+                <div role="alert" className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                  {formError}
+                </div>
+              )}
 
               {/* Step 1: Package Details */}
               {currentStep === 1 && (
@@ -403,13 +445,14 @@ function QuoteCalculator() {
                       return (
                         <div
                           key={service.id}
-                          onClick={() => setFormData({ ...formData, serviceId: service.id })}
+                          onClick={() => { setFormError(null); setFormData({ ...formData, serviceId: service.id }); }}
                           role="radio"
                           aria-checked={isSelected}
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
+                              setFormError(null);
                               setFormData({ ...formData, serviceId: service.id });
                             }
                           }}
@@ -513,8 +556,8 @@ function QuoteCalculator() {
 
                 {currentStep < 4 ? (
                   <button
-                    onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
-                    disabled={currentStep === 3 && !formData.serviceId}
+                    onClick={handleNext}
+                    disabled={currentStep === 3 && (isFetchingQuotes || !formData.serviceId || !selectedQuote)}
                     className="flex items-center gap-2 px-8 py-4 bg-[#F28C18] text-white rounded-full font-medium hover:bg-[#e07a12] transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {t("nextStepButton")}

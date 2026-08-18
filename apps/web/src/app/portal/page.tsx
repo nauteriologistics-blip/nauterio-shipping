@@ -61,7 +61,7 @@ export default async function CustomerPortal() {
           </div>
           <p className="text-xs text-slate-300 mt-1">{data.profile.email}</p>
         </div>
-        <Link href="/portal/bookings/new" className="bg-[#F28C18] hover:bg-[#d97c14] text-[#081F3D] font-extrabold px-5 py-2.5 rounded-xl transition-colors text-xs flex items-center gap-2">
+        <Link href="/quote" className="bg-[#F28C18] hover:bg-[#d97c14] text-[#081F3D] font-extrabold px-5 py-2.5 rounded-xl transition-colors text-xs flex items-center gap-2">
           <Plus className="w-4 h-4" /> {t("newShipment")}
         </Link>
       </div>
@@ -71,7 +71,7 @@ export default async function CustomerPortal() {
           <Package className="w-4 h-4" /> {t("activeShipmentsHeading")}
         </h2>
         {activeShipments.length === 0 ? (
-          <EmptyState message={t("noActiveShipments")} action={{ href: "/portal/bookings/new", label: t("newShipment") }} />
+          <EmptyState message={t("noActiveShipments")} action={{ href: "/quote", label: t("newShipment") }} />
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
             {activeShipments.map((shipment) => (
