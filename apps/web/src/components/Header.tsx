@@ -18,7 +18,12 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const MARKETING_NAV_ITEMS = [
+    { label: t("navServices"), href: "/services" },
+    { label: t("navQuote"), href: "/quote" },
     { label: t("navTrack"), href: "/tracking" },
+    { label: t("navCustoms"), href: "/customs" },
+    { label: t("navBusiness"), href: "/business" },
+    { label: t("navContact"), href: "/business#contact" },
   ];
 
   // The launch MVP exposes only routes that are operational. Dedicated
