@@ -2,7 +2,7 @@ FROM node:24-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/admin ./apps/admin
 
@@ -13,7 +13,6 @@ FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=builder /app/apps/admin/public ./public
 COPY --from=builder /app/apps/admin/.next/standalone ./
 COPY --from=builder /app/apps/admin/.next/static ./.next/static
 

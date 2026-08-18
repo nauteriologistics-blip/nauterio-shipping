@@ -5,6 +5,8 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/api ./apps/api
+COPY apps/worker ./apps/worker
+COPY scripts/start-render.mjs scripts/deploy-migrations.mjs ./scripts/
 
 RUN pnpm install --frozen-lockfile
 RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @nauterio/database generate
@@ -18,4 +20,4 @@ RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 COPY --from=builder /app ./
 
 EXPOSE 4000
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["node", "scripts/start-render.mjs"]
