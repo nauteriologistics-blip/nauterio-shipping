@@ -62,11 +62,17 @@
   "VerifyEmail": {
     "checkingTitle": "Verifica del tuo account in corso...",
     "checkingBody": "Richiederà solo un momento.",
+    "checkingSignInTitle": "Accesso in corso...",
+    "checkingSignInBody": "Stiamo aprendo in modo sicuro la tua area clienti.",
     "doneTitle": "Account verificato",
     "doneBody": "Ti stiamo reindirizzando alla tua area clienti...",
+    "signedInTitle": "Accesso effettuato",
+    "signedInBody": "Ti stiamo reindirizzando alla tua area clienti...",
     "errorTitle": "Verifica non riuscita",
+    "signInErrorTitle": "Accesso non riuscito",
     "missingToken": "A questo link di verifica manca il token.",
-    "tryAgain": "Prova a registrarti di nuovo"
+    "tryAgain": "Prova a registrarti di nuovo",
+    "requestNewSignInLink": "Richiedi un nuovo link di accesso"
   },
   "Portal": {
     "welcomeBack": "Bentornato, {name}",

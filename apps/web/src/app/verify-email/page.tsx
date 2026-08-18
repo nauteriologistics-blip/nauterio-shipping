@@ -11,6 +11,7 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const t = useTranslations("VerifyEmail");
   const token = searchParams.get("token");
+  const isSignIn = searchParams.get("mode") === "signin";
 
   // No token is knowable synchronously from the URL at first render - no
   // need for an effect to discover it, which also avoids a setState call
@@ -53,25 +54,25 @@ function VerifyEmailContent() {
       <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
         {status === "checking" && (
           <>
-            <h1 className="text-xl font-bold text-[#081F3D]">{t("checkingTitle")}</h1>
-            <p className="mt-2 text-sm text-slate-500">{t("checkingBody")}</p>
+            <h1 className="text-xl font-bold text-[#081F3D]">{t(isSignIn ? "checkingSignInTitle" : "checkingTitle")}</h1>
+            <p className="mt-2 text-sm text-slate-500">{t(isSignIn ? "checkingSignInBody" : "checkingBody")}</p>
           </>
         )}
         {status === "done" && (
           <>
-            <h1 className="text-xl font-bold text-[#081F3D]">{t("doneTitle")}</h1>
-            <p className="mt-2 text-sm text-slate-500">{t("doneBody")}</p>
+            <h1 className="text-xl font-bold text-[#081F3D]">{t(isSignIn ? "signedInTitle" : "doneTitle")}</h1>
+            <p className="mt-2 text-sm text-slate-500">{t(isSignIn ? "signedInBody" : "doneBody")}</p>
           </>
         )}
         {status === "error" && (
           <>
-            <h1 className="text-xl font-bold text-[#081F3D]">{t("errorTitle")}</h1>
+            <h1 className="text-xl font-bold text-[#081F3D]">{t(isSignIn ? "signInErrorTitle" : "errorTitle")}</h1>
             <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2" role="alert">
               {errorMessage}
             </p>
             <p className="mt-4 text-sm text-slate-500">
-              <Link href="/register" className="text-[#081F3D] font-medium hover:underline">
-                {t("tryAgain")}
+              <Link href={isSignIn ? "/signin" : "/register"} className="text-[#081F3D] font-medium hover:underline">
+                {t(isSignIn ? "requestNewSignInLink" : "tryAgain")}
               </Link>
             </p>
           </>
