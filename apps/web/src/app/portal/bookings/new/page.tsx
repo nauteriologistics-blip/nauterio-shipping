@@ -5,7 +5,11 @@ import NewBookingWizard from "./BookingWizard";
 
 const apiOrigin = process.env.NAUTERIO_API_URL ?? "http://localhost:4000";
 
-export default async function NewBookingPage({ searchParams }: PageProps<"/portal/bookings/new">) {
+export default async function NewBookingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const query = await searchParams;
   if (typeof query.quoteId !== "string" || !query.quoteId) {
     redirect("/quote");
