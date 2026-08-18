@@ -2,6 +2,7 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { BillingService } from "./billing.service";
 import { AuditService } from "../audit/audit.module";
 import { NotFoundException } from "@nestjs/common";
+import { BookingsService } from "../bookings/bookings.service";
 
 describe("BillingService", () => {
   let service: BillingService;
@@ -17,6 +18,7 @@ describe("BillingService", () => {
       providers: [
         BillingService,
         { provide: AuditService, useValue: mockAuditService },
+        { provide: BookingsService, useValue: { fulfilPaidBooking: jest.fn() } },
       ],
     }).compile();
 

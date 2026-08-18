@@ -20,7 +20,7 @@ export class CustomersController {
   @NoPermissionRequired()
   @ApiOperation({ summary: "Get current user profile and addresses" })
   async getProfile(@Req() req: Request) {
-    const userId = req.user!.userId;
+    const userId = req.user.userId;
     return this.customersService.getProfile(userId);
   }
 
@@ -28,7 +28,7 @@ export class CustomersController {
   @NoPermissionRequired()
   @ApiOperation({ summary: "Update current user profile" })
   async updateProfile(@Body() dto: UpdateProfileDto, @Req() req: Request) {
-    const userId = req.user!.userId;
+    const userId = req.user.userId;
     return this.customersService.updateProfile(userId, dto);
   }
 
@@ -36,7 +36,7 @@ export class CustomersController {
   @NoPermissionRequired()
   @ApiOperation({ summary: "List user address book" })
   async listAddresses(@Req() req: Request) {
-    const userId = req.user!.userId;
+    const userId = req.user.userId;
     return this.customersService.listAddresses(userId);
   }
 
@@ -45,7 +45,7 @@ export class CustomersController {
   @RequireIdempotencyKey()
   @ApiOperation({ summary: "Add address to address book" })
   async addAddress(@Body() dto: CreateAddressDto, @Req() req: Request) {
-    const userId = req.user!.userId;
+    const userId = req.user.userId;
     return this.customersService.addAddress(userId, dto);
   }
 
@@ -53,7 +53,7 @@ export class CustomersController {
   @NoPermissionRequired()
   @ApiOperation({ summary: "Update an address" })
   async updateAddress(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateAddressDto, @Req() req: Request) {
-    const userId = req.user!.userId;
+    const userId = req.user.userId;
     return this.customersService.updateAddress(id, userId, dto);
   }
 
@@ -61,7 +61,7 @@ export class CustomersController {
   @NoPermissionRequired()
   @ApiOperation({ summary: "Delete an address" })
   async deleteAddress(@Param("id", ParseUUIDPipe) id: string, @Req() req: Request) {
-    const userId = req.user!.userId;
+    const userId = req.user.userId;
     return this.customersService.deleteAddress(id, userId);
   }
 }

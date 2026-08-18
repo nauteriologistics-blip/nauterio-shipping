@@ -15,6 +15,14 @@ interface TrackingEvent {
   visibility: string;
 }
 
+interface TrackingStatusOption {
+  code: string;
+  labelEn: string;
+  requiresReason?: boolean;
+  requiresEvidence?: boolean;
+  allowedForNewEvent: boolean;
+}
+
 interface ShipmentDetail {
   id: string;
   trackingNumber: string;
@@ -29,7 +37,10 @@ interface ShipmentDetail {
   declaredValueAmountMinorUnits: string;
   declaredValueCurrency: string;
   actionRequiredReason: string | null;
+  operationalHold: boolean;
+  holdReason: string | null;
   trackingEvents: TrackingEvent[];
+  documents: Array<{ id: string; type: string; reviewStatus: string }>;
 }
 
 export default function ShipmentDetailPage() {
@@ -37,6 +48,16 @@ export default function ShipmentDetailPage() {
   const [shipment, setShipment] = useState<ShipmentDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [statuses, setStatuses] = useState<TrackingStatusOption[]>([]);
+  const [statusCode, setStatusCode] = useState("");
+  const [eventTime, setEventTime] = useState(() => toLocalDateTime(new Date()));
+  const [city, setCity] = useState("");
+  const [facility, setFacility] = useState("");
+  const [description, setDescription] = useState("");
+  const [reason, setReason] = useState("");
+  const [evidenceDocumentId, setEvidenceDocumentId] = useState("");
+  const [correctionEventId, setCorrectionEventId] = useState<string | null>(null);
+  const [savingEvent, setSavingEvent] = useState(false);
 
   useEffect(() => {
     apiFetch<ShipmentDetail>(`/shipments/${params.id}`)
@@ -52,6 +73,56 @@ export default function ShipmentDetailPage() {
       })
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  useEffect(() => {
+    apiFetch<TrackingStatusOption[]>(`/admin/shipments/${params.id}/tracking-events/statuses`)
+      .then((options) => { setStatuses(options); setStatusCode(options.find((option) => option.allowedForNewEvent)?.code ?? options[0]?.code ?? ""); })
+      .catch(() => setError("Could not load tracking status options."));
+  }, [params.id]);
+
+  async function saveTrackingEvent() {
+    if (!statusCode) return;
+    setSavingEvent(true);
+    setError(null);
+    try {
+      const path = correctionEventId
+        ? `/admin/shipments/${params.id}/tracking-events/${correctionEventId}/corrections`
+        : `/admin/shipments/${params.id}/tracking-events`;
+      await apiFetch(path, {
+        method: "POST",
+        headers: { "Idempotency-Key": `tracking-${correctionEventId ?? "add"}-${params.id}-${Date.now()}` },
+        body: JSON.stringify({
+          canonicalCode: statusCode,
+          eventTime: new Date(eventTime).toISOString(),
+          location: { ...(city.trim() ? { city: city.trim() } : {}), ...(facility.trim() ? { facility: facility.trim() } : {}) },
+          ...(description.trim() ? { publicDescription: description.trim() } : {}),
+          ...(reason.trim() ? { reason: reason.trim() } : {}),
+          ...(evidenceDocumentId.trim() ? { evidenceDocumentId: evidenceDocumentId.trim() } : {}),
+          ...(correctionEventId ? { correctionReason: reason.trim() || "Corrected by operations" } : {}),
+        }),
+      });
+      const refreshed = await apiFetch<ShipmentDetail>(`/shipments/${params.id}`);
+      setShipment(refreshed);
+      setCorrectionEventId(null);
+      setDescription(""); setReason(""); setEvidenceDocumentId("");
+      setEventTime(toLocalDateTime(new Date()));
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.body.message : "Could not save tracking event.");
+    } finally {
+      setSavingEvent(false);
+    }
+  }
+
+  async function toggleHold() {
+    if (!shipment) return;
+    const hold = !shipment.operationalHold;
+    const reason = hold ? window.prompt("Why is this shipment being placed on hold? This is shown to the customer.")?.trim() : undefined;
+    if (hold && !reason) return;
+    try {
+      const updated = await apiFetch<ShipmentDetail>(`/admin/shipments/${params.id}/${hold ? "hold" : "release-hold"}`, { method: "POST", headers: { "Idempotency-Key": `hold-${params.id}-${hold}-${Date.now()}` }, body: JSON.stringify(hold ? { reason } : {}) });
+      setShipment(updated);
+    } catch (cause) { setError(cause instanceof ApiError ? cause.body.message : "Could not update shipment hold."); }
+  }
 
   return (
     <AdminShell>
@@ -74,7 +145,8 @@ export default function ShipmentDetailPage() {
 
       {shipment && !loading && (
         <div className="mt-4 space-y-6">
-          <div>
+          <div className="flex items-start justify-between gap-4">
+            <div>
             <h1 className="text-xl font-bold text-[#081F3D] font-mono">{shipment.trackingNumber}</h1>
             <p className="text-sm text-slate-500 mt-1">{shipment.lifecycleStatus.replace(/_/g, " ")}</p>
             {shipment.actionRequiredReason && (
@@ -82,6 +154,8 @@ export default function ShipmentDetailPage() {
                 {shipment.actionRequiredReason}
               </p>
             )}
+            </div>
+            {!(["DELIVERED", "CANCELLED", "ARCHIVED"].includes(shipment.lifecycleStatus)) && <button onClick={() => void toggleHold()} className={`rounded-lg px-4 py-2 text-xs font-bold ${shipment.operationalHold ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{shipment.operationalHold ? "Release hold" : "Place on hold"}</button>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -110,16 +184,59 @@ export default function ShipmentDetailPage() {
             />
           </div>
 
+          {shipment.lifecycleStatus !== "ARCHIVED" && !shipment.operationalHold && (
+            <section className="rounded-xl border border-slate-200 bg-white p-5">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-sm font-bold uppercase text-[#081F3D]">{correctionEventId ? "Correct latest event" : "Record shipment movement"}</h2>
+                {correctionEventId && <button onClick={() => setCorrectionEventId(null)} className="text-xs font-semibold text-slate-500 hover:underline">Cancel correction</button>}
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="text-xs font-semibold text-slate-600">Status
+                  <select value={statusCode} onChange={(event) => setStatusCode(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    {statuses.map((status) => <option key={status.code} value={status.code} disabled={!correctionEventId && !status.allowedForNewEvent}>{status.labelEn}{status.requiresEvidence ? " (evidence required)" : ""}</option>)}
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600">Event time
+                  <input type="datetime-local" value={eventTime} onChange={(event) => setEventTime(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">City
+                  <input value={city} onChange={(event) => setCity(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">Facility
+                  <input value={facility} onChange={(event) => setFacility(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600 sm:col-span-2">Customer-facing description
+                  <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={2} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">Reason {statuses.find((status) => status.code === statusCode)?.requiresReason ? "(required)" : ""}
+                  <input value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">Evidence document {statuses.find((status) => status.code === statusCode)?.requiresEvidence ? "(required)" : ""}
+                  <select value={evidenceDocumentId} onChange={(event) => setEvidenceDocumentId(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Select approved document</option>
+                    {shipment.documents.map((document) => <option key={document.id} value={document.id}>{document.type.replace(/_/g, " ")} · {document.id.slice(0, 8)}</option>)}
+                  </select>
+                </label>
+              </div>
+              <button onClick={() => void saveTrackingEvent()} disabled={savingEvent || !statusCode} className="mt-4 rounded-lg bg-[#F28C18] px-5 py-2.5 text-sm font-bold text-[#081F3D] disabled:opacity-50">
+                {savingEvent ? "Saving…" : correctionEventId ? "Save correction" : "Add tracking event"}
+              </button>
+            </section>
+          )}
+
           <div>
             <h2 className="text-sm font-bold text-[#081F3D] uppercase">Tracking history</h2>
             {shipment.trackingEvents.length === 0 ? (
               <p className="mt-2 text-sm text-slate-500">No tracking events recorded yet.</p>
             ) : (
               <ol className="mt-3 space-y-2">
-                {shipment.trackingEvents.map((e) => (
+                {shipment.trackingEvents.map((e, index) => (
                   <li key={e.id} className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center justify-between text-sm">
                     <span className="font-medium text-[#081F3D]">{e.publicTitleEn}</span>
-                    <span className="text-slate-500 font-mono text-xs">{new Date(e.eventTime).toLocaleString()}</span>
+                    <span className="flex items-center gap-3 text-slate-500 font-mono text-xs">
+                      {new Date(e.eventTime).toLocaleString()}
+                      {index === 0 && shipment.lifecycleStatus !== "ARCHIVED" && <button onClick={() => { setCorrectionEventId(e.id); setStatusCode(e.canonicalCode); setReason(""); }} className="font-sans font-semibold text-[#0B2E5E] hover:underline">Correct</button>}
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -129,6 +246,11 @@ export default function ShipmentDetailPage() {
       )}
     </AdminShell>
   );
+}
+
+function toLocalDateTime(date: Date): string {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

@@ -22,10 +22,12 @@ import { DocumentsModule } from "./modules/documents/documents.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { ClaimsReturnsModule } from "./modules/claims-returns/claims-returns.module";
 import { SupportModule } from "./modules/support/support.module";
+import { SupportConversationsModule } from "./modules/support/support-conversations.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ContentModule } from "./modules/content/content.module";
 import { ReportingModule } from "./modules/reporting/reporting.module";
 import { IntegrationsModule } from "./modules/integrations/integrations.module";
+import { PilotModule } from "./modules/pilot/pilot.module";
 
 /**
  * Module registration mirrors the 19 functional modules from spec section
@@ -115,10 +117,12 @@ import { IntegrationsModule } from "./modules/integrations/integrations.module";
     BillingModule,
     ClaimsReturnsModule,
     SupportModule,
+    SupportConversationsModule,
     NotificationsModule,
     ContentModule,
     ReportingModule,
     IntegrationsModule,
+    PilotModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },

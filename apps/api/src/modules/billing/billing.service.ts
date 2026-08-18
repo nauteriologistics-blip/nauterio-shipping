@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { getPrismaClient } from "@nauterio/database";
-import { LocalMockPaymentAdapter } from "@nauterio/integrations";
+import { LocalMockPaymentAdapter, StripePaymentAdapter, type PaymentAdapter } from "@nauterio/integrations";
+import { loadApiConfig } from "@nauterio/configuration";
 import { AuditService } from "../audit/audit.module";
 import { CreateInvoiceDto, PayInvoiceDto } from "./dto/create-invoice.dto";
 import { sliceCursorPage } from "../../common/pagination/paginate-cursor";
 import { STAFF_ROLES, type AppRole } from "@nauterio/contracts";
+import { BookingsService } from "../bookings/bookings.service";
 
 export interface InvoiceListScope {
   role: AppRole;
@@ -14,9 +16,14 @@ export interface InvoiceListScope {
 
 @Injectable()
 export class BillingService {
-  private paymentAdapter = new LocalMockPaymentAdapter();
+  private paymentAdapter: PaymentAdapter;
 
-  constructor(private readonly auditService: AuditService) {}
+  constructor(private readonly auditService: AuditService, private readonly bookingsService: BookingsService) {
+    const config = loadApiConfig();
+    this.paymentAdapter = config.STRIPE_SECRET_KEY && config.STRIPE_WEBHOOK_SECRET
+      ? new StripePaymentAdapter({ apiKey: config.STRIPE_SECRET_KEY, webhookSecret: config.STRIPE_WEBHOOK_SECRET, successUrl: `${config.WEB_APP_URL}/portal?payment=success`, cancelUrl: `${config.WEB_APP_URL}/portal?payment=cancelled` })
+      : new LocalMockPaymentAdapter();
+  }
 
   /**
    * Scope is derived from the authenticated caller (guard-populated
@@ -134,32 +141,45 @@ export class BillingService {
    */
   async payInvoice(id: string, dto: PayInvoiceDto, actorUserId: string, scope: InvoiceListScope) {
     const invoice = await this.getInvoiceById(id, scope);
-    if (invoice.status === "PAID") {
-      throw new BadRequestException(`Invoice ${id} is already paid`);
-    }
+    if (invoice.status !== "ISSUED") throw new BadRequestException(`Invoice ${id} is not payable in its current state`);
 
     const prisma = getPrismaClient();
+
+    const existingPending = invoice.allocations.find((allocation) => allocation.payment.status === "PENDING" && allocation.payment.providerCheckoutUrl);
+    if (existingPending) {
+      return {
+        invoiceId: id,
+        paymentId: existingPending.payment.id,
+        status: existingPending.payment.status,
+        clientSecretOrRedirectUrl: existingPending.payment.providerCheckoutUrl,
+      };
+    }
 
     const paymentResult = await this.paymentAdapter.createPaymentIntent({
       amountMinorUnits: Number(invoice.totalAmountMinorUnits),
       currency: invoice.currency,
-      idempotencyKey: `pay-inv-${id}-${Date.now()}`,
+      idempotencyKey: `pay-inv-${id}-attempt-${invoice.allocations.length + 1}`,
       metadata: { invoiceId: id, actorUserId, paymentMethod: dto.paymentMethod },
     });
 
     const payment = await prisma.$transaction(async (tx) => {
-      const created = await tx.payment.create({
-        data: {
+      const created = await tx.payment.upsert({
+        where: { provider_providerPaymentId: { provider: "STRIPE", providerPaymentId: paymentResult.providerPaymentId } },
+        update: {},
+        create: {
           provider: "STRIPE",
           providerPaymentId: paymentResult.providerPaymentId,
+          providerCheckoutUrl: paymentResult.clientSecretOrRedirectUrl,
           status: "PENDING",
           amountMinorUnits: invoice.totalAmountMinorUnits,
           currency: invoice.currency,
         },
       });
 
-      await tx.paymentAllocation.create({
-        data: {
+      await tx.paymentAllocation.upsert({
+        where: { paymentId_invoiceId: { paymentId: created.id, invoiceId: id } },
+        update: {},
+        create: {
           paymentId: created.id,
           invoiceId: id,
           amountMinorUnits: invoice.totalAmountMinorUnits,
@@ -187,5 +207,49 @@ export class BillingService {
       status: payment.status,
       clientSecretOrRedirectUrl: paymentResult.clientSecretOrRedirectUrl,
     };
+  }
+
+  async processStripeWebhook(rawBody: string, signature: string, correlationId: string) {
+    if (!(this.paymentAdapter instanceof StripePaymentAdapter)) throw new BadRequestException("Stripe is not configured");
+    const event = await this.paymentAdapter.verifyWebhookSignature(rawBody, signature).catch(() => {
+      throw new BadRequestException("Invalid Stripe webhook signature or payload");
+    });
+    const prisma = getPrismaClient();
+    const outcome = await prisma.$transaction(async (tx) => {
+      const duplicate = await tx.paymentEvent.findUnique({
+        where: { provider_providerEventId: { provider: "STRIPE", providerEventId: event.providerEventId } },
+        include: { payment: { include: { allocations: { include: { invoice: true } } } } },
+      });
+      // A provider retries webhooks. If payment was committed but shipment
+      // creation failed afterwards, the retry must resume fulfilment rather
+      // than becoming a no-op merely because the event row already exists.
+      if (duplicate) {
+        const invoice = duplicate.payment.allocations[0]?.invoice;
+        return { duplicate: true as const, bookingId: invoice?.status === "PAID" ? invoice.bookingId : null };
+      }
+      const payment = await tx.payment.findUnique({ where: { provider_providerPaymentId: { provider: "STRIPE", providerPaymentId: event.providerPaymentId } }, include: { allocations: { include: { invoice: true } } } });
+      if (!payment) throw new NotFoundException("Payment intent not found");
+      await tx.paymentEvent.create({ data: { paymentId: payment.id, provider: "STRIPE", providerEventId: event.providerEventId, eventType: event.eventType, signatureVerified: true, rawPayloadJson: JSON.parse(rawBody) as never } });
+      if (event.eventType === "checkout.session.expired") {
+        await tx.payment.updateMany({ where: { id: payment.id, status: "PENDING" }, data: { status: "FAILED" } });
+        return { duplicate: false as const, bookingId: null };
+      }
+      const paymentSucceeded = event.eventType === "checkout.session.async_payment_succeeded" ||
+        (event.eventType === "checkout.session.completed" && event.paymentStatus === "paid");
+      if (!paymentSucceeded) return { duplicate: false as const, bookingId: null };
+      const allocation = payment.allocations[0];
+      if (!allocation || allocation.amountMinorUnits !== payment.amountMinorUnits || allocation.currency !== payment.currency) throw new BadRequestException("Payment allocation does not match the payment");
+      const invoice = allocation.invoice;
+      if (invoice.totalAmountMinorUnits !== payment.amountMinorUnits || invoice.currency !== payment.currency) throw new BadRequestException("Payment does not settle the invoice total");
+      if (event.amountTotalMinorUnits !== undefined && BigInt(event.amountTotalMinorUnits) !== payment.amountMinorUnits) throw new BadRequestException("Stripe session amount does not match the payment");
+      if (event.currency && event.currency !== payment.currency.toUpperCase()) throw new BadRequestException("Stripe session currency does not match the payment");
+      await tx.payment.update({ where: { id: payment.id }, data: { status: "CONFIRMED", confirmedAt: new Date() } });
+      await tx.invoice.update({ where: { id: invoice.id }, data: { status: "PAID", version: { increment: 1 } } });
+      if (invoice.bookingId) await tx.booking.updateMany({ where: { id: invoice.bookingId, requestStatus: "AWAITING_PAYMENT" as never }, data: { requestStatus: "PAID" as never } });
+      await this.auditService.record({ action: "PAYMENT_CONFIRMED", entityType: "Payment", entityId: payment.id, afterJson: { invoiceId: invoice.id, providerEventId: event.providerEventId }, correlationId }, tx);
+      return { duplicate: false as const, bookingId: invoice.bookingId };
+    });
+    if (outcome.bookingId) await this.bookingsService.fulfillPaidBooking(outcome.bookingId, correlationId);
+    return { received: true, duplicate: outcome.duplicate };
   }
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Package, MapPin, CreditCard, Check,
+  Package, MapPin, ClipboardCheck, Check,
   ArrowRight, ArrowLeft, AlertCircle, Sparkles
 } from "lucide-react";
 import { getCsrfToken } from "@/lib/auth";
@@ -28,40 +28,47 @@ const BOOKING_STEP_BY_WIZARD_STEP: Record<number, string> = {
 
 export default function NewBookingWizard({ senderName }: { senderName: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const quoteId = searchParams.get("quoteId") ?? undefined;
+  const quotedTotal = Number(searchParams.get("totalPriceEur"));
   const [step, setStep] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<boolean>(false);
-  const [confirmed, setConfirmed] = useState<{ trackingNumber: string } | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   // Form state - starts blank/zeroed rather than pre-filled with fake
   // company data (was "Acme Italy S.r.l." / "Acme USA Inc." etc.); only
   // senderName defaults, from the real signed-in profile.
   const [formData, setFormData] = useState({
     senderName,
+    senderPhone: "",
+    senderEmail: "",
     senderLine1: "",
-    senderCity: "",
+    senderCity: searchParams.get("pickupCity") ?? "",
     senderPostalCode: "",
     senderCountry: "IT",
 
     receiverName: "",
+    receiverPhone: "",
+    receiverEmail: "",
     receiverLine1: "",
-    receiverCity: "",
+    receiverCity: searchParams.get("deliveryCity") ?? "",
     receiverPostalCode: "",
     receiverCountry: "US",
 
-    weightKg: 1,
-    lengthCm: 10,
-    widthCm: 10,
-    heightCm: 10,
-    declaredValueEur: 0,
+    weightKg: Number(searchParams.get("weightKg")) || 1,
+    lengthCm: Number(searchParams.get("lengthCm")) || 10,
+    widthCm: Number(searchParams.get("widthCm")) || 10,
+    heightCm: Number(searchParams.get("heightCm")) || 10,
+    declaredValueEur: Number(searchParams.get("declaredValueEur")) || 0,
+    goodsDescription: "",
+    packageCount: 1,
+    customerReference: "",
+    customerNotes: "",
 
-    serviceId: "AIR_EXPRESS",
-    addCustomsClearance: true,
-    addInsurance: false,
-
-    paymentMethod: "INVOICE",
+    serviceId: serviceFromQuery(searchParams.get("service")),
   });
 
   const handleSaveDraft = async () => {
@@ -77,12 +84,13 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
         method: isUpdate ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(isUpdate ? {} : { "Idempotency-Key": `bk-draft-${Date.now()}` }),
+          "Idempotency-Key": `bk-draft-${bookingId ?? "new"}-${step}-${Date.now()}`,
           [CSRF_HEADER]: getCsrfToken() ?? "",
         },
         body: JSON.stringify({
           currentStep: BOOKING_STEP_BY_WIZARD_STEP[step] ?? "PACKAGE_DETAILS",
           draftDataJson: formData,
+          ...(quoteId ? { quoteId } : {}),
         }),
       });
 
@@ -109,34 +117,30 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
     if (saved) setStep(nextStep);
   };
 
-  const handleConfirmBooking = async () => {
+  const handleSubmitRequest = async () => {
     if (!bookingId) {
-      setErrorMessage("No draft to confirm. Please complete the previous steps.");
+      setErrorMessage("No draft to submit. Please complete the previous steps.");
       return;
     }
     setConfirming(true);
     setErrorMessage(null);
     try {
-      const res = await fetch(`/api/v1/bookings/${bookingId}/confirm`, {
+      const res = await fetch(`/api/v1/bookings/${bookingId}/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Idempotency-Key": `bk-confirm-${bookingId}`,
+          "Idempotency-Key": `shipment-request-submit-${bookingId}`,
           [CSRF_HEADER]: getCsrfToken() ?? "",
         },
-        body: JSON.stringify({
-          paymentMethod: formData.paymentMethod === "CARD" ? "CARD" : "INVOICE",
-          ...(formData.paymentMethod === "CARD" ? { paymentReference: "" } : {}),
-        }),
+        body: JSON.stringify({}),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.message || `Confirmation failed (${res.status})`);
+        throw new Error(body?.message || `Submission failed (${res.status})`);
       }
-      const shipment = await res.json() as { trackingNumber: string };
-      setConfirmed(shipment);
+      setSubmitted(true);
     } catch (err) {
-      setErrorMessage(errorMessageOf(err, "Failed to confirm booking"));
+      setErrorMessage(errorMessageOf(err, "Failed to submit shipment request"));
     } finally {
       setConfirming(false);
     }
@@ -184,6 +188,10 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="md:col-span-2">
+              <label className="font-bold text-slate-700 block mb-1">Goods description</label>
+              <textarea required value={formData.goodsDescription} onChange={(e) => setFormData({ ...formData, goodsDescription: e.target.value })} className="w-full bg-[#F3F6FA] border border-slate-200 rounded-xl px-3 py-2.5" rows={3} placeholder="Describe the goods being shipped" />
+            </div>
             <div>
               <label className="font-bold text-slate-700 block mb-1">Actual Weight (kg)</label>
               <input
@@ -261,6 +269,8 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
                 onChange={(e) => setFormData({ ...formData, senderName: e.target.value })}
                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold"
               />
+              <input type="tel" placeholder="Phone" value={formData.senderPhone} onChange={(e) => setFormData({ ...formData, senderPhone: e.target.value })} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold" />
+              <input type="email" placeholder="Email (optional)" value={formData.senderEmail} onChange={(e) => setFormData({ ...formData, senderEmail: e.target.value })} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold" />
               <input
                 type="text"
                 placeholder="Street Line 1"
@@ -296,6 +306,8 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
                 onChange={(e) => setFormData({ ...formData, receiverName: e.target.value })}
                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold"
               />
+              <input type="tel" placeholder="Phone" value={formData.receiverPhone} onChange={(e) => setFormData({ ...formData, receiverPhone: e.target.value })} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold" />
+              <input type="email" placeholder="Email (optional)" value={formData.receiverEmail} onChange={(e) => setFormData({ ...formData, receiverEmail: e.target.value })} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold" />
               <input
                 type="text"
                 placeholder="Street Line 1"
@@ -358,7 +370,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             >
               <h3 className="font-extrabold text-base text-[#081F3D]">Air Express</h3>
               <p className="text-slate-500 my-2">24 - 48h Transit Time</p>
-              <span className="text-lg font-black text-[#081F3D]">€65.00</span>
+              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "AIR_EXPRESS" && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
             </div>
 
             <div
@@ -371,7 +383,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             >
               <h3 className="font-extrabold text-base text-[#081F3D]">Air Economy</h3>
               <p className="text-slate-500 my-2">3 - 5 Business Days</p>
-              <span className="text-lg font-black text-[#081F3D]">€42.50</span>
+              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "AIR_ECONOMY" && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
             </div>
 
             <div
@@ -384,7 +396,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             >
               <h3 className="font-extrabold text-base text-[#081F3D]">Ocean Freight</h3>
               <p className="text-slate-500 my-2">12 - 16 Days Container</p>
-              <span className="text-lg font-black text-[#081F3D]">€24.00</span>
+              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "OCEAN_FREIGHT" && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
             </div>
           </div>
 
@@ -400,87 +412,28 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
               disabled={loading}
               className="bg-[#F28C18] text-[#081F3D] font-extrabold px-6 py-3 rounded-xl text-xs flex items-center gap-2 disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Proceed to Payment"} <ArrowRight className="w-4 h-4" />
+              {loading ? "Saving..." : "Review Request"} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 4: PAYMENT & CONFIRM */}
-      {step === 4 && !confirmed && (
+      {/* STEP 4: REVIEW AND SUBMIT */}
+      {step === 4 && !submitted && (
         <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
           <h2 className="text-lg font-black text-[#081F3D] flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-[#F28C18]" /> Step 4: Checkout & Payment
+            <ClipboardCheck className="w-5 h-5 text-[#F28C18]" /> Step 4: Review Shipment Request
           </h2>
-
-          <div className="bg-[#F3F6FA] p-5 rounded-2xl border border-slate-200 text-xs space-y-2">
-            <div className="flex justify-between font-bold text-[#081F3D]">
-              <span>Selected Service ({formData.serviceId}):</span>
-              <span className="text-slate-500 italic">Estimated at confirmation</span>
-            </div>
-            {formData.addCustomsClearance && (
-              <div className="flex justify-between text-slate-600">
-                <span>Customs Clearance (US CBP Entry):</span>
-                <span>Included</span>
-              </div>
-            )}
-            {formData.addInsurance && (
-              <div className="flex justify-between text-slate-600">
-                <span>Transit Insurance:</span>
-                <span>Included</span>
-              </div>
-            )}
-            <div className="border-t border-slate-200 pt-2 flex justify-between font-black text-sm text-[#081F3D]">
-              <span>Payment:</span>
-              <span className="text-[#F28C18]">Invoice after delivery</span>
-            </div>
+          <div className="bg-[#F3F6FA] p-5 rounded-2xl border border-slate-200 text-sm space-y-3">
+            <p><strong>Goods:</strong> {formData.goodsDescription || "Not provided"}</p>
+            <p><strong>Route:</strong> {formData.senderCity}, {formData.senderCountry} → {formData.receiverCity}, {formData.receiverCountry}</p>
+            <p><strong>Package:</strong> {formData.weightKg} kg · {formData.lengthCm} × {formData.widthCm} × {formData.heightCm} cm</p>
+            <p><strong>Preferred service:</strong> {formData.serviceId.replace(/_/g, " ")}</p>
           </div>
-
-          <div className="space-y-3 text-xs">
-            <label className="font-bold text-slate-700 block">Payment Method</label>
-            <div className="flex gap-4">
-              <label className={`flex items-center gap-2 border p-3 rounded-xl cursor-pointer bg-white ${
-                formData.paymentMethod === "INVOICE" ? "border-[#F28C18] bg-amber-50/50" : "border-slate-200"
-              }`}>
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={formData.paymentMethod === "INVOICE"}
-                  onChange={() => setFormData({ ...formData, paymentMethod: "INVOICE" })}
-                />
-                <span className="font-bold text-[#081F3D]">Pay on Invoice (Net 30)</span>
-              </label>
-              <label className={`flex items-center gap-2 border p-3 rounded-xl cursor-pointer bg-white ${
-                formData.paymentMethod === "CARD" ? "border-[#F28C18] bg-amber-50/50" : "border-slate-200"
-              }`}>
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={formData.paymentMethod === "CARD"}
-                  onChange={() => setFormData({ ...formData, paymentMethod: "CARD" })}
-                />
-                <span className="font-bold text-[#081F3D]">Credit / Debit Card</span>
-              </label>
-            </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <span>An operations administrator will review this request. A tracking number is issued only after approval.</span>
           </div>
-
-          {formData.paymentMethod === "CARD" && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <span>
-                Card payment via Stripe is not yet available. Please select &quot;Pay on Invoice&quot; to confirm your booking now — you&apos;ll receive an invoice after delivery.
-              </span>
-            </div>
-          )}
-
-          {formData.paymentMethod === "INVOICE" && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-              <span>
-                Your shipment will be created immediately. An invoice will be generated after delivery with Net 30 payment terms.
-              </span>
-            </div>
-          )}
 
           <div className="flex justify-between pt-4">
             <button
@@ -490,47 +443,29 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
             <button
-              onClick={() => void handleConfirmBooking()}
-              disabled={confirming || formData.paymentMethod === "CARD"}
-              className={`font-black px-8 py-3.5 rounded-xl text-xs flex items-center gap-2 transition-all ${
-                confirming || formData.paymentMethod === "CARD"
-                  ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                  : "bg-[#F28C18] text-[#081F3D] hover:bg-[#e07a12] hover:text-white"
-              }`}
+              onClick={() => void handleSubmitRequest()}
+              disabled={confirming}
+              className="font-black px-8 py-3.5 rounded-xl text-xs flex items-center gap-2 transition-all bg-[#F28C18] text-[#081F3D] hover:bg-[#e07a12] hover:text-white disabled:opacity-50"
             >
-              {confirming ? "Confirming…" : "Confirm Booking"}
+              {confirming ? "Submitting…" : "Submit for Review"}
             </button>
           </div>
         </div>
       )}
 
-      {/* CONFIRMED SUCCESS */}
-      {confirmed && (
+      {submitted && (
         <div className="bg-white p-10 rounded-2xl border border-green-200 shadow-sm text-center space-y-6">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-black text-[#081F3D]">Booking Confirmed!</h2>
-          <p className="text-slate-600 text-sm">
-            Your shipment has been created. Track it anytime with your tracking number:
-          </p>
-          <div className="bg-[#F3F6FA] px-6 py-4 rounded-xl inline-block">
-            <span className="font-mono font-black text-xl text-[#081F3D] tracking-wider">
-              {confirmed.trackingNumber}
-            </span>
-          </div>
+          <h2 className="text-2xl font-black text-[#081F3D]">Request Submitted</h2>
+          <p className="text-slate-600 text-sm">Your request is awaiting operations review. After approval, you will receive an invoice. Your tracking number will be issued only after payment is confirmed.</p>
           <div className="flex justify-center gap-4 pt-4">
-            <button
-              onClick={() => router.push(`/tracking?id=${confirmed.trackingNumber}`)}
-              className="bg-[#F28C18] text-[#081F3D] font-black px-6 py-3 rounded-xl text-sm hover:bg-[#e07a12] hover:text-white transition-all"
-            >
-              Track Shipment
-            </button>
             <button
               onClick={() => router.push("/portal")}
               className="bg-slate-100 text-slate-700 font-bold px-6 py-3 rounded-xl text-sm"
             >
-              Back to Portal
+              Return to Dashboard
             </button>
           </div>
         </div>
@@ -538,4 +473,10 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
 
     </div>
   );
+}
+
+function serviceFromQuery(value: string | null): "AIR_EXPRESS" | "AIR_ECONOMY" | "OCEAN_FREIGHT" {
+  if (value === "air-economy") return "AIR_ECONOMY";
+  if (value === "ocean-freight") return "OCEAN_FREIGHT";
+  return "AIR_EXPRESS";
 }

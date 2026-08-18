@@ -4,7 +4,7 @@ module.exports = {
   rootDir: "src",
   testRegex: ".*\\.spec\\.ts$",
   transform: {
-    "^.+\\.(t|j)s$": "ts-jest",
+    "^.+\\.ts$": "ts-jest",
   },
   collectCoverageFrom: ["**/*.(t|j)s"],
   testEnvironment: "node",
@@ -13,4 +13,5 @@ module.exports = {
   // @nauterio/database - main.ts loads dotenv/config as its first import,
   // this is the test-runner equivalent so DATABASE_URL is set the same way.
   setupFiles: ["dotenv/config"],
+  setupFilesAfterEnv: ["<rootDir>/test-setup.ts"],
 };

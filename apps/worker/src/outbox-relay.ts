@@ -15,8 +15,10 @@ import { workerLogger } from "./logger";
  * do not let it grow into a generic rules engine without a real need.
  */
 const EVENT_TYPE_TO_QUEUE: Record<string, QueueName> = {
+  "user.email_verification.requested": "notifications-email",
   "quote.created": "notifications-email", // e.g. "your quote is ready" - illustrative until real templates exist
   "shipment.created": "notifications-email",
+  "shipment.status.updated": "notifications-email",
   "claim.submitted": "notifications-email",
 };
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { QrCode, Scale, Package, Printer, CheckCircle2, Barcode, AlertCircle, Loader2 } from "lucide-react";
+import { QrCode, Scale, Package, CheckCircle2, Barcode, AlertCircle, Loader2 } from "lucide-react";
 import { getCsrfToken } from "@/lib/auth";
 import { CSRF_HEADER } from "@/lib/session";
 
@@ -66,19 +66,32 @@ export default function WarehousePWA() {
     setScanSuccess(null);
 
     try {
-      // Look up the shipment by tracking number first
-      const lookupRes = await fetch(`/api/v1/tracking/${encodeURIComponent(scannedId.trim().toUpperCase())}`);
-      if (!lookupRes.ok) {
-        throw new Error(`Shipment not found for tracking number: ${scannedId}`);
+      const trackingNumber = scannedId.trim().toUpperCase();
+      const intakeRes = await fetch("/api/v1/admin/warehouses/intake", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": `warehouse-intake-${trackingNumber}-${Date.now()}`,
+          [CSRF_HEADER]: getCsrfToken() ?? "",
+        },
+        body: JSON.stringify({
+          trackingNumber,
+          warehouseId: selectedWarehouse,
+          measuredWeight,
+          measuredL,
+          measuredW,
+          measuredH,
+          uldContainer,
+        }),
+      });
+      if (!intakeRes.ok) {
+        const body = await intakeRes.json().catch(() => null);
+        throw new Error(body?.message || `Intake could not be recorded (${intakeRes.status})`);
       }
-      const shipment = await lookupRes.json() as { trackingNumber: string; status: string };
 
-      // Record the intake via the shipment's tracking event
-      // In a full implementation this would POST to a warehouse intake endpoint,
-      // but for now we verify the shipment exists and display its data
       setScanSuccess({
-        trackingNumber: shipment.trackingNumber,
-        status: shipment.status || "RECEIVED_AT_WAREHOUSE",
+        trackingNumber,
+        status: "RECEIVED_AT_WAREHOUSE",
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to process intake");
@@ -248,7 +261,7 @@ export default function WarehousePWA() {
           {processing ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
           ) : (
-            <><Printer className="w-4 h-4" /> {t("verifyAndPrint")}</>
+            <><CheckCircle2 className="w-4 h-4" /> {t("verifyAndPrint")}</>
           )}
         </button>
       </form>

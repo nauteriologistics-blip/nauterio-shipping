@@ -1,28 +1,16 @@
 "use client";
 
-import { AlertCircle, ShieldCheck, CheckCircle2, FileCheck, Calculator, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, ShieldCheck, CheckCircle2, FileCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 export default function CustomsPage() {
   const t = useTranslations("CustomsPage");
-  const [declaredValue, setDeclaredValue] = useState("");
-  const [estimatedDuty, setEstimatedDuty] = useState<number | null>(null);
 
   const prohibitedItems = t.raw("prohibitedItems") as string[];
   const restrictedItems = t.raw("restrictedItems") as string[];
   const allowedItems = t.raw("allowedItems") as string[];
   const invoiceItems = t.raw("invoiceItems") as string[];
   const waybillItems = t.raw("waybillItems") as string[];
-
-  const calculateDuty = (e: React.FormEvent) => {
-    e.preventDefault();
-    const value = parseFloat(declaredValue);
-    if (!isNaN(value)) {
-      // Simple mock calculation: 5% duty for values over $800
-      setEstimatedDuty(value > 800 ? value * 0.05 : 0);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-white text-[#081F3D] font-sans">
@@ -146,59 +134,13 @@ export default function CustomsPage() {
         </div>
       </section>
 
-      {/* Estimator */}
+      {/* Guidance only: tariff treatment depends on classification, origin,
+          declared value and current law; never fabricate a flat duty rate. */}
       <section className="py-24 px-4 max-w-4xl mx-auto">
         <div className="bg-[#081F3D] text-white rounded-3xl p-10 md:p-16 shadow-lg">
-          <div className="flex flex-col md:flex-row gap-12 items-center">
-            <div className="flex-1">
-              <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-2xl mb-6">
-                <Calculator className="w-8 h-8 text-[#F28C18]" />
-              </div>
-              <h2 className="text-4xl font-bold mb-4">{t("estimatorHeading")}</h2>
-              <p className="text-white/80 text-lg">
-                {t("estimatorSubheading")}
-              </p>
-            </div>
-
-            <div className="flex-1 w-full bg-white rounded-2xl p-8 text-[#081F3D]">
-              <form onSubmit={calculateDuty} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    {t("declaredValueLabel")}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
-                    <input
-                      type="number"
-                      value={declaredValue}
-                      onChange={(e) => setDeclaredValue(e.target.value)}
-                      placeholder={t("declaredValuePlaceholder")}
-                      className="w-full pl-8 pr-4 py-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#F28C18] focus:border-transparent transition-all"
-                      required
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-[#F28C18] hover:bg-[#F28C18]/90 text-white font-bold py-4 px-8 rounded-xl transition-colors flex items-center justify-center gap-2"
-                >
-                  {t("estimateButton")} <ArrowRight className="w-5 h-5" />
-                </button>
-
-                {estimatedDuty !== null && (
-                  <div className="mt-6 p-6 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                    <p className="text-sm text-slate-500 font-medium mb-1">{t("estimatedDutyLabel")}</p>
-                    <p className="text-3xl font-bold text-[#081F3D]">
-                      ${estimatedDuty.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-2">{t("estimatorDisclaimer")}</p>
-                  </div>
-                )}
-              </form>
-            </div>
-          </div>
+          <h2 className="text-4xl font-bold mb-4">{t("estimatorHeading")}</h2>
+          <p className="text-white/80 text-lg">{t("estimatorSubheading")}</p>
+          <p className="mt-5 rounded-2xl border border-white/15 bg-white/5 p-5 text-sm text-white/80">{t("estimatorDisclaimer")}</p>
         </div>
       </section>
     </div>

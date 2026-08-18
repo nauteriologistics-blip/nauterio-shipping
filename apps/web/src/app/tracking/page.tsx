@@ -30,8 +30,6 @@ interface TrackedShipment {
   events: TrackingEvent[];
 }
 
-const SAMPLE_IDS = ["NT-782914-US", "NT-902148-US", "NT-112349-US"];
-
 const STATUS_CATEGORY_STYLES: Record<StatusCategory, string> = {
   delivered: "bg-green-100 text-green-800",
   in_progress: "bg-orange-100 text-orange-800",
@@ -39,10 +37,20 @@ const STATUS_CATEGORY_STYLES: Record<StatusCategory, string> = {
   cancelled: "bg-gray-200 text-gray-700",
 };
 
-async function fetchShipment(searchId: string): Promise<TrackedShipment | null> {
-  const res = await fetch(`/api/v1/tracking/${encodeURIComponent(searchId.trim())}`);
-  if (!res.ok) return null;
-  return (await res.json()) as TrackedShipment;
+type TrackingLookup =
+  | { kind: "found"; shipment: TrackedShipment }
+  | { kind: "not_found" }
+  | { kind: "unavailable" };
+
+async function fetchShipment(searchId: string): Promise<TrackingLookup> {
+  try {
+    const res = await fetch(`/api/v1/tracking/${encodeURIComponent(searchId.trim())}`);
+    if (res.status === 404) return { kind: "not_found" };
+    if (!res.ok) return { kind: "unavailable" };
+    return { kind: "found", shipment: (await res.json()) as TrackedShipment };
+  } catch {
+    return { kind: "unavailable" };
+  }
 }
 
 function TrackingContent() {
@@ -53,6 +61,7 @@ function TrackingContent() {
   const initialQuery = searchParams.get("id") || "";
   const [query, setQuery] = useState(initialQuery);
   const [shipment, setShipment] = useState<TrackedShipment | null>(null);
+  const [lookupUnavailable, setLookupUnavailable] = useState(false);
   const [searched, setSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -65,9 +74,13 @@ function TrackingContent() {
     const run = async () => {
       setSearched(true);
       setIsLoading(true);
+      setLookupUnavailable(false);
       try {
         const result = await fetchShipment(initialQuery);
-        if (!cancelled) setShipment(result);
+        if (!cancelled) {
+          setShipment(result.kind === "found" ? result.shipment : null);
+          setLookupUnavailable(result.kind === "unavailable");
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -110,28 +123,22 @@ function TrackingContent() {
           </button>
         </form>
 
-        <div className="mt-6 flex flex-wrap justify-center items-center gap-3">
-          <span className="text-sm text-gray-500 py-1">{t("sampleIdsLabel")}</span>
-          {SAMPLE_IDS.map((id) => (
-            <button
-              key={id}
-              onClick={() => {
-                setQuery(id);
-                router.push(`/tracking?id=${id}`);
-              }}
-              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full transition-colors"
-            >
-              {id}
-            </button>
-          ))}
-        </div>
+        <p className="mt-6 text-sm text-gray-500">{t("trackingFormatHint")}</p>
       </div>
 
       {isLoading && (
         <p className="text-center text-gray-500" role="status">{t("loading")}</p>
       )}
 
-      {!isLoading && searched && !shipment && (
+      {!isLoading && searched && !shipment && lookupUnavailable && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-10 text-center" role="alert">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" aria-hidden="true" />
+          <h3 className="text-xl font-medium text-amber-900 mb-2">{t("serviceUnavailableTitle")}</h3>
+          <p className="text-amber-800">{t("serviceUnavailableBody")}</p>
+        </div>
+      )}
+
+      {!isLoading && searched && !shipment && !lookupUnavailable && (
         <div className="bg-gray-50 border border-gray-100 rounded-2xl p-10 text-center">
           <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
           <h3 className="text-xl font-medium text-gray-900 mb-2">{t("notFoundTitle")}</h3>

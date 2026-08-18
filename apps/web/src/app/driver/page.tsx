@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Truck, MapPin, CheckCircle2, Phone, PenTool, Loader2, AlertCircle, Package } from "lucide-react";
+import { Truck, MapPin, CheckCircle2, PenTool, Loader2, AlertCircle, Package } from "lucide-react";
 import { getCsrfToken } from "@/lib/auth";
 import { CSRF_HEADER } from "@/lib/session";
 
@@ -62,15 +62,20 @@ export default function DriverPWA() {
     setError(null);
 
     try {
-      // Look up the shipment to verify it exists and get current status
-      const lookupRes = await fetch(`/api/v1/tracking/${encodeURIComponent(selectedShipment.trackingNumber)}`);
-      if (!lookupRes.ok) {
-        throw new Error(`Shipment not found: ${selectedShipment.trackingNumber}`);
+      const deliveryRes = await fetch(`/api/v1/shipments/${selectedShipment.id}/pickup-delivery/delivery-confirm`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": `delivery-confirm-${selectedShipment.id}`,
+          [CSRF_HEADER]: getCsrfToken() ?? "",
+        },
+        body: JSON.stringify({ recipientName: signedName.trim() }),
+      });
+      if (!deliveryRes.ok) {
+        const body = await deliveryRes.json().catch(() => null);
+        throw new Error(body?.message || `Delivery could not be recorded (${deliveryRes.status})`);
       }
 
-      // In a full implementation, this would POST to a delivery confirmation endpoint
-      // that creates a DELIVERED tracking event. The backend pickup-delivery module
-      // needs a POST endpoint for this, which is pending the driver PWA spec.
       setDeliveredSuccess(true);
       setTimeout(() => {
         setDeliveredSuccess(false);

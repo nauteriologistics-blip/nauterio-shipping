@@ -15,26 +15,19 @@ export default function Header() {
   const locale = useLocale() as Locale;
   const t = useTranslations("Header");
   const isPortal = pathname?.startsWith("/portal") ?? false;
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const MARKETING_NAV_ITEMS = [
-    { label: t("navServices"), href: "/services" },
-    { label: t("navQuote"), href: "/quote" },
     { label: t("navTrack"), href: "/tracking" },
-    { label: t("navCustoms"), href: "/customs" },
-    { label: t("navBusiness"), href: "/business" },
   ];
 
-  // Spec 8.1: "Logged-in portal navigation replaces marketing navigation
-  // with Dashboard, Shipments, Quotes, Pickups, Payments, Documents, Claims
-  // and Support." Payments/Claims/Support don't have their own portal
-  // routes yet (see docs/audit/FRONTEND_UX_GAPS.md) - included as-is so the
-  // nav matches spec even where the destination is still the dashboard's
-  // matching section.
+  // The launch MVP exposes only routes that are operational. Dedicated
+  // shipment/request screens join this list when their implementation lands.
   const PORTAL_NAV_ITEMS = [
     { label: t("navPortalDashboard"), href: "/portal" },
-    { label: t("navPortalShipments"), href: "/portal#shipments" },
-    { label: t("navPortalQuotes"), href: "/portal#quotes" },
-    { label: t("navPortalDocuments"), href: "/portal#documents" },
+    { label: t("navPortalDocuments"), href: "/portal/documents" },
+    { label: "Support", href: "/portal/support" },
+    { label: unreadCount > 0 ? `${t("navPortalNotifications")} (${unreadCount})` : t("navPortalNotifications"), href: "/portal/notifications" },
   ];
 
   const navItems = isPortal ? PORTAL_NAV_ITEMS : MARKETING_NAV_ITEMS;
@@ -50,6 +43,19 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!isPortal) return;
+    const refreshUnread = () => {
+      fetch("/api/v1/me/notifications/unread-count", { cache: "no-store" })
+        .then((response) => response.ok ? response.json() as Promise<{ count: number }> : null)
+        .then((result) => setUnreadCount(result?.count ?? 0))
+        .catch(() => setUnreadCount(0));
+    };
+    refreshUnread();
+    window.addEventListener("nauterio:notifications-changed", refreshUnread);
+    return () => window.removeEventListener("nauterio:notifications-changed", refreshUnread);
+  }, [isPortal, pathname]);
 
   function switchLocale() {
     const next: Locale = locale === "en" ? "it" : "en";
@@ -126,10 +132,10 @@ export default function Header() {
                 {t("signIn")}
               </Link>
               <Link
-                href="/quote"
+                href="/register"
                 className="bg-[#F28C18] hover:bg-[#d97c14] text-white px-8 py-3 rounded-full font-medium transition-colors"
               >
-                {t("getQuote")}
+                {t("startShipping")}
               </Link>
             </>
           )}
@@ -183,11 +189,11 @@ export default function Header() {
               </Link>
             )}
             <Link
-              href="/quote"
+              href="/register"
               className="bg-[#F28C18] text-white text-center px-6 py-3 rounded-full font-medium mt-2"
               onClick={() => setMobileMenuOpen(false)}
             >
-              {t("getQuote")}
+              {t("startShipping")}
             </Link>
           </div>
         </div>

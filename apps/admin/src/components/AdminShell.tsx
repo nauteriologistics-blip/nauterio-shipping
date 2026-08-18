@@ -3,9 +3,30 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, Users, BarChart3, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { logout } from "@/lib/auth";
+
+type NavigationPermission =
+  | "shipment:create"
+  | "shipment:read"
+  | "customer_pii:view"
+  | "document:review"
+  | "pilot:manage"
+  | "support:manage";
+
+// Navigation is only a convenience filter; every API route still applies the
+// canonical server-side permission policy from @nauterio/contracts.
+const NAVIGATION_PERMISSIONS_BY_ROLE: Record<string, readonly NavigationPermission[]> = {
+  SUPER_ADMIN: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "pilot:manage", "support:manage"],
+  OPERATIONS: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "pilot:manage", "support:manage"],
+  WAREHOUSE: ["shipment:read", "customer_pii:view"],
+  SUPPORT: ["shipment:read", "customer_pii:view", "pilot:manage", "support:manage"],
+  FINANCE: ["shipment:read", "customer_pii:view"],
+  CUSTOMS: ["shipment:read", "customer_pii:view", "document:review"],
+  DRIVER: ["shipment:read"],
+  AUDITOR: ["shipment:read"],
+};
 
 interface Profile {
   id: string;
@@ -16,11 +37,18 @@ interface Profile {
 }
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/shipments", label: "Shipments", icon: Package },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/reports", label: "Reports & Analytics", icon: BarChart3 },
-];
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "shipment:read" },
+  { href: "/requests", label: "Shipment Requests", icon: ClipboardList, permission: "shipment:create" },
+  { href: "/shipments", label: "Shipments", icon: Package, permission: "shipment:read" },
+  { href: "/documents", label: "Document Review", icon: FileCheck, permission: "document:review" },
+  { href: "/customers", label: "Customers", icon: Users, permission: "customer_pii:view" },
+  { href: "/support", label: "Support", icon: MessagesSquare, permission: "support:manage" },
+  { href: "/pilot", label: "Pilot Control", icon: Activity, permission: "pilot:manage" },
+] as const satisfies ReadonlyArray<{ href: string; label: string; icon: typeof LayoutDashboard; permission: NavigationPermission }>;
+
+function permissionsFor(role: string | null | undefined): readonly NavigationPermission[] {
+  return role ? (NAVIGATION_PERMISSIONS_BY_ROLE[role] ?? []) : [];
+}
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -63,7 +91,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <span className="block text-[10px] text-white/50 mt-0.5">Internal operations console</span>
         </div>
         <nav className="flex-1 py-4" aria-label="Admin navigation">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {NAV_ITEMS.filter((item) => permissionsFor(profile?.staffRole).includes(item.permission)).map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             return (
               <Link

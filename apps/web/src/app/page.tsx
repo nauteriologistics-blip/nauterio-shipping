@@ -16,7 +16,11 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
-  PackageCheck
+  PackageCheck,
+  CheckCircle2,
+  AlertCircle,
+  ClipboardCheck,
+  Building2
 } from "lucide-react";
 import { SERVICES, type ServiceId } from "@/lib/services";
 
@@ -47,6 +51,12 @@ interface FaqItem {
   answer: string;
 }
 
+interface ReadinessItem {
+  title: string;
+  desc: string;
+  status: "available" | "pending";
+}
+
 export default function Home() {
   const router = useRouter();
   const t = useTranslations("Home");
@@ -68,12 +78,19 @@ export default function Home() {
   const trustBar = t.raw("trustBar") as TrustBarItem[];
   const steps = t.raw("steps") as StepItem[];
   const faqs = t.raw("faqs") as FaqItem[];
+  const readinessItems = t.raw("readinessItems") as ReadinessItem[];
   const trustIcons = [Headset, FileCheck, MapPin, ShieldCheck];
 
   return (
     <div className="min-h-screen font-sans text-slate-900 bg-white">
+      <div className="bg-[#081F3D] px-6 py-2.5 text-center text-xs font-medium tracking-wide text-white">
+        <span className="mr-2 inline-flex rounded-full bg-[#F28C18] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#081F3D]">
+          {t("previewLabel")}
+        </span>
+        {t("previewMessage")}
+      </div>
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[85vh] flex items-center pt-24 pb-16 overflow-hidden">
+      <section className="relative min-h-[76vh] flex items-center pt-12 pb-16 overflow-hidden">
         {/* Subtle background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-orange-50/30 -z-10" />
 
@@ -82,6 +99,10 @@ export default function Home() {
 
             {/* Left Content */}
             <div className="max-w-2xl space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#081F3D]/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#081F3D] shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-[#F28C18]" />
+                {t("corridorLabel")}
+              </div>
               <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-[#081F3D] leading-[1.1]">
                 {t("heroTitle")}
               </h1>
@@ -91,7 +112,7 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link
-                  href="/quote"
+                  href="/register"
                   className="px-8 py-4 bg-[#F28C18] hover:bg-[#d97c14] text-white rounded-full font-medium transition-colors text-lg flex items-center justify-center"
                 >
                   {t("getInstantQuote")}
@@ -110,7 +131,8 @@ export default function Home() {
                 <label htmlFor="quick-track" className="text-sm text-slate-500 mb-3 font-medium block">
                   {t("quickTrackLabel")}
                 </label>
-                <div className="relative max-w-md">
+                <div className="relative flex max-w-lg gap-2">
+                  <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
                   </div>
@@ -123,55 +145,59 @@ export default function Home() {
                     placeholder={t("quickTrackPlaceholder")}
                     className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#081F3D]/20 focus:border-[#081F3D] transition-all"
                   />
+                  </div>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-[#081F3D] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#0B2E5E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F28C18]"
+                  >
+                    {t("quickTrackButton")}
+                  </button>
                 </div>
               </form>
             </div>
 
             {/* Right Visual */}
-            <div className="hidden lg:block relative h-[600px] w-full">
-              {/* Abstract decorative geometric representation of a route */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-full h-full max-w-lg mx-auto">
-                  {/* Map dots */}
-                  <div className="absolute top-[30%] left-[20%] w-6 h-6 bg-[#F28C18] rounded-full shadow-lg shadow-orange-500/40 z-20 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
+            <div className="hidden lg:block relative w-full">
+              <div className="absolute -inset-10 rounded-full bg-gradient-to-br from-orange-100/60 to-blue-100/70 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[#081F3D] p-8 text-white shadow-2xl shadow-blue-950/20">
+                <div className="mb-10 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F28C18]">{t("routeCardEyebrow")}</p>
+                    <p className="mt-2 text-2xl font-bold">{t("routeCardTitle")}</p>
                   </div>
-                  <div className="absolute bottom-[40%] right-[20%] w-8 h-8 bg-[#081F3D] rounded-full shadow-lg shadow-blue-900/40 z-20 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white rounded-full"></div>
+                  <PlaneTakeoff className="h-8 w-8 text-[#F28C18]" aria-hidden="true" />
+                </div>
+                <div className="flex items-center gap-5">
+                  <div>
+                    <p className="text-4xl font-black">MXP</p>
+                    <p className="mt-1 text-xs text-blue-100/70">{t("milan")}, IT</p>
                   </div>
-
-                  {/* Connecting Arc (SVG) */}
-                  <svg className="absolute inset-0 w-full h-full z-10 drop-shadow-xl" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <path
-                      d="M 25 35 Q 60 10, 80 55"
-                      fill="none"
-                      stroke="url(#gradient)"
-                      strokeWidth="0.8"
-                      strokeDasharray="2, 2"
-                      className="animate-pulse"
-                    />
-                    <defs>
-                      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#F28C18" />
-                        <stop offset="100%" stopColor="#081F3D" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-
-                  {/* Decorative circles */}
-                  <div className="absolute top-[10%] right-[10%] w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60"></div>
-                  <div className="absolute bottom-[20%] left-[10%] w-72 h-72 bg-orange-50 rounded-full blur-3xl opacity-60"></div>
-
-                  {/* Floating card */}
-                  <div className="absolute top-[45%] right-[10%] bg-white p-5 rounded-2xl shadow-xl z-30 border border-slate-100 flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                      <PackageCheck className="h-5 w-5 text-emerald-600" />
+                  <div className="relative flex-1">
+                    <div className="border-t border-dashed border-white/40" />
+                    <div className="absolute -top-1.5 left-[62%] h-3 w-3 rounded-full border-2 border-[#081F3D] bg-[#F28C18]" />
+                  </div>
+                  <div className="text-right">
+                    <p className="text-4xl font-black">JFK</p>
+                    <p className="mt-1 text-xs text-blue-100/70">{t("newYork")}, US</p>
+                  </div>
+                </div>
+                <div className="mt-10 grid grid-cols-3 gap-3 border-t border-white/10 pt-6">
+                  {(["routeCardStep1", "routeCardStep2", "routeCardStep3"] as const).map((key, index) => (
+                    <div key={key} className="rounded-2xl bg-white/[0.06] p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#F28C18]">0{index + 1}</p>
+                      <p className="mt-2 text-sm font-semibold leading-snug">{t(key)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium">{t("statusUpdateLabel")}</p>
-                      <p className="text-sm font-bold text-[#081F3D]">{t("clearedCustoms")}</p>
-                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white p-4 text-[#081F3D]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                    <PackageCheck className="h-5 w-5 text-emerald-700" aria-hidden="true" />
                   </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t("statusUpdateLabel")}</p>
+                    <p className="text-sm font-bold">{t("milestoneExample")}</p>
+                  </div>
+                  <span className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t("exampleLabel")}</span>
                 </div>
               </div>
             </div>
@@ -198,7 +224,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. SERVICES SECTION */}
+      {/* 3. SERVICE READINESS */}
+      <section className="bg-[#081F3D] py-20 text-white">
+        <div className="container mx-auto px-6 lg:px-12">
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">{t("readinessEyebrow")}</p>
+              <h2 className="mt-4 text-4xl font-bold leading-tight">{t("readinessHeading")}</h2>
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-blue-100/75">{t("readinessBody")}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {readinessItems.map((item) => {
+                const available = item.status === "available";
+                return (
+                  <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+                    <div className="flex items-start gap-3">
+                      {available ? (
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" aria-hidden="true" />
+                      ) : (
+                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+                      )}
+                      <div>
+                        <p className="font-semibold">{item.title}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-blue-100/65">{item.desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. SERVICES SECTION */}
       <section className="py-24 lg:py-32 bg-white">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -227,7 +286,7 @@ export default function Home() {
                     <span className="text-sm font-medium text-slate-700">{tCatalog(`${catalogKey}.transitLabel`)}</span>
                   </div>
                   <Link
-                    href="/services"
+                    href="/register"
                     className="inline-flex items-center text-[#F28C18] font-medium hover:text-[#d97c14] transition-colors"
                   >
                     {t("learnMore")} <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
@@ -239,7 +298,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. HOW IT WORKS */}
+      {/* 5. HOW IT WORKS */}
       <section className="py-24 lg:py-32 bg-slate-50">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="mb-16">
@@ -266,7 +325,49 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. ROUTE SHOWCASE */}
+      {/* 6. DOCUMENT READINESS */}
+      <section className="border-y border-slate-200 bg-white py-20">
+        <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-2 lg:items-center lg:px-12">
+          <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 md:p-10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#081F3D] text-white">
+                <ClipboardCheck className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F28C18]">{t("documentsEyebrow")}</p>
+                <h2 className="mt-1 text-2xl font-bold text-[#081F3D]">{t("documentsHeading")}</h2>
+              </div>
+            </div>
+            <ol className="mt-8 space-y-5">
+              {(["documentsStep1", "documentsStep2", "documentsStep3", "documentsStep4"] as const).map((key, index) => (
+                <li key={key} className="flex gap-4">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[#081F3D] shadow-sm">{index + 1}</span>
+                  <span className="text-sm leading-relaxed text-slate-600">{t(key)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">{t("proofEyebrow")}</p>
+            <h2 className="mt-4 text-4xl font-bold leading-tight text-[#081F3D]">{t("proofHeading")}</h2>
+            <p className="mt-5 text-lg leading-relaxed text-slate-600">{t("proofBody")}</p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 p-5">
+                <FileCheck className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
+                <p className="mt-4 font-bold text-[#081F3D]">{t("proofCustomsTitle")}</p>
+                <p className="mt-1 text-sm text-slate-500">{t("proofCustomsDesc")}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 p-5">
+                <Building2 className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
+                <p className="mt-4 font-bold text-[#081F3D]">{t("proofBusinessTitle")}</p>
+                <p className="mt-1 text-sm text-slate-500">{t("proofBusinessDesc")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. ROUTE SHOWCASE */}
       <section className="py-24 lg:py-32 bg-white">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -333,7 +434,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. FAQ SECTION */}
+      {/* 8. FAQ SECTION */}
       <section className="py-24 lg:py-32 bg-white">
         <div className="container mx-auto px-6 lg:px-12 max-w-4xl">
           <div className="text-center mb-16">
@@ -379,7 +480,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. CTA SECTION */}
+      {/* 9. CTA SECTION */}
       <section className="py-24 lg:py-32 bg-[#081F3D] relative overflow-hidden">
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-3xl -mr-[200px] -mt-[200px]" aria-hidden="true"></div>
@@ -394,7 +495,7 @@ export default function Home() {
               {t("ctaSubtitle")}
             </p>
             <Link
-              href="/quote"
+              href="/register"
               className="inline-block px-10 py-5 bg-[#F28C18] hover:bg-[#d97c14] text-white rounded-full font-medium transition-colors text-xl shadow-lg shadow-orange-900/50"
             >
               {t("ctaButton")}

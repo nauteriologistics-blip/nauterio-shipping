@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from "@nestjs/comm
 import { getPrismaClient } from "@nauterio/database";
 import { AuditService } from "../audit/audit.module";
 import { ShipmentsService } from "../shipments/shipments.service";
-import { SaveDraftDto, ConfirmBookingDto } from "./dto/booking.dto";
+import { SaveDraftDto } from "./dto/booking.dto";
 import { sliceCursorPage } from "../../common/pagination/paginate-cursor";
 
 @Injectable()
@@ -34,6 +34,23 @@ export class BookingsService {
     });
 
     return sliceCursorPage(bookings, limit);
+  }
+
+  async listRequests(params: { status?: string; after?: string; limit?: number }) {
+    const prisma = getPrismaClient();
+    const limit = Math.min(params.limit ?? 25, 100);
+    const allowed = new Set(["SUBMITTED", "APPROVED", "AWAITING_PAYMENT", "PAID", "REJECTED", "CONVERTED", "CANCELLED"]);
+    const status = params.status && allowed.has(params.status) ? params.status : "SUBMITTED";
+    const cursor = params.after ? { id: params.after } : undefined;
+    const rows = await prisma.booking.findMany({
+      where: { requestStatus: status as never },
+      include: { user: { select: { id: true, fullName: true, email: true } } },
+      orderBy: { id: "desc" },
+      take: limit + 1,
+      cursor,
+      skip: cursor ? 1 : 0,
+    });
+    return sliceCursorPage(rows, limit);
   }
 
   async getBookingById(id: string, userId: string) {
@@ -78,8 +95,8 @@ export class BookingsService {
 
   async updateDraft(id: string, userId: string, dto: SaveDraftDto) {
     const booking = await this.getBookingById(id, userId);
-    if (booking.convertedShipmentId) {
-      throw new BadRequestException(`Booking ${id} has already been converted to a shipment`);
+    if (booking.requestStatus !== "DRAFT") {
+      throw new BadRequestException("Only draft shipment requests can be edited");
     }
 
     const prisma = getPrismaClient();
@@ -111,41 +128,93 @@ export class BookingsService {
     return updated;
   }
 
-  /**
-   * Confirms a draft into a real, active Shipment. Requires a CONFIRMED
-   * Payment record matching `dto.paymentReference` - CLAUDE.md: "never
-   * infer payment success only from a browser redirect". No webhook
-   * handler exists yet anywhere in this codebase to ever set a Payment to
-   * CONFIRMED (see billing.module.ts), so this correctly, deliberately
-   * refuses every confirmation until that real integration lands - that is
-   * fail-safe behaviour, not a bug to work around by trusting the client's
-   * string instead.
-   */
-  async confirmBooking(id: string, userId: string, dto: ConfirmBookingDto, correlationId: string) {
+  async submitRequest(id: string, userId: string, correlationId: string) {
     const booking = await this.getBookingById(id, userId);
-    if (booking.convertedShipmentId) {
-      throw new BadRequestException(`Booking ${id} is already confirmed`);
-    }
-
+    if (booking.requestStatus !== "DRAFT") throw new BadRequestException("Only draft requests can be submitted");
+    validateShipmentRequest(booking.draftDataJson as Record<string, unknown>);
     const prisma = getPrismaClient();
-    let totalAmountMinorUnits = BigInt(0);
-    let currency = "EUR";
-
-    if (dto.paymentMethod === "INVOICE") {
-      totalAmountMinorUnits = BigInt(8350); // Fallback estimate
-      currency = "EUR";
-    } else {
-      const confirmedPayment = await prisma.payment.findFirst({
-        where: { providerPaymentId: dto.paymentReference, status: "CONFIRMED" },
+    if (!booking.quoteId) throw new BadRequestException("Generate and select a quote before submitting this request");
+    const quote = await prisma.quote.findFirst({ where: { id: booking.quoteId, status: "DRAFT", expiresAt: { gt: new Date() } } });
+    if (!quote) throw new BadRequestException("The selected quote is invalid or expired");
+    const draft = booking.draftDataJson as Record<string, unknown>;
+    const quotedInput = quote.inputSnapshotJson as Record<string, unknown>;
+    const pricedFieldsMatch =
+      quote.serviceId === draft.serviceId &&
+      numbersMatch(quotedInput.weightKg, draft.weightKg) &&
+      numbersMatch(quotedInput.lengthCm, draft.lengthCm) &&
+      numbersMatch(quotedInput.widthCm, draft.widthCm) &&
+      numbersMatch(quotedInput.heightCm, draft.heightCm) &&
+      numbersMatch(quotedInput.declaredValueEur, draft.declaredValueEur);
+    if (!pricedFieldsMatch) throw new BadRequestException("Package details changed after quoting; generate a new quote");
+    return prisma.$transaction(async (tx) => {
+      const updated = await tx.booking.update({
+        where: { id },
+        data: { requestStatus: "SUBMITTED" as never, currentStep: "CONFIRMED", submittedAt: new Date() },
       });
-      if (!confirmedPayment) {
-        throw new BadRequestException(
-          `No confirmed payment found for reference '${dto.paymentReference}'. Initiate payment via POST /v1/invoices/:id/pay and wait for provider confirmation before confirming this booking.`
-        );
-      }
-      totalAmountMinorUnits = confirmedPayment.amountMinorUnits;
-      currency = confirmedPayment.currency;
-    }
+      await this.auditService.record({ actorUserId: userId, action: "SHIPMENT_REQUEST_SUBMITTED", entityType: "Booking", entityId: id, afterJson: { requestStatus: "SUBMITTED" }, correlationId }, tx);
+      return updated;
+    });
+  }
+
+  async rejectRequest(id: string, reviewerUserId: string, reason: string, correlationId: string) {
+    const prisma = getPrismaClient();
+    const booking = await prisma.booking.findUnique({ where: { id } });
+    if (!booking) throw new NotFoundException(`Shipment request ${id} not found`);
+    if (booking.requestStatus !== "SUBMITTED") throw new BadRequestException("Only submitted requests can be rejected");
+    return prisma.$transaction(async (tx) => {
+      const claimed = await tx.booking.updateMany({ where: { id, requestStatus: "SUBMITTED" as never }, data: { requestStatus: "REJECTED" as never, decisionReason: reason.trim(), reviewedAt: new Date(), reviewedByUserId: reviewerUserId } });
+      if (claimed.count !== 1) throw new BadRequestException("This request has already been reviewed");
+      const updated = await tx.booking.findUniqueOrThrow({ where: { id } });
+      await this.auditService.record({ actorUserId: reviewerUserId, action: "SHIPMENT_REQUEST_REJECTED", entityType: "Booking", entityId: id, afterJson: { requestStatus: "REJECTED", reason: reason.trim() }, correlationId }, tx);
+      return updated;
+    });
+  }
+
+  async approveRequest(id: string, reviewerUserId: string, correlationId: string) {
+    const prisma = getPrismaClient();
+    const booking = await prisma.booking.findUnique({ where: { id }, include: { quote: { include: { lines: true } } } });
+    if (!booking) throw new NotFoundException(`Shipment request ${id} not found`);
+    if (booking.requestStatus !== "SUBMITTED") throw new BadRequestException("Only submitted requests can be approved");
+    if (!booking.userId) throw new BadRequestException("Request has no customer owner");
+    if (!booking.quote || booking.quote.expiresAt <= new Date()) throw new BadRequestException("A current quote is required before issuing an invoice");
+    if (booking.quote.totalAmountMinorUnits <= 0n) throw new BadRequestException("Quote total must be greater than zero");
+
+    return prisma.$transaction(async (tx) => {
+      const claimed = await tx.booking.updateMany({ where: { id, requestStatus: "SUBMITTED" as never }, data: { requestStatus: "AWAITING_PAYMENT" as never, reviewedAt: new Date(), reviewedByUserId: reviewerUserId } });
+      if (claimed.count !== 1) throw new BadRequestException("This request has already been reviewed");
+      const acceptedQuote = await tx.quote.updateMany({ where: { id: booking.quote.id, status: "DRAFT" }, data: { status: "ACCEPTED", userId: booking.userId } });
+      if (acceptedQuote.count !== 1) throw new BadRequestException("This quote has already been used or is no longer available");
+      const invoice = await tx.invoice.create({
+        data: {
+          invoiceNumber: `INV-${Date.now().toString(36).toUpperCase()}-${id.slice(0, 6).toUpperCase()}`,
+          bookingId: booking.id,
+          quoteId: booking.quote.id,
+          organisationId: booking.organisationId,
+          customerUserId: booking.userId,
+          totalAmountMinorUnits: booking.quote.totalAmountMinorUnits,
+          currency: booking.quote.currency,
+          status: "ISSUED",
+          issuedAt: new Date(),
+          dueAt: booking.quote.expiresAt,
+          lines: { create: booking.quote.lines.map((line) => ({ description: line.label, amountMinorUnits: line.amountMinorUnits, currency: line.currency })) },
+        },
+        include: { lines: true },
+      });
+      await tx.notification.create({ data: { userId: booking.userId, templateCode: "invoice_issued", channel: "IN_APP", renderedSubject: `Invoice ${invoice.invoiceNumber} is ready for payment`, renderedBodyHash: invoice.id.replaceAll("-", "") } });
+      await this.auditService.record({ actorUserId: reviewerUserId, action: "SHIPMENT_REQUEST_APPROVED_AND_INVOICED", entityType: "Booking", entityId: id, afterJson: { invoiceId: invoice.id, requestStatus: "AWAITING_PAYMENT" }, correlationId }, tx);
+      return { bookingId: id, requestStatus: "AWAITING_PAYMENT", invoice };
+    });
+  }
+
+  async fulfillPaidBooking(id: string, correlationId: string, actorUserId?: string) {
+    const prisma = getPrismaClient();
+    const booking = await prisma.booking.findUnique({ where: { id }, include: { quote: true, invoice: true } });
+    if (!booking?.userId || !booking.quote || !booking.invoice) throw new BadRequestException("Paid booking is incomplete");
+    if (booking.requestStatus === "CONVERTED" && booking.convertedShipmentId) return prisma.shipment.findUniqueOrThrow({ where: { id: booking.convertedShipmentId } });
+    if (booking.requestStatus !== "PAID" || booking.invoice.status !== "PAID") throw new BadRequestException("Tracking is issued only after verified payment");
+
+    const totalAmountMinorUnits = booking.invoice.totalAmountMinorUnits;
+    const currency = booking.invoice.currency;
 
     const draft = booking.draftDataJson as Record<string, unknown> | null;
     // DATA-013/REL-018: this used to generate its own tracking number
@@ -157,37 +226,80 @@ export class BookingsService {
     const trackingNumber = await this.shipmentsService.generateTrackingNumber();
 
     const result = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.booking.updateMany({
+        where: { id, requestStatus: "PAID" as never, convertedShipmentId: null },
+        data: { requestStatus: "CONVERTED" as never },
+      });
+      if (claimed.count !== 1) throw new BadRequestException("This payment has already been fulfilled");
       const shipment = await tx.shipment.create({
         data: {
           trackingNumber,
           serviceId: (draft?.serviceId as never) || "AIR_EXPRESS",
-          ownerUserId: userId,
+          ownerUserId: booking.userId,
           organisationId: booking.organisationId,
-          senderNameSnapshot: (draft?.senderName as string) || "Sender",
-          senderAddressSnapshot: (draft?.senderAddress as object) || { city: "Milan", countryCode: "IT" },
-          receiverNameSnapshot: (draft?.receiverName as string) || "Receiver",
-          receiverAddressSnapshot: (draft?.receiverAddress as object) || { city: "New York", countryCode: "US" },
+          senderNameSnapshot: stringFromDraft(draft, "senderName", "Sender"),
+          senderAddressSnapshot: {
+            line1: stringFromDraft(draft, "senderLine1"),
+            city: stringFromDraft(draft, "senderCity"),
+            postalCode: stringFromDraft(draft, "senderPostalCode"),
+            countryCode: stringFromDraft(draft, "senderCountry"),
+            phone: stringFromDraft(draft, "senderPhone"),
+            email: optionalStringFromDraft(draft, "senderEmail"),
+          },
+          receiverNameSnapshot: stringFromDraft(draft, "receiverName", "Receiver"),
+          receiverAddressSnapshot: {
+            line1: stringFromDraft(draft, "receiverLine1"),
+            city: stringFromDraft(draft, "receiverCity"),
+            postalCode: stringFromDraft(draft, "receiverPostalCode"),
+            countryCode: stringFromDraft(draft, "receiverCountry"),
+            phone: stringFromDraft(draft, "receiverPhone"),
+            email: optionalStringFromDraft(draft, "receiverEmail"),
+          },
+          customerReference: (draft?.customerReference as string) || undefined,
+          packageCount: 1,
           totalActualWeightKg: (draft?.weightKg as number) || 1.0,
-          totalVolumetricWeightKg: (draft?.weightKg as number) || 1.0,
-          totalChargeableWeightKg: (draft?.weightKg as number) || 1.0,
-          declaredValueAmountMinorUnits: BigInt((draft?.declaredValueMinor as number) || 10000),
+          totalVolumetricWeightKg: (Number(draft?.lengthCm) * Number(draft?.widthCm) * Number(draft?.heightCm)) / 5000,
+          totalChargeableWeightKg: Math.max(Number(draft?.weightKg), (Number(draft?.lengthCm) * Number(draft?.widthCm) * Number(draft?.heightCm)) / 5000),
+          declaredValueAmountMinorUnits: BigInt(Math.round(Number(draft?.declaredValueEur ?? 0) * 100)),
           declaredValueCurrency: (draft?.currency as string) || "EUR",
           totalAmountMinorUnits,
           currency,
           lifecycleStatus: "ACTIVE",
+          quoteId: booking.quote.id,
+          createdByUserId: actorUserId,
+          source: "payment",
+        },
+      });
+
+      const weight = Number(draft?.weightKg ?? 1);
+      const length = Number(draft?.lengthCm ?? 1);
+      const width = Number(draft?.widthCm ?? 1);
+      const height = Number(draft?.heightCm ?? 1);
+      const volumetricWeight = (length * width * height) / 5000;
+      await tx.package.create({
+        data: {
+          shipmentId: shipment.id,
+          packageNumber: `${trackingNumber}-P001`,
+          sequenceNumber: 1,
+          actualWeightKg: weight,
+          lengthCm: length,
+          widthCm: width,
+          heightCm: height,
+          volumetricWeightKg: volumetricWeight,
+          chargeableWeightKg: Math.max(weight, volumetricWeight),
         },
       });
 
       // System-generated, not staff/warehouse/carrier/driver input - no
-      // TrackingEventSourceType value exists for "customer confirmed a
-      // booking", and this event is the system reacting to that, not the
-      // customer directly asserting shipment state.
+      // Approval is a system-controlled conversion; the customer never
+      // directly asserts the initial shipment tracking state.
       await tx.trackingEvent.create({
         data: {
           shipmentId: shipment.id,
-          canonicalCode: "SHIPMENT_CREATED",
-          publicTitleEn: "Shipment created",
-          publicTitleIt: "Spedizione creata",
+          canonicalCode: "PACKAGE_COLLECTED",
+          publicTitleEn: "Package received",
+          publicTitleIt: "Pacco ricevuto",
+          publicDescriptionEn: "Your package is with Nauterio Logistics.",
           sourceType: "SYSTEM_AUTOMATION",
           eventTime: new Date(),
         },
@@ -195,8 +307,9 @@ export class BookingsService {
 
       await tx.booking.update({
         where: { id },
-        data: { convertedShipmentId: shipment.id },
+        data: { convertedShipmentId: shipment.id, requestStatus: "CONVERTED" as never },
       });
+      await tx.invoiceLine.updateMany({ where: { invoiceId: booking.invoice.id }, data: { shipmentId: shipment.id } });
 
       // eventType must match outbox-relay.ts's EVENT_TYPE_TO_QUEUE routing
       // key exactly ("shipment.created") or the relay marks it FAILED as
@@ -215,11 +328,11 @@ export class BookingsService {
 
       await this.auditService.record(
         {
-          actorUserId: userId,
-          action: "BOOKING_CONFIRMED",
+          actorUserId,
+          action: "PAID_BOOKING_FULFILLED",
           entityType: "Booking",
           entityId: id,
-          afterJson: { bookingId: id, shipmentId: shipment.id, trackingNumber },
+          afterJson: { bookingId: id, shipmentId: shipment.id, trackingNumber, paymentRequired: true },
           correlationId,
         },
         tx
@@ -230,4 +343,32 @@ export class BookingsService {
 
     return result;
   }
+}
+
+function numbersMatch(a: unknown, b: unknown): boolean {
+  const left = Number(a);
+  const right = Number(b);
+  return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= 0.001;
+}
+
+function validateShipmentRequest(draft: Record<string, unknown> | null): void {
+  if (!draft) throw new BadRequestException("Shipment request details are missing");
+  const requiredStrings = ["senderName", "senderPhone", "senderLine1", "senderCity", "senderPostalCode", "senderCountry", "receiverName", "receiverPhone", "receiverLine1", "receiverCity", "receiverPostalCode", "receiverCountry", "goodsDescription"];
+  const missing = requiredStrings.filter((field) => typeof draft[field] !== "string" || !(draft[field]).trim());
+  if (missing.length) throw new BadRequestException(`Complete the required fields: ${missing.join(", ")}`);
+  if (typeof draft.weightKg !== "number" || draft.weightKg <= 0) throw new BadRequestException("Weight must be greater than zero");
+  for (const field of ["lengthCm", "widthCm", "heightCm"]) {
+    if (typeof draft[field] !== "number" || (draft[field]) <= 0) throw new BadRequestException(`${field} must be greater than zero`);
+  }
+  if (typeof draft.serviceId !== "string" || !["AIR_EXPRESS", "AIR_ECONOMY", "OCEAN_FREIGHT"].includes(draft.serviceId)) throw new BadRequestException("Select a supported service");
+}
+
+function stringFromDraft(draft: Record<string, unknown> | null, field: string, fallback = ""): string {
+  const value = draft?.[field];
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function optionalStringFromDraft(draft: Record<string, unknown> | null, field: string): string | null {
+  const value = draft?.[field];
+  return typeof value === "string" && value.trim() ? value : null;
 }

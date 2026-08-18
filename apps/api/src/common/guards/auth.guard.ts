@@ -4,6 +4,7 @@ import { getPrismaClient } from "@nauterio/database";
 import type { AppRole } from "@nauterio/contracts";
 import { loadApiConfig } from "@nauterio/configuration";
 import { verifyCognitoToken } from "./cognito-jwt-verifier";
+import { createHash } from "node:crypto";
 
 export interface AuthenticatedUser {
   userId: string;
@@ -37,21 +38,35 @@ export class AuthGuard implements CanActivate {
     }
     const token = authHeader.slice("Bearer ".length);
 
-    const config = loadApiConfig();
-    const cognitoSub = await verifyCognitoToken(token, {
-      userPoolId: config.COGNITO_USER_POOL_ID,
-      region: config.COGNITO_REGION,
-      clientId: config.COGNITO_CLIENT_ID,
-      localAuthMode: config.LOCAL_AUTH_MODE,
-      nodeEnv: config.NODE_ENV,
+    const prisma = getPrismaClient();
+    const session = await prisma.authSession.findFirst({
+      where: {
+        tokenHash: createHash("sha256").update(token).digest("hex"),
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: { user: true },
     });
+
+    const config = loadApiConfig();
+    const canVerifyExternalIdentity = config.LOCAL_AUTH_MODE || Boolean(config.COGNITO_USER_POOL_ID && config.COGNITO_REGION && config.COGNITO_CLIENT_ID);
+    const cognitoSub = session
+      ? session.user.cognitoSub
+      : canVerifyExternalIdentity
+        ? await verifyCognitoToken(token, {
+            userPoolId: config.COGNITO_USER_POOL_ID,
+            region: config.COGNITO_REGION,
+            clientId: config.COGNITO_CLIENT_ID,
+            localAuthMode: config.LOCAL_AUTH_MODE,
+            nodeEnv: config.NODE_ENV,
+          })
+        : null;
 
     if (!cognitoSub) {
       throw new UnauthorizedException("Invalid token");
     }
 
-    const prisma = getPrismaClient();
-    const user = await prisma.user.findUnique({ where: { cognitoSub } });
+    const user = session?.user ?? await prisma.user.findUnique({ where: { cognitoSub } });
     if (!user) {
       throw new UnauthorizedException("No Nauterio account linked to this identity");
     }

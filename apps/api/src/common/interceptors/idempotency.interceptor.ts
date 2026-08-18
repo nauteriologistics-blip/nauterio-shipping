@@ -14,7 +14,7 @@ import { Reflector } from "@nestjs/core";
 import { Observable, from, of, throwError } from "rxjs";
 import { catchError, concatMap, map } from "rxjs/operators";
 import type { Request } from "express";
-import { getPrismaClient, type IdempotencyRecord } from "@nauterio/database";
+import { getPrismaClient, type IdempotencyRecord, type Prisma } from "@nauterio/database";
 import { IDEMPOTENCY_KEY_METADATA } from "../decorators/require-idempotency-key.decorator";
 import { apiLogger } from "../../logger";
 
@@ -124,7 +124,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
             data: {
               status: "COMPLETED",
               responseStatus: declaredStatus,
-              responseBodyJson: (body as any) ?? {},
+              responseBodyJson: (body ?? {}) as Prisma.InputJsonValue,
               completedAt: new Date(),
             },
           })

@@ -8,7 +8,7 @@ import { getPrismaClient } from "@nauterio/database";
  * an ACCEPTED/converted quote is real transaction history (spec 15.1: quotes
  * snapshot every calculation input and rule), and `Booking.quoteId` cascades
  * on quote delete, so deleting a converted quote would delete its booking
- * too. Filtering to `bookings: { none: {} }` makes that impossible by
+ * too. Filtering to `booking: null` makes that impossible by
  * construction rather than by trusting `status` alone.
  */
 export async function runQuoteExpiryCleanup(): Promise<{ deleted: number }> {
@@ -17,7 +17,7 @@ export async function runQuoteExpiryCleanup(): Promise<{ deleted: number }> {
     where: {
       status: "DRAFT",
       expiresAt: { lt: new Date() },
-      bookings: { none: {} },
+      booking: null,
     },
   });
   return { deleted: result.count };

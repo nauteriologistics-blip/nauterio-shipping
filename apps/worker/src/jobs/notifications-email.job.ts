@@ -1,4 +1,5 @@
-import { LocalMockMessagingAdapter } from "@nauterio/integrations";
+import { LocalMockMessagingAdapter, ResendMessagingAdapter } from "@nauterio/integrations";
+import { loadApiConfig } from "@nauterio/configuration";
 import type { Prisma } from "@nauterio/database";
 import type { QueueHandler, QueueMessage } from "../queue/queue-adapter";
 import { createHash } from "node:crypto";
@@ -9,7 +10,10 @@ import { createHash } from "node:crypto";
  * section 9.2's sequencing) - swap the constructor argument for a real
  * SesMessagingAdapter later; this handler's logic does not change.
  */
-const messagingAdapter = new LocalMockMessagingAdapter();
+const config = loadApiConfig();
+const messagingAdapter = config.EMAIL_PROVIDER === "resend"
+  ? new ResendMessagingAdapter({ apiKey: config.RESEND_API_KEY, fromEmail: config.EMAIL_FROM })
+  : new LocalMockMessagingAdapter();
 
 interface ResolvedNotification {
   userId?: string;
@@ -21,7 +25,7 @@ interface ResolvedNotification {
 export const notificationsEmailHandler: QueueHandler = async (message, tx) => {
   // REL-020: this used to require the producer to have already resolved
   // email/templateCode into the outbox payload itself. `shipment.created`
-  // (the one real producer - `BookingsService.confirmBooking`) never did,
+  // (the original producer, now `BookingsService.approveRequest`) never did,
   // so every delivery of it failed permanently and was only visible as a
   // generic "missing email/templateCode" error after exponential backoff
   // exhausted its retries - observed live while verifying REL-011's
@@ -29,7 +33,11 @@ export const notificationsEmailHandler: QueueHandler = async (message, tx) => {
   // `eventType`, is what makes the producer's job "record that this
   // happened" rather than "already know who to notify and how."
   const resolved = await resolveNotification(message, tx);
-  if (!resolved) return; // legitimately nothing to notify (e.g. no individual owner on an organisation shipment) - not an error
+  if (!resolved) {
+    const trackingEventId = (message.payload as { trackingEventId?: string }).trackingEventId;
+    if (trackingEventId) await tx.trackingEvent.updateMany({ where: { id: trackingEventId }, data: { notificationState: "SUPPRESSED" } });
+    return; // legitimately nothing to notify (e.g. no individual owner on an organisation shipment)
+  }
 
   const providerResult = await messagingAdapter.sendEmail({
     to: resolved.email,
@@ -51,6 +59,15 @@ export const notificationsEmailHandler: QueueHandler = async (message, tx) => {
       renderedBodyHash: createHash("sha256").update(message.messageId).digest("hex"),
     },
   });
+  await tx.notification.create({
+    data: {
+      userId: resolved.userId,
+      templateCode: resolved.templateCode,
+      channel: "IN_APP",
+      renderedSubject: notificationSubject(resolved.templateCode, resolved.variables),
+      renderedBodyHash: createHash("sha256").update(`${message.messageId}:in-app`).digest("hex"),
+    },
+  });
   await tx.deliveryAttempt.create({
     data: {
       notificationId: notification.id,
@@ -59,6 +76,13 @@ export const notificationsEmailHandler: QueueHandler = async (message, tx) => {
       status: "SENT",
     },
   });
+  const trackingEventId = (message.payload as { trackingEventId?: string }).trackingEventId;
+  if (trackingEventId) {
+    await tx.trackingEvent.updateMany({
+      where: { id: trackingEventId },
+      data: { notificationState: "SENT" },
+    });
+  }
 };
 
 async function resolveNotification(
@@ -66,6 +90,27 @@ async function resolveNotification(
   tx: Prisma.TransactionClient
 ): Promise<ResolvedNotification | null> {
   switch (message.eventType) {
+    case "user.email_verification.requested": {
+      const payload = message.payload as { userId?: string; email?: string; verificationUrl?: string };
+      if (!payload.userId || !payload.email || !payload.verificationUrl) {
+        throw new Error(`notifications-email: verification message ${message.messageId} is incomplete`);
+      }
+      return { userId: payload.userId, email: payload.email, templateCode: "verify_email", variables: { verificationUrl: payload.verificationUrl } };
+    }
+    case "user.signin_link.requested": {
+      const payload = message.payload as { userId?: string; email?: string; signInUrl?: string };
+      if (!payload.userId || !payload.email || !payload.signInUrl) {
+        throw new Error(`notifications-email: sign-in message ${message.messageId} is incomplete`);
+      }
+      return { userId: payload.userId, email: payload.email, templateCode: "signin_link", variables: { signInUrl: payload.signInUrl } };
+    }
+    case "user.staff_signin_link.requested": {
+      const payload = message.payload as { userId?: string; email?: string; signInUrl?: string };
+      if (!payload.userId || !payload.email || !payload.signInUrl) {
+        throw new Error(`notifications-email: staff sign-in message ${message.messageId} is incomplete`);
+      }
+      return { userId: payload.userId, email: payload.email, templateCode: "staff_signin_link", variables: { signInUrl: payload.signInUrl } };
+    }
     case "shipment.created": {
       const payload = message.payload as { shipmentId?: string; trackingNumber?: string };
       if (!payload.shipmentId) {
@@ -92,6 +137,19 @@ async function resolveNotification(
         variables: { trackingNumber: shipment.trackingNumber },
       };
     }
+    case "shipment.status.updated": {
+      const payload = message.payload as { shipmentId?: string; status?: string };
+      if (!payload.shipmentId) throw new Error(`notifications-email: shipment.status.updated message ${message.messageId} missing shipmentId`);
+      const shipment = await tx.shipment.findUnique({ where: { id: payload.shipmentId }, include: { ownerUser: true } });
+      if (!shipment) throw new Error(`notifications-email: shipment ${payload.shipmentId} not found`);
+      if (!shipment.ownerUser?.email) return null;
+      return {
+        userId: shipment.ownerUser.id,
+        email: shipment.ownerUser.email,
+        templateCode: "shipment_status_updated",
+        variables: { trackingNumber: shipment.trackingNumber, status: payload.status ?? shipment.currentTrackingCode },
+      };
+    }
     default: {
       // quote.created / claim.submitted: no current producer emits these
       // (confirmed by grep across apps/api/src - only shipment.created is
@@ -108,4 +166,10 @@ async function resolveNotification(
       return { userId: payload.userId, email: payload.email, templateCode: payload.templateCode };
     }
   }
+}
+
+function notificationSubject(templateCode: string, variables?: Record<string, string>): string {
+  if (templateCode === "shipment_created") return `Shipment ${variables?.trackingNumber ?? ""} approved`;
+  if (templateCode === "shipment_status_updated") return `${variables?.trackingNumber ?? "Shipment"}: ${(variables?.status ?? "Status updated").replace(/_/g, " ")}`;
+  return "Nauterio notification";
 }

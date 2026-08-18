@@ -5,7 +5,8 @@ import { generateCsrfToken } from "@/lib/session.server";
 const apiOrigin = process.env.NAUTERIO_API_URL ?? "http://localhost:4000";
 
 /**
- * SEC-015: verifies the identity server-side against the real API BEFORE
+ * SEC-015: exchanges staff credentials with Cognito server-side, then
+ * verifies the identity against the real API BEFORE
  * ever setting a cookie, and enforces the staff-role gate here too - the
  * original finding noted "a customer token entered at /login will
  * authenticate, and the admin UI will render whatever the API returns" with
@@ -20,14 +21,27 @@ const apiOrigin = process.env.NAUTERIO_API_URL ?? "http://localhost:4000";
 export async function POST(req: NextRequest) {
   let token: string;
   try {
-    const body = (await req.json()) as { token?: string };
+    const body = (await req.json()) as { token?: string; email?: string; password?: string };
     token = (body.token ?? "").trim();
+    if (!token && body.email && body.password) {
+      const region = process.env.COGNITO_REGION;
+      const clientId = process.env.COGNITO_CLIENT_ID;
+      if (!region || !clientId) return NextResponse.json({ error: "Staff identity is not configured." }, { status: 503 });
+      const auth = await fetch(`https://cognito-idp.${region}.amazonaws.com/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-amz-json-1.1", "X-Amz-Target": "AWSCognitoIdentityProviderService.InitiateAuth" },
+        body: JSON.stringify({ AuthFlow: "USER_PASSWORD_AUTH", ClientId: clientId, AuthParameters: { USERNAME: body.email.trim(), PASSWORD: body.password } }),
+      });
+      const authBody = (await auth.json().catch(() => ({}))) as { AuthenticationResult?: { AccessToken?: string }; message?: string };
+      token = authBody.AuthenticationResult?.AccessToken ?? "";
+      if (!auth.ok || !token) return NextResponse.json({ error: authBody.message ?? "Invalid email or password." }, { status: 401 });
+    }
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
   if (!token) {
-    return NextResponse.json({ error: "Token is required." }, { status: 400 });
+    return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
   }
 
   let profile: { staffRole: string | null } | null = null;

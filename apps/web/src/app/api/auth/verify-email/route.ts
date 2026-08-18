@@ -4,11 +4,8 @@ import { generateCsrfToken } from "@/lib/session.server";
 
 const apiOrigin = process.env.NAUTERIO_API_URL ?? "http://localhost:4000";
 
-/** Forwards to the real API's POST /v1/auth/verify-email and, on success,
- * establishes the session directly from the returned cognitoSub - a
- * standard "magic link" pattern (clicking the verification link both
- * verifies the account and signs the user in), since there is no separate
- * password to sign in with in this dev-mode auth model. */
+/** Verifies the one-time email token and stores the API's new opaque,
+ * expiring session token in an httpOnly cookie. */
 export async function POST(req: NextRequest) {
   let token: string;
   try {
@@ -22,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Verification token is required." }, { status: 400 });
   }
 
-  let cognitoSub: string;
+  let sessionToken: string;
   try {
     const upstreamRes = await fetch(`${apiOrigin}/v1/auth/verify-email`, {
       method: "POST",
@@ -36,8 +33,8 @@ export async function POST(req: NextRequest) {
         headers: { "content-type": "application/json" },
       });
     }
-    const parsed = (await upstreamRes.json()) as { cognitoSub: string };
-    cognitoSub = parsed.cognitoSub;
+    const parsed = (await upstreamRes.json()) as { sessionToken: string };
+    sessionToken = parsed.sessionToken;
   } catch {
     return NextResponse.json({ message: "Could not reach the API." }, { status: 502 });
   }
@@ -45,7 +42,7 @@ export async function POST(req: NextRequest) {
   const response = NextResponse.json({ ok: true });
   const isProduction = process.env.NODE_ENV === "production";
 
-  response.cookies.set(SESSION_COOKIE, cognitoSub, {
+  response.cookies.set(SESSION_COOKIE, sessionToken, {
     httpOnly: true,
     secure: isProduction,
     sameSite: "lax",

@@ -6,11 +6,19 @@ import { Check, Truck, Headset, Shield, FileCheck, ArrowRight, CheckCircle2 } fr
 
 export default function BusinessPage() {
   const t = useTranslations("BusinessPage");
-  const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
+    const form = new FormData(e.currentTarget);
+    const inquiry = [
+      `Company: ${String(form.get("companyName") ?? "")}`,
+      `Monthly volume: ${String(form.get("monthlyVolume") ?? "")}`,
+      `Work email: ${String(form.get("workEmail") ?? "")}`,
+      `Requirements: ${String(form.get("message") ?? "")}`,
+    ].join("\n");
+    await navigator.clipboard.writeText(inquiry);
+    setCopied(true);
   };
 
   return (
@@ -135,7 +143,7 @@ export default function BusinessPage() {
       {/* Contact Form */}
       <section id="contact" className="py-24 px-4 max-w-4xl mx-auto scroll-mt-24">
         <div className="bg-[#081F3D] rounded-3xl p-10 md:p-16 shadow-xl text-white">
-          {submitted ? (
+          {copied ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-8 h-8 text-emerald-400" aria-hidden="true" />

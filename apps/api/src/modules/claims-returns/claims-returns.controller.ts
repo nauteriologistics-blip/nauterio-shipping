@@ -22,7 +22,7 @@ export class ClaimsReturnsController {
   @NoPermissionRequired()
   @ApiOperation({ summary: "List claims" })
   async listClaims(@Query("after") after?: string, @Query("limit") limit?: string, @CurrentUser() user?: AuthenticatedUser) {
-    return this.service.listClaims(user!, after, limit ? parseInt(limit, 10) : undefined);
+    return this.service.listClaims(user, after, limit ? parseInt(limit, 10) : undefined);
   }
 
   @Get(":id")

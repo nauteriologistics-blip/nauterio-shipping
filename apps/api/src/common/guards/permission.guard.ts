@@ -22,10 +22,10 @@ export class PermissionGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const action = this.reflector.get<string>(PERMISSION_KEY, context.getHandler());
-    const noPermissionRequired = this.reflector.get<boolean>(
+    const action = this.reflector.getAllAndOverride<string>(PERMISSION_KEY, [context.getHandler(), context.getClass()]);
+    const noPermissionRequired = this.reflector.getAllAndOverride<boolean>(
       NO_PERMISSION_REQUIRED_KEY,
-      context.getHandler()
+      [context.getHandler(), context.getClass()]
     );
 
     if (!action) {

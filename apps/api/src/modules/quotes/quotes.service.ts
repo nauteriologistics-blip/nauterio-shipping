@@ -31,8 +31,7 @@ const INDICATIVE_RATES: Record<string, { flatMinorUnits: number; perKgMinorUnits
 
 const INDICATIVE_CUSTOMS_FEE_MINOR_UNITS = 1850;
 const INDICATIVE_PICKUP_FEE_MINOR_UNITS = 1200;
-const INDICATIVE_MIN_INSURANCE_MINOR_UNITS = 800;
-const INDICATIVE_INSURANCE_RATE_BASIS_POINTS = 100n; // 1% = 100 / 10,000
+const INDICATIVE_INSURANCE_RATE_BASIS_POINTS = 150n; // 1.5% = 150 / 10,000
 const DE_MINIMIS_THRESHOLD_MINOR_UNITS = 80_000n; // $800
 
 @Injectable()
@@ -70,16 +69,13 @@ export class QuotesService {
     // stored amount) - converted once at the boundary, never touched as a
     // float again.
     const declaredValueMinorUnits = BigInt(Math.round(dto.declaredValueEur * 100));
-    const insuranceFeeMinorUnits = dto.addInsurance
-      ? bigIntMax(
-          BigInt(INDICATIVE_MIN_INSURANCE_MINOR_UNITS),
-          divRound(declaredValueMinorUnits * INDICATIVE_INSURANCE_RATE_BASIS_POINTS, 10_000n)
-        )
+    const insuranceFeeMinorUnits = dto.addInsurance !== false
+      ? divRound(declaredValueMinorUnits * INDICATIVE_INSURANCE_RATE_BASIS_POINTS, 10_000n)
       : 0n;
 
     const totalMinorUnits = baseRateMinorUnits + customsFeeMinorUnits + pickupFeeMinorUnits + insuranceFeeMinorUnits;
 
-    const result: QuoteResult = {
+    const resultWithoutId: Omit<QuoteResult, "quoteId"> = {
       actualWeightKg: weights.actualWeightKg,
       volumetricWeightKg: weights.volumetricWeightKg,
       chargeableWeightKg: weights.chargeableWeightKg,
@@ -105,7 +101,7 @@ export class QuotesService {
     // total = sum(lines) by construction, not by coincidence (DATA-010) -
     // every line and the total are written from the same BigInt values.
     const prisma = getPrismaClient();
-    await prisma.$transaction(async (tx) => {
+    const quoteId = await prisma.$transaction(async (tx) => {
       const created = await tx.quote.create({
         data: {
           serviceId: mapServiceId(dto.service),
@@ -120,9 +116,9 @@ export class QuotesService {
           // since it is what actually builds.
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           inputSnapshotJson: dto as unknown as object,
-          actualWeightKg: result.actualWeightKg,
-          volumetricWeightKg: result.volumetricWeightKg,
-          chargeableWeightKg: result.chargeableWeightKg,
+          actualWeightKg: resultWithoutId.actualWeightKg,
+          volumetricWeightKg: resultWithoutId.volumetricWeightKg,
+          chargeableWeightKg: resultWithoutId.chargeableWeightKg,
           isIndicative: true,
           totalAmountMinorUnits: totalMinorUnits,
           currency: "EUR",
@@ -154,14 +150,15 @@ export class QuotesService {
           action: "QUOTE_CALCULATED",
           entityType: "Quote",
           entityId: created.id,
-          afterJson: result,
+          afterJson: resultWithoutId,
           correlationId,
         },
         tx
       );
+      return created.id;
     });
 
-    return result;
+    return { quoteId, ...resultWithoutId };
   }
 }
 
@@ -170,10 +167,6 @@ export class QuotesService {
  * to the nearest integer instead of always flooring. */
 function divRound(numerator: bigint, denominator: bigint): bigint {
   return (numerator + denominator / 2n) / denominator;
-}
-
-function bigIntMax(a: bigint, b: bigint): bigint {
-  return a > b ? a : b;
 }
 
 function minorToEur(minorUnits: bigint): number {

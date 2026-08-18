@@ -1,0 +1,22 @@
+"use client";
+
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { CSRF_COOKIE, CSRF_HEADER } from "@/lib/session";
+
+type Conversation = { id: string; subject: string; status: string; lastMessageAt: string; messages?: Message[] };
+type Message = { id: string; body: string; authorType: "CUSTOMER" | "STAFF" | "SYSTEM"; createdAt: string };
+const csrf = () => decodeURIComponent(document.cookie.split("; ").find((r) => r.startsWith(`${CSRF_COOKIE}=`))?.split("=")[1] ?? "");
+async function api<T>(path: string, init?: RequestInit): Promise<T> { const mutating = Boolean(init?.method && init.method !== "GET"); const response = await fetch(`/api/v1${path}`, { ...init, headers: { "Content-Type": "application/json", ...(mutating ? { [CSRF_HEADER]: csrf(), "Idempotency-Key": crypto.randomUUID() } : {}), ...init?.headers } }); const body = await response.json(); if (!response.ok) throw new Error(body.message ?? "Request failed"); return body as T; }
+
+export default function CustomerSupportPage() {
+  const [items, setItems] = useState<Conversation[]>([]); const [active, setActive] = useState<Conversation | null>(null); const [error, setError] = useState("");
+  const load = useCallback(async () => { try { setItems(await api<Conversation[]>("/me/support/conversations")); } catch (e) { setError(e instanceof Error ? e.message : "Could not load conversations"); } }, []);
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [load]);
+  async function open(id: string) { setActive(await api<Conversation>(`/me/support/conversations/${id}/messages`)); }
+  async function create(e: FormEvent<HTMLFormElement>) { e.preventDefault(); const fd = new FormData(e.currentTarget); const created = await api<Conversation>("/me/support/conversations", { method: "POST", body: JSON.stringify({ subject: fd.get("subject"), message: fd.get("message") }) }); e.currentTarget.reset(); await load(); await open(created.id); }
+  async function reply(e: FormEvent<HTMLFormElement>) { e.preventDefault(); if (!active) return; const form = e.currentTarget; const fd = new FormData(form); await api(`/me/support/conversations/${active.id}/messages`, { method: "POST", body: JSON.stringify({ body: fd.get("body") }) }); form.reset(); await open(active.id); await load(); }
+  return <main className="mx-auto max-w-5xl space-y-6 px-4 py-10"><div><h1 className="text-2xl font-black text-[#081F3D]">Message support</h1><p className="text-sm text-slate-500">Talk directly with the Nauterio operations team.</p></div>{error && <p className="text-sm text-red-700">{error}</p>}<div className="grid gap-6 md:grid-cols-[280px_1fr]"><aside className="space-y-2">{items.map((x) => <button key={x.id} onClick={() => void open(x.id)} className="block w-full rounded-xl border bg-white p-3 text-left"><strong className="block text-sm text-[#081F3D]">{x.subject}</strong><span className="text-xs text-slate-500">{x.status.replaceAll("_", " ")}</span></button>)}<form onSubmit={(e) => void create(e)} className="mt-5 space-y-2 rounded-xl border bg-white p-3"><input name="subject" required maxLength={160} placeholder="Subject" className="w-full rounded border p-2 text-sm"/><textarea name="message" required maxLength={5000} placeholder="How can we help?" className="w-full rounded border p-2 text-sm"/><button className="rounded bg-[#F28C18] px-3 py-2 text-xs font-bold">Start conversation</button></form></aside><section className="min-h-96 rounded-xl border bg-white p-5">{active ? <><h2 className="font-bold text-[#081F3D]">{active.subject}</h2><div className="my-5 space-y-3">{active.messages?.map((m) => <div key={m.id} className={`max-w-[80%] rounded-xl p-3 text-sm ${m.authorType === "CUSTOMER" ? "ml-auto bg-[#081F3D] text-white" : "bg-slate-100"}`}>{m.body}</div>)}</div><form onSubmit={(e) => void reply(e)} className="flex gap-2"><input name="body" required maxLength={5000} placeholder="Write a message" className="flex-1 rounded-xl border p-3 text-sm"/><button className="rounded-xl bg-[#F28C18] px-4 text-sm font-bold">Send</button></form></> : <p className="text-sm text-slate-500">Choose a conversation or start a new one.</p>}</section></div></main>;
+}
