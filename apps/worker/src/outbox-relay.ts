@@ -16,6 +16,8 @@ import { workerLogger } from "./logger";
  */
 const EVENT_TYPE_TO_QUEUE: Record<string, QueueName> = {
   "user.email_verification.requested": "notifications-email",
+  "user.signin_link.requested": "notifications-email",
+  "user.staff_signin_link.requested": "notifications-email",
   "quote.created": "notifications-email", // e.g. "your quote is ready" - illustrative until real templates exist
   "shipment.created": "notifications-email",
   "shipment.status.updated": "notifications-email",

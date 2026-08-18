@@ -30,7 +30,8 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
   const router = useRouter();
   const searchParams = useSearchParams();
   const quoteId = searchParams.get("quoteId") ?? undefined;
-  const quotedTotal = Number(searchParams.get("totalPriceEur"));
+  const quotedTotalParam = searchParams.get("totalPriceEur");
+  const quotedTotal = quotedTotalParam === null ? null : Number(quotedTotalParam);
   const [step, setStep] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -113,6 +114,11 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
   // forget `handleSaveDraft(); setStep(n)` advanced the wizard even when
   // the save failed, silently losing whatever wasn't persisted.
   const handleContinue = async (nextStep: number) => {
+    const validationError = validateStep(step, formData, quoteId);
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
     const saved = await handleSaveDraft();
     if (saved) setStep(nextStep);
   };
@@ -370,7 +376,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             >
               <h3 className="font-extrabold text-base text-[#081F3D]">Air Express</h3>
               <p className="text-slate-500 my-2">24 - 48h Transit Time</p>
-              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "AIR_EXPRESS" && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
+              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "AIR_EXPRESS" && quotedTotal !== null && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
             </div>
 
             <div
@@ -383,7 +389,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             >
               <h3 className="font-extrabold text-base text-[#081F3D]">Air Economy</h3>
               <p className="text-slate-500 my-2">3 - 5 Business Days</p>
-              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "AIR_ECONOMY" && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
+              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "AIR_ECONOMY" && quotedTotal !== null && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
             </div>
 
             <div
@@ -396,7 +402,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             >
               <h3 className="font-extrabold text-base text-[#081F3D]">Ocean Freight</h3>
               <p className="text-slate-500 my-2">12 - 16 Days Container</p>
-              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "OCEAN_FREIGHT" && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
+              <span className="text-sm font-bold text-[#081F3D]">{formData.serviceId === "OCEAN_FREIGHT" && quotedTotal !== null && Number.isFinite(quotedTotal) ? `Quoted total: €${quotedTotal.toFixed(2)}` : "Generate a quote first"}</span>
             </div>
           </div>
 
@@ -479,4 +485,20 @@ function serviceFromQuery(value: string | null): "AIR_EXPRESS" | "AIR_ECONOMY" |
   if (value === "air-economy") return "AIR_ECONOMY";
   if (value === "ocean-freight") return "OCEAN_FREIGHT";
   return "AIR_EXPRESS";
+}
+
+function validateStep(step: number, data: Record<string, string | number>, quoteId?: string): string | null {
+  if (step === 1) {
+    if (!String(data.goodsDescription).trim()) return "Describe the goods before continuing.";
+    if ([data.weightKg, data.lengthCm, data.widthCm, data.heightCm].some((value) => Number(value) <= 0)) return "Weight and all dimensions must be greater than zero.";
+    if (Number(data.declaredValueEur) <= 0) return "Declared goods value must be greater than zero.";
+  }
+  if (step === 2) {
+    const required = [data.senderName, data.senderPhone, data.senderLine1, data.senderCity, data.senderPostalCode, data.receiverName, data.receiverPhone, data.receiverLine1, data.receiverCity, data.receiverPostalCode];
+    if (required.some((value) => !String(value).trim())) return "Complete all required shipper and recipient address fields.";
+    const optionalEmails = [data.senderEmail, data.receiverEmail].filter((value) => String(value).trim());
+    if (optionalEmails.some((value) => !/^\S+@\S+\.\S+$/.test(String(value)))) return "Enter valid email addresses or leave the optional email fields blank.";
+  }
+  if (step === 3 && !quoteId) return "Generate and select a quote before reviewing this request.";
+  return null;
 }
