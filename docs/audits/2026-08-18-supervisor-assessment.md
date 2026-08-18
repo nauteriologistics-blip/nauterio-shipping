@@ -2,7 +2,7 @@
 
 ## Current verdict
 
-**NO-GO for production today; GO for deployment to a controlled staging/pilot environment.** The repository now installs, validates, builds, migrates, seeds, and runs locally. Customer and staff portal journeys were completed in the browser. Production remains blocked because the live Vercel API proxy returns HTTP 500, the documented Render API hostname has no service, and payment/storage/malware-scanning production integrations have not been acceptance-tested.
+**NO-GO for general production today; GO for deployment to a controlled staging/pilot environment.** The repository now installs, validates, builds, migrates, seeds, and runs locally. Customer and staff portal journeys were completed in the browser. The actual Render API was recovered at `https://nauterio-shipping.onrender.com`, its unsafe production auth setting was removed, `/v1/health` is HTTP 200, and all Vercel projects now point to that origin. General launch remains blocked until this pull request is merged, all 27 migrations are applied, the worker and production integrations are configured, and external acceptance tests pass.
 
 ## Assessment evidence available
 
@@ -13,11 +13,12 @@
 - `pnpm lint`: PASS across web, admin, API, worker, and packages.
 - `pnpm test`: PASS (24 validation tests and 21 API tests).
 - `pnpm build`: PASS for Next.js web/admin, NestJS API, worker, infrastructure, and packages.
-- `scripts/release-check.mjs` and `scripts/security-check.mjs`: PASS.
+- `scripts/release-check.mjs` (27 migrations) and `scripts/security-check.mjs` (535 tracked files): PASS.
 - Local browser: public quote, tracking, customer magic-link sign-in, customer portal, staff magic-link sign-in, role-aware admin dashboard, shipment list, customers, documents, support, and pilot control: PASS.
+- GitHub pull-request CI: PASS for lint/typecheck and database-backed tests; Vercel web and both admin previews: PASS.
 - Live public/static pages: PASS without console errors.
-- Live quote and tracking: FAIL — Vercel proxy returns HTTP 500 with an empty response.
-- Documented `https://nauterio-api.onrender.com/v1/health`: FAIL — Render returns `x-render-routing: no-server` / 404.
+- Live API health at `https://nauterio-shipping.onrender.com/v1/health`: PASS (HTTP 200).
+- Live frontend proxy: PASS connectivity — it reaches Render and returns structured API responses. Quote currently returns HTTP 422 because required service catalogue rows were absent from production; the new idempotent migration repairs this on deployment. An unknown tracking number correctly returns HTTP 404.
 - Live admin: FAIL launch-safety check — deployed version still displays the obsolete development-token sign-in UI.
 - Stripe test-mode journey: UNVERIFIED; no test credentials or reachable webhook endpoint were available.
 
@@ -111,11 +112,15 @@ Production displayed clickable “sample” IDs while its backend was unavailabl
 
 API/worker lint and typecheck depended on generated package `dist` output that did not exist after a clean checkout. CI now builds workspace packages before lint/typecheck. The removed Prisma 7 `db push --skip-generate` option was also corrected.
 
+### PROD-002 — Required service catalogue existed only in development seed data (P1)
+
+The live quote endpoint reached Render but failed with HTTP 422 because `quotes.service_id` references catalogue rows that had never been inserted into production. The three canonical services are now installed and reconciled by an idempotent migration rather than relying on the synthetic development seed.
+
 ## Remaining launch blockers
 
-1. Create or identify the actual Render API and worker services, then set Vercel `NAUTERIO_API_URL` to the reachable API origin. The documented `nauterio-api.onrender.com` hostname currently has no service.
-2. Set Render `WEB_APP_URL=https://nauteriologistics.com` and `ADMIN_APP_URL=https://admin.nauteriologistics.com`, plus Neon, Upstash, Resend, Stripe, object-storage, and malware-scanner secrets.
-3. Apply all migrations to a fresh staging database and an upgrade copy before production Neon.
+1. Review and merge pull request #1, then verify the production Vercel aliases and Render service are running commit `1c1c7de` or later.
+2. Apply all 27 migrations to a fresh staging database, an upgrade copy, and production Neon. The current free Render service does not provide the pre-deploy-command feature, so migration execution needs a controlled one-off job or a paid service using the committed blueprint.
+3. Create the Render worker and set Render `WEB_APP_URL=https://nauteriologistics.com`, `ADMIN_APP_URL=https://admin.nauteriologistics.com`, `API_PUBLIC_URL=https://nauterio-shipping.onrender.com`, plus the required Resend, Stripe, object-storage, and malware-scanner secrets. Neon and Upstash are already linked to the API.
 4. Configure a business-approved rate card. Current freight rates remain explicitly illustrative.
 5. Execute Stripe success, cancellation, invalid-signature, expiry, duplicate, delayed-success, and fulfilment-retry acceptance scenarios.
 6. Verify Resend sending-domain authentication and complete registration/customer/staff magic-link delivery tests.
@@ -126,4 +131,4 @@ API/worker lint and typecheck depended on generated package `dist` output that d
 
 ## Launch gate
 
-The platform must remain pre-launch until the live API is reachable and the external-integration acceptance evidence above is complete. The source and local runtime are now release-candidate quality; the remaining NO-GO is primarily production configuration, external-service verification, approved commercial data, and legal approval.
+The platform must remain pre-launch until the reviewed branch is merged, database migrations are applied, the worker is running, and the external-integration acceptance evidence above is complete. The API/frontend network path and source are now release-candidate quality; the remaining NO-GO is production data migration, missing integration credentials/services, approved commercial data, and legal approval.
