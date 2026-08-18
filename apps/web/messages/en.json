@@ -62,11 +62,17 @@
   "VerifyEmail": {
     "checkingTitle": "Verifying your account...",
     "checkingBody": "This will only take a moment.",
+    "checkingSignInTitle": "Signing you in...",
+    "checkingSignInBody": "We are securely opening your customer portal.",
     "doneTitle": "Account verified",
     "doneBody": "Taking you to your portal...",
+    "signedInTitle": "Signed in",
+    "signedInBody": "Taking you to your portal...",
     "errorTitle": "Verification failed",
+    "signInErrorTitle": "Sign-in failed",
     "missingToken": "This verification link is missing its token.",
-    "tryAgain": "Try registering again"
+    "tryAgain": "Try registering again",
+    "requestNewSignInLink": "Request a new sign-in link"
   },
   "Portal": {
     "welcomeBack": "Welcome back, {name}",
