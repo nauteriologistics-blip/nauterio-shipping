@@ -6,7 +6,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/api ./apps/api
 COPY apps/worker ./apps/worker
-COPY scripts/start-render.mjs ./scripts/start-render.mjs
+COPY scripts/start-render.mjs scripts/deploy-migrations.mjs ./scripts/
 
 RUN pnpm install --frozen-lockfile
 RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm --filter @nauterio/database generate
