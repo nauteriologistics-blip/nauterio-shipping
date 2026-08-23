@@ -379,8 +379,6 @@
     "verifyAndPrint": "Verify and Record Intake"
   },
   "Home": {
-    "previewLabel": "Pilot operations",
-    "previewMessage": "Nauterio coordinates Italy–USA shipment requests through an operations review before final acceptance.",
     "corridorLabel": "One corridor. Clearer shipping.",
     "heroTitle": "Italy to the United States, without the logistics guesswork.",
     "heroSubtitle": "Plan shipments in one place, with partner-coordinated collection and delivery, milestone visibility and a clear handoff at every stage.",

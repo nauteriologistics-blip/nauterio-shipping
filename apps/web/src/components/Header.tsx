@@ -81,8 +81,10 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 bg-white ${
-        isScrolled ? "shadow-sm py-4 border-b border-gray-100" : "py-5 border-b border-gray-100"
+      className={`fixed left-0 top-0 z-50 w-full border-b transition-all duration-300 ${
+        isScrolled
+          ? "border-slate-200/80 bg-white/90 py-3 shadow-sm shadow-slate-200/60 backdrop-blur-xl"
+          : "border-transparent bg-white/80 py-5 backdrop-blur-xl"
       }`}
     >
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
@@ -99,12 +101,12 @@ export default function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-8">
+        <nav className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 p-1 shadow-sm lg:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="text-gray-600 hover:text-[#081F3D] font-medium transition-colors"
+              className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D]"
             >
               {item.label}
             </Link>
@@ -112,11 +114,11 @@ export default function Header() {
         </nav>
 
         {/* Right Actions */}
-        <div className="hidden lg:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-4">
           <button
             onClick={switchLocale}
             aria-label={locale === "en" ? t("switchToItalian") : t("switchToEnglish")}
-            className="flex items-center gap-1.5 text-gray-500 hover:text-[#081F3D] font-medium transition-colors text-sm"
+            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#081F3D]"
           >
             <Globe className="w-4 h-4" aria-hidden="true" />
             <span>{locale.toUpperCase()}</span>
@@ -124,13 +126,13 @@ export default function Header() {
 
           {isPortal ? (
             <>
-              <Link href="/quote" className="bg-[#F28C18] hover:bg-[#d97c14] text-white px-6 py-2.5 rounded-full font-medium transition-colors">
+              <Link href="/quote" className="rounded-full bg-[#F28C18] px-6 py-2.5 font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#d97c14]">
                 {tPortal("newShipment")}
               </Link>
               <button
                 onClick={() => void handleSignOut()}
                 disabled={signingOut}
-                className="flex items-center gap-1.5 text-gray-600 hover:text-[#081F3D] font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-full px-3 py-2 font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D] disabled:opacity-50"
               >
                 <LogOut className="w-4 h-4" aria-hidden="true" />
                 {signingOut ? t("signingOut") : t("signOut")}
@@ -138,12 +140,12 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link href="/signin" className="text-gray-600 hover:text-[#081F3D] font-medium transition-colors">
+              <Link href="/signin" className="rounded-full px-3 py-2 font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D]">
                 {t("signIn")}
               </Link>
               <Link
                 href="/register"
-                className="bg-[#F28C18] hover:bg-[#d97c14] text-white px-8 py-3 rounded-full font-medium transition-colors"
+                className="rounded-full bg-[#F28C18] px-8 py-3 font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#d97c14]"
               >
                 {t("startShipping")}
               </Link>
@@ -153,7 +155,7 @@ export default function Header() {
 
         {/* Mobile Menu Toggle */}
         <button
-          className="lg:hidden text-gray-800 p-2"
+          className="rounded-full p-2 text-gray-800 transition-colors hover:bg-slate-100 lg:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={t("toggleMenu")}
         >
@@ -163,7 +165,7 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-gray-100 shadow-lg py-4 px-6 flex flex-col gap-4">
+        <div className="absolute left-0 top-full flex w-full flex-col gap-4 border-b border-gray-100 bg-white px-6 py-4 shadow-lg lg:hidden">
           {navItems.map((item) => (
             <Link
               key={item.href}

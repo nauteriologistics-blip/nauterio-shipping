@@ -18,7 +18,6 @@ import {
   ChevronUp,
   PackageCheck,
   CheckCircle2,
-  AlertCircle,
   ClipboardCheck,
   Building2
 } from "lucide-react";
@@ -82,73 +81,68 @@ export default function Home() {
   const trustIcons = [Headset, FileCheck, MapPin, ShieldCheck];
 
   return (
-    <div className="min-h-screen font-sans text-slate-900 bg-white">
-      <div className="bg-[#081F3D] px-6 py-2.5 text-center text-xs font-medium tracking-wide text-white">
-        <span className="mr-2 inline-flex rounded-full bg-[#F28C18] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#081F3D]">
-          {t("previewLabel")}
-        </span>
-        {t("previewMessage")}
-      </div>
+    <div className="min-h-screen bg-white font-sans text-slate-900">
       {/* 1. HERO SECTION */}
-      <section className="relative min-h-[76vh] flex items-center pt-12 pb-16 overflow-hidden">
+      <section className="relative flex min-h-[78vh] items-center overflow-hidden pb-20 pt-8 sm:pt-12 lg:pb-24 lg:pt-24">
         {/* Subtle background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-orange-50/30 -z-10" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_16%_20%,rgba(242,140,24,0.16),transparent_30%),radial-gradient(circle_at_86%_18%,rgba(8,31,61,0.12),transparent_34%),linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#fff7ed_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-white to-transparent" />
 
         <div className="container mx-auto px-6 lg:px-12">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16">
 
             {/* Left Content */}
             <div className="max-w-2xl space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#081F3D]/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#081F3D] shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#081F3D]/10 bg-white/90 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#081F3D] shadow-sm shadow-slate-200/70 backdrop-blur">
                 <span className="h-2 w-2 rounded-full bg-[#F28C18]" />
                 {t("corridorLabel")}
               </div>
-              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-[#081F3D] leading-[1.1]">
+              <h1 className="max-w-3xl text-4xl font-black tracking-[-0.045em] text-[#081F3D] sm:text-5xl lg:text-7xl lg:leading-[0.98]">
                 {t("heroTitle")}
               </h1>
-              <p className="text-lg text-slate-600 max-w-xl leading-relaxed">
+              <p className="max-w-xl text-lg leading-8 text-slate-600">
                 {t("heroSubtitle")}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link
                   href="/register"
-                  className="px-8 py-4 bg-[#F28C18] hover:bg-[#d97c14] text-white rounded-full font-medium transition-colors text-lg flex items-center justify-center"
+                  className="inline-flex items-center justify-center rounded-full bg-[#F28C18] px-8 py-4 text-lg font-bold text-white shadow-xl shadow-orange-900/15 transition-all hover:-translate-y-0.5 hover:bg-[#d97c14] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#081F3D]"
                 >
                   {t("getInstantQuote")}
                   <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                 </Link>
                 <Link
                   href="/tracking"
-                  className="px-8 py-4 border-2 border-[#081F3D] text-[#081F3D] hover:bg-slate-50 rounded-full font-medium transition-colors text-lg flex items-center justify-center"
+                  className="inline-flex items-center justify-center rounded-full border border-[#081F3D]/20 bg-white px-8 py-4 text-lg font-bold text-[#081F3D] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#081F3D]/40 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F28C18]"
                 >
                   {t("trackShipmentButton")}
                 </Link>
               </div>
 
               {/* Tracking Input */}
-              <form onSubmit={handleQuickTrack} className="pt-8">
-                <label htmlFor="quick-track" className="text-sm text-slate-500 mb-3 font-medium block">
+              <form onSubmit={handleQuickTrack} className="max-w-xl rounded-3xl border border-slate-200/80 bg-white/90 p-3 shadow-xl shadow-slate-200/60 backdrop-blur">
+                <label htmlFor="quick-track" className="mb-3 block px-2 text-sm font-semibold text-slate-600">
                   {t("quickTrackLabel")}
                 </label>
                 <div className="relative flex max-w-lg gap-2">
                   <div className="relative flex-1">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
-                  </div>
-                  <input
-                    id="quick-track"
-                    type="text"
-                    name="trackingId"
-                    value={trackingId}
-                    onChange={(e) => setTrackingId(e.target.value)}
-                    placeholder={t("quickTrackPlaceholder")}
-                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#081F3D]/20 focus:border-[#081F3D] transition-all"
-                  />
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                      <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                    </div>
+                    <input
+                      id="quick-track"
+                      type="text"
+                      name="trackingId"
+                      value={trackingId}
+                      onChange={(e) => setTrackingId(e.target.value)}
+                      placeholder={t("quickTrackPlaceholder")}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 py-3 pl-11 pr-4 shadow-inner shadow-slate-200/40 transition-all focus:border-[#081F3D] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#081F3D]/15"
+                    />
                   </div>
                   <button
                     type="submit"
-                    className="rounded-xl bg-[#081F3D] px-5 py-3 font-semibold text-white transition-colors hover:bg-[#0B2E5E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F28C18]"
+                    className="rounded-2xl bg-[#081F3D] px-5 py-3 font-bold text-white transition-all hover:bg-[#0B2E5E] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F28C18]"
                   >
                     {t("quickTrackButton")}
                   </button>
@@ -157,9 +151,10 @@ export default function Home() {
             </div>
 
             {/* Right Visual */}
-            <div className="hidden lg:block relative w-full">
+            <div className="relative hidden w-full lg:block">
               <div className="absolute -inset-10 rounded-full bg-gradient-to-br from-orange-100/60 to-blue-100/70 blur-3xl" />
               <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[#081F3D] p-8 text-white shadow-2xl shadow-blue-950/20">
+                <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#F28C18]/10 blur-3xl" />
                 <div className="mb-10 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#F28C18]">{t("routeCardEyebrow")}</p>
@@ -207,16 +202,16 @@ export default function Home() {
       </section>
 
       {/* 2. TRUST BAR */}
-      <section className="border-y border-slate-100 bg-white">
-        <div className="container mx-auto px-6 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x-0 md:divide-x divide-slate-100">
+      <section className="bg-white">
+        <div className="container mx-auto px-6 pb-10 lg:px-12">
+          <div className="grid gap-4 rounded-[2rem] border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/60 sm:grid-cols-2 lg:grid-cols-4">
             {trustBar.map((item, i) => {
               const Icon = trustIcons[i];
               return (
-                <div key={i} className="flex flex-col items-center text-center px-4">
-                  <Icon className="h-8 w-8 text-[#F28C18] mb-4" aria-hidden="true" />
-                  <h3 className="font-semibold text-slate-900 mb-1">{item.title}</h3>
-                  <p className="text-sm text-slate-500">{item.desc}</p>
+                <div key={i} className="rounded-3xl border border-slate-100 bg-slate-50/60 p-6">
+                  <Icon className="mb-5 h-7 w-7 text-[#F28C18]" aria-hidden="true" />
+                  <h3 className="mb-1 font-bold text-slate-950">{item.title}</h3>
+                  <p className="text-sm leading-6 text-slate-500">{item.desc}</p>
                 </div>
               );
             })}
@@ -225,24 +220,24 @@ export default function Home() {
       </section>
 
       {/* 3. SERVICE READINESS */}
-      <section className="bg-[#081F3D] py-20 text-white">
+      <section className="bg-[#081F3D] py-20 text-white lg:py-24">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">{t("readinessEyebrow")}</p>
-              <h2 className="mt-4 text-4xl font-bold leading-tight">{t("readinessHeading")}</h2>
+              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">{t("readinessHeading")}</h2>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-blue-100/75">{t("readinessBody")}</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {readinessItems.map((item) => {
                 const available = item.status === "available";
                 return (
-                  <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+                  <div key={item.title} className="rounded-3xl border border-white/10 bg-white/[0.07] p-6 shadow-lg shadow-blue-950/10">
                     <div className="flex items-start gap-3">
                       {available ? (
                         <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" aria-hidden="true" />
                       ) : (
-                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" aria-hidden="true" />
+                        <Clock className="mt-0.5 h-5 w-5 shrink-0 text-blue-200" aria-hidden="true" />
                       )}
                       <div>
                         <p className="font-semibold">{item.title}</p>
@@ -258,36 +253,36 @@ export default function Home() {
       </section>
 
       {/* 4. SERVICES SECTION */}
-      <section className="py-24 lg:py-32 bg-white">
+      <section className="bg-white py-24 lg:py-32">
         <div className="container mx-auto px-6 lg:px-12">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl font-bold text-[#081F3D] mb-4">{t("servicesHeading")}</h2>
-            <p className="text-lg text-slate-500">{t("servicesSubheading")}</p>
+          <div className="mx-auto mb-16 max-w-3xl text-center">
+            <h2 className="mb-4 text-3xl font-black tracking-tight text-[#081F3D] sm:text-4xl">{t("servicesHeading")}</h2>
+            <p className="text-lg leading-8 text-slate-500">{t("servicesSubheading")}</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {SERVICES.map((service) => {
               const Icon = SERVICE_ICONS[service.id];
               const catalogKey = SERVICE_CATALOG_KEYS[service.id];
               return (
                 <div
                   key={service.id}
-                  className="group bg-white p-10 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                  className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#081F3D]/15 hover:shadow-2xl hover:shadow-slate-200/80 lg:p-10"
                 >
-                  <div className="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-8 group-hover:bg-blue-50 transition-colors">
+                  <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 transition-colors group-hover:bg-blue-50">
                     <Icon className="h-7 w-7 text-[#081F3D]" aria-hidden="true" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-slate-900 mb-4">{tCatalog(`${catalogKey}.name`)}</h3>
-                  <p className="text-base text-slate-600 mb-8 line-clamp-3">
+                  <h3 className="mb-4 text-2xl font-bold text-slate-950">{tCatalog(`${catalogKey}.name`)}</h3>
+                  <p className="mb-8 line-clamp-3 text-base leading-7 text-slate-600">
                     {tCatalog(`${catalogKey}.description`)}
                   </p>
-                  <div className="flex items-center gap-3 mb-8">
+                  <div className="mb-8 flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3">
                     <Clock className="h-5 w-5 text-slate-400" aria-hidden="true" />
                     <span className="text-sm font-medium text-slate-700">{tCatalog(`${catalogKey}.transitLabel`)}</span>
                   </div>
                   <Link
-                    href="/register"
-                    className="inline-flex items-center text-[#F28C18] font-medium hover:text-[#d97c14] transition-colors"
+                    href="/services"
+                    className="inline-flex items-center font-bold text-[#F28C18] transition-colors hover:text-[#d97c14]"
                   >
                     {t("learnMore")} <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Link>
@@ -299,25 +294,25 @@ export default function Home() {
       </section>
 
       {/* 5. HOW IT WORKS */}
-      <section className="py-24 lg:py-32 bg-slate-50">
+      <section className="bg-slate-50 py-24 lg:py-32">
         <div className="container mx-auto px-6 lg:px-12">
           <div className="mb-16">
-            <h2 className="text-4xl font-bold text-[#081F3D] mb-4">{t("howItWorksHeading")}</h2>
-            <p className="text-lg text-slate-500 max-w-2xl">{t("howItWorksSubheading")}</p>
+            <h2 className="mb-4 text-3xl font-black tracking-tight text-[#081F3D] sm:text-4xl">{t("howItWorksHeading")}</h2>
+            <p className="max-w-2xl text-lg leading-8 text-slate-500">{t("howItWorksSubheading")}</p>
           </div>
 
           <div className="relative">
             {/* Connecting line (hidden on mobile) */}
-            <div className="hidden md:block absolute top-8 left-12 right-12 h-[2px] bg-slate-200" />
+            <div className="absolute left-12 right-12 top-8 hidden h-[2px] bg-slate-200 md:block" />
 
-            <div className="grid md:grid-cols-4 gap-12 relative z-10">
+            <div className="relative z-10 grid gap-6 md:grid-cols-4">
               {steps.map((item, i) => (
-                <div key={i} className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-xl font-bold text-[#081F3D] mb-6">
+                <div key={i} className="relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xl font-black text-[#081F3D] shadow-sm">
                     {i + 1}
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-900 mb-2">{item.title}</h3>
-                  <p className="text-slate-600">{item.desc}</p>
+                  <h3 className="mb-2 text-xl font-bold text-slate-950">{item.title}</h3>
+                  <p className="leading-7 text-slate-600">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -328,7 +323,7 @@ export default function Home() {
       {/* 6. DOCUMENT READINESS */}
       <section className="border-y border-slate-200 bg-white py-20">
         <div className="container mx-auto grid gap-12 px-6 lg:grid-cols-2 lg:items-center lg:px-12">
-          <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 md:p-10">
+          <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8 shadow-inner shadow-white md:p-10">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#081F3D] text-white">
                 <ClipboardCheck className="h-6 w-6" aria-hidden="true" />
@@ -349,15 +344,15 @@ export default function Home() {
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">{t("proofEyebrow")}</p>
-            <h2 className="mt-4 text-4xl font-bold leading-tight text-[#081F3D]">{t("proofHeading")}</h2>
+            <h2 className="mt-4 text-3xl font-black leading-tight tracking-tight text-[#081F3D] sm:text-4xl">{t("proofHeading")}</h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-600">{t("proofBody")}</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 p-5">
+              <div className="rounded-3xl border border-slate-200 p-6 shadow-sm">
                 <FileCheck className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
                 <p className="mt-4 font-bold text-[#081F3D]">{t("proofCustomsTitle")}</p>
                 <p className="mt-1 text-sm text-slate-500">{t("proofCustomsDesc")}</p>
               </div>
-              <div className="rounded-2xl border border-slate-200 p-5">
+              <div className="rounded-3xl border border-slate-200 p-6 shadow-sm">
                 <Building2 className="h-6 w-6 text-[#F28C18]" aria-hidden="true" />
                 <p className="mt-4 font-bold text-[#081F3D]">{t("proofBusinessTitle")}</p>
                 <p className="mt-1 text-sm text-slate-500">{t("proofBusinessDesc")}</p>
@@ -368,11 +363,11 @@ export default function Home() {
       </section>
 
       {/* 7. ROUTE SHOWCASE */}
-      <section className="py-24 lg:py-32 bg-white">
+      <section className="bg-white py-24 lg:py-32">
         <div className="container mx-auto px-6 lg:px-12">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid items-center gap-16 lg:grid-cols-2">
             <div className="space-y-8">
-              <h2 className="text-4xl font-bold text-[#081F3D]">{t("routeHeading")}</h2>
+              <h2 className="text-3xl font-black tracking-tight text-[#081F3D] sm:text-4xl">{t("routeHeading")}</h2>
               <p className="text-lg text-slate-600 leading-relaxed">
                 {t("routeParagraph")}
               </p>
@@ -391,11 +386,11 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-8 md:p-12 rounded-3xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/40 rounded-full blur-3xl -mr-20 -mt-20"></div>
+            <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 p-8 shadow-xl shadow-slate-200/70 md:p-12">
+              <div className="absolute right-0 top-0 h-64 w-64 -translate-y-20 translate-x-20 rounded-full bg-white/60 blur-3xl"></div>
 
               <div className="relative z-10 flex flex-col gap-8">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div className="flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-[#081F3D]">MXP</p>
                     <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("milan")}</p>
@@ -412,7 +407,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div className="flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-[#081F3D]">GOA</p>
                     <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("genoa")}</p>
@@ -435,10 +430,10 @@ export default function Home() {
       </section>
 
       {/* 8. FAQ SECTION */}
-      <section className="py-24 lg:py-32 bg-white">
+      <section className="bg-white py-24 lg:py-32">
         <div className="container mx-auto px-6 lg:px-12 max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-[#081F3D] mb-4">{t("faqHeading")}</h2>
+            <h2 className="mb-4 text-3xl font-black tracking-tight text-[#081F3D] sm:text-4xl">{t("faqHeading")}</h2>
             <p className="text-lg text-slate-500">{t("faqSubheading")}</p>
           </div>
 
@@ -449,7 +444,7 @@ export default function Home() {
               return (
                 <div
                   key={index}
-                  className="border border-slate-200 rounded-2xl overflow-hidden bg-white transition-all duration-200"
+                  className="overflow-hidden rounded-3xl border border-slate-200 bg-white transition-all duration-200 hover:border-slate-300"
                 >
                   <button
                     onClick={() => toggleFaq(index)}
@@ -481,14 +476,14 @@ export default function Home() {
       </section>
 
       {/* 9. CTA SECTION */}
-      <section className="py-24 lg:py-32 bg-[#081F3D] relative overflow-hidden">
+      <section className="relative overflow-hidden bg-[#081F3D] py-24 lg:py-32">
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-3xl -mr-[200px] -mt-[200px]" aria-hidden="true"></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-orange-500/10 rounded-full blur-3xl -ml-[100px] -mb-[100px]" aria-hidden="true"></div>
 
         <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-10">
-            <h2 className="text-5xl lg:text-6xl font-bold text-white tracking-tight">
+            <h2 className="text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
               {t("ctaHeading")}
             </h2>
             <p className="text-xl text-blue-100/80 max-w-xl mx-auto">
@@ -496,7 +491,7 @@ export default function Home() {
             </p>
             <Link
               href="/register"
-              className="inline-block px-10 py-5 bg-[#F28C18] hover:bg-[#d97c14] text-white rounded-full font-medium transition-colors text-xl shadow-lg shadow-orange-900/50"
+              className="inline-flex items-center justify-center rounded-full bg-[#F28C18] px-10 py-5 text-xl font-bold text-white shadow-lg shadow-orange-900/50 transition-all hover:-translate-y-0.5 hover:bg-[#d97c14]"
             >
               {t("ctaButton")}
             </Link>
