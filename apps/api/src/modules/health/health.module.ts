@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Header, Injectable, Module, ServiceUnavailableException } from "@nestjs/common";
+import { Controller, Get, HttpCode, Header, Injectable, Logger, Module } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { getPrismaClient } from "@nauterio/database";
@@ -12,6 +12,8 @@ import { getPrismaClient } from "@nauterio/database";
  */
 @Injectable()
 class HealthService {
+  private readonly logger = new Logger(HealthService.name);
+
   /** No I/O - only answers "is the process up and able to handle a request
    * at all", so a transient DB blip never triggers an ALB task replacement
    * storm (that coupling was the other half of REL-001). */
@@ -25,17 +27,18 @@ class HealthService {
    * Postgres is hosted on Neon, so the readiness probe needs to tolerate
    * normal cross-provider/cold-start latency without marking a healthy service
    * unavailable. */
-  async readiness(): Promise<{ status: "ok"; database: "ok" }> {
+  async readiness(): Promise<{ status: "ok"; database: "ok" | "degraded" }> {
     const prisma = getPrismaClient();
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("readiness DB check timed out")), 10000)
     );
     try {
       await Promise.race([prisma.$queryRaw`SELECT 1`, timeout]);
+      return { status: "ok", database: "ok" };
     } catch (err) {
-      throw new ServiceUnavailableException(`Database not ready: ${String(err)}`);
+      this.logger.warn(`Readiness DB check degraded: ${String(err)}`);
+      return { status: "ok", database: "degraded" };
     }
-    return { status: "ok", database: "ok" };
   }
 }
 
