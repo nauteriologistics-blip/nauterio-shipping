@@ -28,19 +28,96 @@ export class CustomersService {
           take: 1,
           select: { organisation: { select: { legalName: true } } },
         },
-        _count: { select: { shipmentsAsOwner: true } },
+        bookings: {
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+          select: { id: true, requestStatus: true, currentStep: true, submittedAt: true, updatedAt: true },
+        },
+        shipmentsAsOwner: {
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            trackingNumber: true,
+            lifecycleStatus: true,
+            currentTrackingCode: true,
+            actionRequiredReason: true,
+            operationalHold: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        invoicesAsCustomer: {
+          orderBy: { id: "desc" },
+          take: 1,
+          select: { id: true, invoiceNumber: true, status: true, totalAmountMinorUnits: true, currency: true, dueAt: true, createdAt: true },
+        },
+        _count: {
+          select: {
+            bookings: true,
+            shipmentsAsOwner: true,
+            invoicesAsCustomer: true,
+            supportConversations: true,
+          },
+        },
       },
     });
 
-    return users.map((u) => ({
-      id: u.id,
-      fullName: u.fullName,
-      email: u.email,
-      status: u.status,
-      createdAt: u.createdAt,
-      organisationName: u.organisationMemberships[0]?.organisation.legalName ?? null,
-      shipmentsCount: u._count.shipmentsAsOwner,
-    }));
+    return Promise.all(
+      users.map(async (u) => {
+        const [
+          activeShipmentsCount,
+          actionRequiredShipmentsCount,
+          deliveredShipmentsCount,
+          submittedRequestsCount,
+          draftRequestsCount,
+          openInvoicesCount,
+          overdueInvoicesCount,
+        ] = await Promise.all([
+          prisma.shipment.count({ where: { ownerUserId: u.id, lifecycleStatus: "ACTIVE" } }),
+          prisma.shipment.count({ where: { ownerUserId: u.id, lifecycleStatus: "ACTION_REQUIRED" } }),
+          prisma.shipment.count({ where: { ownerUserId: u.id, lifecycleStatus: "DELIVERED" } }),
+          prisma.booking.count({ where: { userId: u.id, requestStatus: "SUBMITTED" } }),
+          prisma.booking.count({ where: { userId: u.id, requestStatus: "DRAFT" } }),
+          prisma.invoice.count({ where: { customerUserId: u.id, status: { in: ["ISSUED", "OVERDUE"] } } }),
+          prisma.invoice.count({ where: { customerUserId: u.id, status: "OVERDUE" } }),
+        ]);
+
+        return {
+          id: u.id,
+          fullName: u.fullName,
+          email: u.email,
+          status: u.status,
+          createdAt: u.createdAt,
+          organisationName: u.organisationMemberships[0]?.organisation.legalName ?? null,
+          shipmentsCount: u._count.shipmentsAsOwner,
+          bookingsCount: u._count.bookings,
+          invoicesCount: u._count.invoicesAsCustomer,
+          supportConversationsCount: u._count.supportConversations,
+          activeShipmentsCount,
+          actionRequiredShipmentsCount,
+          deliveredShipmentsCount,
+          submittedRequestsCount,
+          draftRequestsCount,
+          openInvoicesCount,
+          overdueInvoicesCount,
+          operationsStatus: customerOperationsStatus({
+            accountStatus: u.status,
+            activeShipments: activeShipmentsCount,
+            actionRequiredShipments: actionRequiredShipmentsCount,
+            submittedRequests: submittedRequestsCount,
+            draftRequests: draftRequestsCount,
+            overdueInvoices: overdueInvoicesCount,
+            openInvoices: openInvoicesCount,
+            deliveredShipments: deliveredShipmentsCount,
+            shipments: u._count.shipmentsAsOwner,
+          }),
+          latestBooking: u.bookings[0] ?? null,
+          latestShipment: u.shipmentsAsOwner[0] ?? null,
+          latestInvoice: u.invoicesAsCustomer[0] ?? null,
+        };
+      })
+    );
   }
 
   async listAddresses(userId: string) {
@@ -190,4 +267,25 @@ export class CustomersService {
 
     return updated;
   }
+}
+
+function customerOperationsStatus(input: {
+  accountStatus: string;
+  activeShipments: number;
+  actionRequiredShipments: number;
+  submittedRequests: number;
+  draftRequests: number;
+  overdueInvoices: number;
+  openInvoices: number;
+  deliveredShipments: number;
+  shipments: number;
+}): "ACCOUNT_NOT_ACTIVE" | "NEEDS_ATTENTION" | "AWAITING_REVIEW" | "SHIPPING_NOW" | "INVOICE_OPEN" | "DRAFT_ONLY" | "DELIVERED_BEFORE" | "REGISTERED_ONLY" {
+  if (input.accountStatus !== "ACTIVE") return "ACCOUNT_NOT_ACTIVE";
+  if (input.actionRequiredShipments > 0 || input.overdueInvoices > 0) return "NEEDS_ATTENTION";
+  if (input.submittedRequests > 0) return "AWAITING_REVIEW";
+  if (input.activeShipments > 0) return "SHIPPING_NOW";
+  if (input.openInvoices > 0) return "INVOICE_OPEN";
+  if (input.draftRequests > 0) return "DRAFT_ONLY";
+  if (input.deliveredShipments > 0 || input.shipments > 0) return "DELIVERED_BEFORE";
+  return "REGISTERED_ONLY";
 }
