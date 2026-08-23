@@ -56,6 +56,6 @@ services:
       - key: MALWARE_SCANNER_TOKEN
         sync: false
       - key: PILOT_MODE
-        value: "true"
+        value: "false"
       - key: PILOT_ALLOWED_EMAILS
         sync: false

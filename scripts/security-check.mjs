@@ -6,7 +6,7 @@ const render = readFileSync("render.yaml", "utf8");
 for (const required of ['LOCAL_AUTH_MODE\n        value: "false"', 'ENABLE_API_DOCS\n        value: "false"', "OBJECT_STORAGE_SECRET_ACCESS_KEY\n        sync: false", "MALWARE_SCANNER_TOKEN\n        sync: false"]) {
   if (!render.includes(required)) failures.push(`Missing production safeguard: ${required.split("\\n")[0]}`);
 }
-if (!render.includes('PILOT_MODE\n        value: "true"') || !render.includes("PILOT_ALLOWED_EMAILS\n        sync: false")) failures.push("Controlled-pilot registration gate is not enabled in Render");
+if (!render.includes('PILOT_MODE\n        value: "false"')) failures.push("Public customer registration is not enabled in Render");
 const auth = readFileSync("apps/api/src/common/guards/auth.guard.ts", "utf8");
 if (!auth.includes("authSession.findFirst")) failures.push("AuthGuard does not verify revocable sessions");
 const documents = readFileSync("apps/api/src/modules/documents/documents.module.ts", "utf8");

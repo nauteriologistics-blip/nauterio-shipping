@@ -49,7 +49,7 @@ const NAV_ITEMS = [
   { href: "/business-inquiries", label: "Business Inquiries", icon: Building2, permission: "support:manage" },
   { href: "/support", label: "Support", icon: MessagesSquare, permission: "support:manage" },
   { href: "/reports", label: "Reports", icon: BarChart3, permission: "data:export" },
-  { href: "/pilot", label: "Pilot Control", icon: Activity, permission: "pilot:manage" },
+  { href: "/operations-health", label: "Operations Health", icon: Activity, permission: "pilot:manage" },
 ] as const satisfies ReadonlyArray<{ href: string; label: string; icon: typeof LayoutDashboard; permission: NavigationPermission }>;
 
 function permissionsFor(role: string | null | undefined): readonly NavigationPermission[] {

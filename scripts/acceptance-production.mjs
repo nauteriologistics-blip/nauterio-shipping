@@ -19,5 +19,5 @@ await check("Customer shipment dashboard", "/v1/shipments?limit=1", customerToke
 await check("Staff identity", "/v1/me", staffToken, (body) => typeof body?.staffRole === "string");
 await check("Admin shipment requests", "/v1/bookings/admin/requests?status=SUBMITTED&limit=1", staffToken, (body) => Array.isArray(body?.items));
 await check("Admin document queue", "/v1/admin/documents?status=PROCESSING", staffToken, Array.isArray);
-await check("Pilot health summary", "/v1/admin/pilot/summary", staffToken, (body) => typeof body?.failedEvents === "number" && typeof body?.openIssues === "number");
+await check("Operations health summary", "/v1/admin/pilot/summary", staffToken, (body) => typeof body?.failedEvents === "number" && typeof body?.openIssues === "number");
 if (failed) process.exit(1);

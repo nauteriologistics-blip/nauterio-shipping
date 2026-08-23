@@ -26,6 +26,7 @@
     "acceptance:production": "node scripts/acceptance-production.mjs",
     "worker:readiness": "node scripts/worker-readiness.mjs",
     "monitoring:readiness": "node scripts/monitoring-readiness.mjs",
+    "ops:daily-report": "node scripts/pilot-daily-report.mjs",
     "pilot:daily-report": "node scripts/pilot-daily-report.mjs",
     "smoke:load": "node scripts/load-smoke.mjs",
     "db:seed": "pnpm --filter @nauterio/database seed"

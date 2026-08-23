@@ -22,7 +22,7 @@ try {
   const summary = await get("/v1/admin/pilot/summary");
   const checks = [
     ["failed outbox events", summary.failedEvents === 0, summary.failedEvents],
-    ["critical pilot issues", summary.criticalIssues === 0, summary.criticalIssues],
+    ["critical operational issues", summary.criticalIssues === 0, summary.criticalIssues],
     ["document scan count field", typeof summary.documentsScanning === "number", summary.documentsScanning],
     ["oldest pending outbox age under 10 minutes", summary.oldestPendingEventSeconds <= 600, summary.oldestPendingEventSeconds],
   ];
