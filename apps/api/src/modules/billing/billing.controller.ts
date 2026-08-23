@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Body, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
@@ -6,8 +6,9 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 import { BillingService } from "./billing.service";
-import { CreateInvoiceDto, PayInvoiceDto } from "./dto/create-invoice.dto";
+import { CreateInvoiceDto, PayInvoiceDto, UpdateInvoiceStatusDto } from "./dto/create-invoice.dto";
 import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
+import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 
 @ApiTags("billing")
 @ApiBearerAuth()
@@ -43,6 +44,19 @@ export class BillingController {
   @ApiOperation({ summary: "Create invoice for a shipment (staff only)" })
   async createInvoice(@Body() dto: CreateInvoiceDto, @CurrentUser() user: AuthenticatedUser) {
     return this.service.createInvoice(dto, user.userId);
+  }
+
+  @Patch(":id/status")
+  @RequirePermission("invoice:manage")
+  @RequireIdempotencyKey()
+  @ApiOperation({ summary: "Update invoice status after offline operations review or settlement" })
+  async updateInvoiceStatus(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateInvoiceStatusDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @CorrelationId() correlationId: string
+  ) {
+    return this.service.updateInvoiceStatus(id, dto, user.userId, correlationId);
   }
 
   @Post(":id/pay")

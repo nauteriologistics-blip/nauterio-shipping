@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { getPrismaClient } from "@nauterio/database";
 import { AuditService } from "../audit/audit.module";
-import { CreateInvoiceDto, PayInvoiceDto } from "./dto/create-invoice.dto";
+import { CreateInvoiceDto, PayInvoiceDto, UpdateInvoiceStatusDto } from "./dto/create-invoice.dto";
 import { sliceCursorPage } from "../../common/pagination/paginate-cursor";
 import { STAFF_ROLES, type AppRole } from "@nauterio/contracts";
 
@@ -41,7 +41,11 @@ export class BillingService {
       cursor,
       skip: cursor ? 1 : 0,
       orderBy: { id: "desc" },
-      include: { lines: true },
+      include: {
+        lines: { include: { shipment: { select: { id: true, trackingNumber: true, lifecycleStatus: true } } } },
+        customerUser: { select: { id: true, fullName: true, email: true } },
+        organisation: { select: { id: true, legalName: true } },
+      },
     });
 
     return sliceCursorPage(invoices, limit);
@@ -118,6 +122,52 @@ export class BillingService {
     });
 
     return invoice;
+  }
+
+  async updateInvoiceStatus(id: string, dto: UpdateInvoiceStatusDto, actorUserId: string, correlationId: string) {
+    const prisma = getPrismaClient();
+    const note = dto.note?.trim();
+
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.invoice.findUnique({
+        where: { id },
+        include: { lines: { include: { shipment: { select: { id: true, trackingNumber: true, lifecycleStatus: true } } } } },
+      });
+      if (!existing) throw new NotFoundException(`Invoice ${id} not found`);
+      if (existing.status === "VOID" && dto.status !== "VOID") {
+        throw new BadRequestException("A void invoice cannot be re-opened. Create a new invoice instead.");
+      }
+
+      const updated = await tx.invoice.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          ...(dto.status === "ISSUED" && !existing.issuedAt ? { issuedAt: new Date() } : {}),
+          version: { increment: 1 },
+        },
+        include: {
+          lines: { include: { shipment: { select: { id: true, trackingNumber: true, lifecycleStatus: true } } } },
+          customerUser: { select: { id: true, fullName: true, email: true } },
+          organisation: { select: { id: true, legalName: true } },
+        },
+      });
+
+      await this.auditService.record(
+        {
+          actorUserId,
+          action: "OFFLINE_INVOICE_STATUS_UPDATED",
+          entityType: "Invoice",
+          entityId: id,
+          beforeJson: { status: existing.status, version: existing.version },
+          afterJson: { status: updated.status, version: updated.version, note: note || undefined },
+          correlationId,
+          reason: note || undefined,
+        },
+        tx
+      );
+
+      return updated;
+    });
   }
 
   async payInvoice(_id: string, _dto: PayInvoiceDto, _actorUserId: string, _scope: InvoiceListScope) {

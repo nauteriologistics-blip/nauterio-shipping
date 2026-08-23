@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare, Building2 } from "lucide-react";
+import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare, Building2, ReceiptText } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { logout } from "@/lib/auth";
 
@@ -12,20 +12,22 @@ type NavigationPermission =
   | "shipment:read"
   | "customer_pii:view"
   | "document:review"
+  | "invoice:read"
+  | "invoice:manage"
   | "pilot:manage"
   | "support:manage";
 
 // Navigation is only a convenience filter; every API route still applies the
 // canonical server-side permission policy from @nauterio/contracts.
 const NAVIGATION_PERMISSIONS_BY_ROLE: Record<string, readonly NavigationPermission[]> = {
-  SUPER_ADMIN: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "pilot:manage", "support:manage"],
-  OPERATIONS: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "pilot:manage", "support:manage"],
+  SUPER_ADMIN: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "invoice:read", "invoice:manage", "pilot:manage", "support:manage"],
+  OPERATIONS: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "invoice:read", "invoice:manage", "pilot:manage", "support:manage"],
   WAREHOUSE: ["shipment:read", "customer_pii:view"],
-  SUPPORT: ["shipment:read", "customer_pii:view", "pilot:manage", "support:manage"],
-  FINANCE: ["shipment:read", "customer_pii:view"],
+  SUPPORT: ["shipment:read", "customer_pii:view", "invoice:read", "pilot:manage", "support:manage"],
+  FINANCE: ["shipment:read", "customer_pii:view", "invoice:read", "invoice:manage"],
   CUSTOMS: ["shipment:read", "customer_pii:view", "document:review"],
   DRIVER: ["shipment:read"],
-  AUDITOR: ["shipment:read"],
+  AUDITOR: ["shipment:read", "invoice:read"],
 };
 
 interface Profile {
@@ -40,6 +42,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "shipment:read" },
   { href: "/requests", label: "Shipment Requests", icon: ClipboardList, permission: "shipment:create" },
   { href: "/shipments", label: "Shipments", icon: Package, permission: "shipment:read" },
+  { href: "/invoices", label: "Invoices", icon: ReceiptText, permission: "invoice:read" },
   { href: "/documents", label: "Document Review", icon: FileCheck, permission: "document:review" },
   { href: "/customers", label: "Customers", icon: Users, permission: "customer_pii:view" },
   { href: "/business-inquiries", label: "Business Inquiries", icon: Building2, permission: "support:manage" },

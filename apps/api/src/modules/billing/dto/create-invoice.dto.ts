@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 
 export class CreateInvoiceDto {
   @ApiProperty({ description: "Shipment ID to invoice" })
@@ -23,4 +23,16 @@ export class PayInvoiceDto {
   @IsString()
   @IsNotEmpty()
   paymentMethod!: string;
+}
+
+export class UpdateInvoiceStatusDto {
+  @ApiProperty({ description: "Offline invoice status controlled by staff", enum: ["ISSUED", "PAID", "OVERDUE", "VOID"] })
+  @IsIn(["ISSUED", "PAID", "OVERDUE", "VOID"])
+  status!: "ISSUED" | "PAID" | "OVERDUE" | "VOID";
+
+  @ApiProperty({ description: "Internal note explaining the status change", required: false })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  note?: string;
 }
