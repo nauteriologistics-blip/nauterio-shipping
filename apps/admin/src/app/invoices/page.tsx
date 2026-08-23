@@ -32,6 +32,10 @@ interface InvoicePage {
   nextCursor: string | null;
 }
 
+interface Profile {
+  staffRole: string | null;
+}
+
 const STATUS_STYLES: Record<Invoice["status"], string> = {
   DRAFT: "bg-slate-100 text-slate-700",
   ISSUED: "bg-blue-100 text-blue-900",
@@ -52,6 +56,7 @@ function formatDate(value: string | null): string {
 
 export default function AdminInvoicesPage() {
   const [items, setItems] = useState<Invoice[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<Invoice["status"] | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
@@ -67,9 +72,10 @@ export default function AdminInvoicesPage() {
   const loadInitial = useCallback(async () => {
     setLoading(true);
     try {
-      const page = await loadPage();
+      const [page, nextProfile] = await Promise.all([loadPage(), apiFetch<Profile>("/me")]);
       setItems(page.items);
       setNextCursor(page.nextCursor);
+      setProfile(nextProfile);
       setError(null);
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.body.message : "Could not load invoices.");
@@ -87,6 +93,7 @@ export default function AdminInvoicesPage() {
     () => (statusFilter === "ALL" ? items : items.filter((invoice) => invoice.status === statusFilter)),
     [items, statusFilter]
   );
+  const canManageInvoices = profile?.staffRole ? ["SUPER_ADMIN", "OPERATIONS", "FINANCE"].includes(profile.staffRole) : false;
 
   async function loadMore() {
     if (!nextCursor) return;
@@ -165,7 +172,7 @@ export default function AdminInvoicesPage() {
                 <th className="p-3">Amount</th>
                 <th className="p-3">Dates</th>
                 <th className="p-3">Status</th>
-                <th className="p-3 text-right">Admin action</th>
+                <th className="p-3 text-right">{canManageInvoices ? "Admin action" : "Access"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -204,18 +211,22 @@ export default function AdminInvoicesPage() {
                       </span>
                     </td>
                     <td className="p-3">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {MANAGED_STATUSES.filter((status) => status !== invoice.status).map((status) => (
-                          <button
-                            key={status}
-                            disabled={workingId === invoice.id || invoice.status === "VOID"}
-                            onClick={() => void updateStatus(invoice, status)}
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            Mark {status.toLowerCase()}
-                          </button>
-                        ))}
-                      </div>
+                      {canManageInvoices ? (
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {MANAGED_STATUSES.filter((status) => status !== invoice.status).map((status) => (
+                            <button
+                              key={status}
+                              disabled={workingId === invoice.id || invoice.status === "VOID"}
+                              onClick={() => void updateStatus(invoice, status)}
+                              className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Mark {status.toLowerCase()}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-right text-xs font-semibold text-slate-400">Read only</p>
+                      )}
                     </td>
                   </tr>
                 );

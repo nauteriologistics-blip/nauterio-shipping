@@ -43,9 +43,14 @@ interface ShipmentDetail {
   documents: Array<{ id: string; type: string; reviewStatus: string }>;
 }
 
+interface Profile {
+  staffRole: string | null;
+}
+
 export default function ShipmentDetailPage() {
   const params = useParams<{ id: string }>();
   const [shipment, setShipment] = useState<ShipmentDetail | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<TrackingStatusOption[]>([]);
@@ -60,8 +65,16 @@ export default function ShipmentDetailPage() {
   const [savingEvent, setSavingEvent] = useState(false);
 
   useEffect(() => {
-    apiFetch<ShipmentDetail>(`/shipments/${params.id}`)
-      .then(setShipment)
+    Promise.all([apiFetch<ShipmentDetail>(`/shipments/${params.id}`), apiFetch<Profile>("/me")])
+      .then(async ([nextShipment, nextProfile]) => {
+        setShipment(nextShipment);
+        setProfile(nextProfile);
+        if (canAddTracking(nextProfile.staffRole) || canCorrectTracking(nextProfile.staffRole)) {
+          const options = await apiFetch<TrackingStatusOption[]>(`/admin/shipments/${params.id}/tracking-events/statuses`);
+          setStatuses(options);
+          setStatusCode(options.find((option) => option.allowedForNewEvent)?.code ?? options[0]?.code ?? "");
+        }
+      })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 404) {
           setError("Shipment not found.");
@@ -74,11 +87,10 @@ export default function ShipmentDetailPage() {
       .finally(() => setLoading(false));
   }, [params.id]);
 
-  useEffect(() => {
-    apiFetch<TrackingStatusOption[]>(`/admin/shipments/${params.id}/tracking-events/statuses`)
-      .then((options) => { setStatuses(options); setStatusCode(options.find((option) => option.allowedForNewEvent)?.code ?? options[0]?.code ?? ""); })
-      .catch(() => setError("Could not load tracking status options."));
-  }, [params.id]);
+  const role = profile?.staffRole ?? null;
+  const canRecordMovement = canAddTracking(role);
+  const canCorrectMovement = canCorrectTracking(role);
+  const canManageHold = canHoldShipment(role);
 
   async function saveTrackingEvent() {
     if (!statusCode) return;
@@ -90,7 +102,7 @@ export default function ShipmentDetailPage() {
         : `/admin/shipments/${params.id}/tracking-events`;
       await apiFetch(path, {
         method: "POST",
-        headers: { "Idempotency-Key": `tracking-${correctionEventId ?? "add"}-${params.id}-${Date.now()}` },
+        headers: { "Idempotency-Key": `tracking-${correctionEventId ?? "add"}-${params.id}-${crypto.randomUUID()}` },
         body: JSON.stringify({
           canonicalCode: statusCode,
           eventTime: new Date(eventTime).toISOString(),
@@ -119,7 +131,7 @@ export default function ShipmentDetailPage() {
     const reason = hold ? window.prompt("Why is this shipment being placed on hold? This is shown to the customer.")?.trim() : undefined;
     if (hold && !reason) return;
     try {
-      const updated = await apiFetch<ShipmentDetail>(`/admin/shipments/${params.id}/${hold ? "hold" : "release-hold"}`, { method: "POST", headers: { "Idempotency-Key": `hold-${params.id}-${hold}-${Date.now()}` }, body: JSON.stringify(hold ? { reason } : {}) });
+      const updated = await apiFetch<ShipmentDetail>(`/admin/shipments/${params.id}/${hold ? "hold" : "release-hold"}`, { method: "POST", headers: { "Idempotency-Key": `hold-${params.id}-${hold}-${crypto.randomUUID()}` }, body: JSON.stringify(hold ? { reason } : {}) });
       setShipment(updated);
     } catch (cause) { setError(cause instanceof ApiError ? cause.body.message : "Could not update shipment hold."); }
   }
@@ -155,7 +167,7 @@ export default function ShipmentDetailPage() {
               </p>
             )}
             </div>
-            {!(["DELIVERED", "CANCELLED", "ARCHIVED"].includes(shipment.lifecycleStatus)) && <button onClick={() => void toggleHold()} className={`rounded-lg px-4 py-2 text-xs font-bold ${shipment.operationalHold ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{shipment.operationalHold ? "Release hold" : "Place on hold"}</button>}
+            {canManageHold && !(["DELIVERED", "CANCELLED", "ARCHIVED"].includes(shipment.lifecycleStatus)) && <button onClick={() => void toggleHold()} className={`rounded-lg px-4 py-2 text-xs font-bold ${shipment.operationalHold ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{shipment.operationalHold ? "Release hold" : "Place on hold"}</button>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -184,7 +196,7 @@ export default function ShipmentDetailPage() {
             />
           </div>
 
-          {shipment.lifecycleStatus !== "ARCHIVED" && !shipment.operationalHold && (
+          {canRecordMovement && shipment.lifecycleStatus !== "ARCHIVED" && !shipment.operationalHold && (
             <section className="rounded-xl border border-slate-200 bg-white p-5">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-sm font-bold uppercase text-[#081F3D]">{correctionEventId ? "Correct latest event" : "Record shipment movement"}</h2>
@@ -235,7 +247,7 @@ export default function ShipmentDetailPage() {
                     <span className="font-medium text-[#081F3D]">{e.publicTitleEn}</span>
                     <span className="flex items-center gap-3 text-slate-500 font-mono text-xs">
                       {new Date(e.eventTime).toLocaleString()}
-                      {index === 0 && shipment.lifecycleStatus !== "ARCHIVED" && <button onClick={() => { setCorrectionEventId(e.id); setStatusCode(e.canonicalCode); setReason(""); }} className="font-sans font-semibold text-[#0B2E5E] hover:underline">Correct</button>}
+                      {index === 0 && canCorrectMovement && shipment.lifecycleStatus !== "ARCHIVED" && <button onClick={() => { setCorrectionEventId(e.id); setStatusCode(e.canonicalCode); setReason(""); }} className="font-sans font-semibold text-[#0B2E5E] hover:underline">Correct</button>}
                     </span>
                   </li>
                 ))}
@@ -260,4 +272,16 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-base font-bold text-[#081F3D] font-mono">{value}</p>
     </div>
   );
+}
+
+function canAddTracking(role: string | null): boolean {
+  return role ? ["SUPER_ADMIN", "OPERATIONS", "WAREHOUSE", "CUSTOMS", "DRIVER"].includes(role) : false;
+}
+
+function canCorrectTracking(role: string | null): boolean {
+  return role ? ["SUPER_ADMIN", "OPERATIONS"].includes(role) : false;
+}
+
+function canHoldShipment(role: string | null): boolean {
+  return role ? ["SUPER_ADMIN", "OPERATIONS"].includes(role) : false;
 }

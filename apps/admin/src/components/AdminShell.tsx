@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare, Building2, ReceiptText } from "lucide-react";
+import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare, Building2, ReceiptText, BarChart3 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { logout } from "@/lib/auth";
 
@@ -14,18 +14,19 @@ type NavigationPermission =
   | "document:review"
   | "invoice:read"
   | "invoice:manage"
+  | "data:export"
   | "pilot:manage"
   | "support:manage";
 
 // Navigation is only a convenience filter; every API route still applies the
 // canonical server-side permission policy from @nauterio/contracts.
 const NAVIGATION_PERMISSIONS_BY_ROLE: Record<string, readonly NavigationPermission[]> = {
-  SUPER_ADMIN: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "invoice:read", "invoice:manage", "pilot:manage", "support:manage"],
-  OPERATIONS: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "invoice:read", "invoice:manage", "pilot:manage", "support:manage"],
+  SUPER_ADMIN: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "invoice:read", "invoice:manage", "data:export", "pilot:manage", "support:manage"],
+  OPERATIONS: ["shipment:create", "shipment:read", "customer_pii:view", "document:review", "invoice:read", "invoice:manage", "data:export", "pilot:manage", "support:manage"],
   WAREHOUSE: ["shipment:read", "customer_pii:view"],
   SUPPORT: ["shipment:read", "customer_pii:view", "invoice:read", "pilot:manage", "support:manage"],
   FINANCE: ["shipment:read", "customer_pii:view", "invoice:read", "invoice:manage"],
-  CUSTOMS: ["shipment:read", "customer_pii:view", "document:review"],
+  CUSTOMS: ["shipment:read", "customer_pii:view", "document:review", "data:export"],
   DRIVER: ["shipment:read"],
   AUDITOR: ["shipment:read", "invoice:read"],
 };
@@ -47,6 +48,7 @@ const NAV_ITEMS = [
   { href: "/customers", label: "Customers", icon: Users, permission: "customer_pii:view" },
   { href: "/business-inquiries", label: "Business Inquiries", icon: Building2, permission: "support:manage" },
   { href: "/support", label: "Support", icon: MessagesSquare, permission: "support:manage" },
+  { href: "/reports", label: "Reports", icon: BarChart3, permission: "data:export" },
   { href: "/pilot", label: "Pilot Control", icon: Activity, permission: "pilot:manage" },
 ] as const satisfies ReadonlyArray<{ href: string; label: string; icon: typeof LayoutDashboard; permission: NavigationPermission }>;
 
