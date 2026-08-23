@@ -69,6 +69,7 @@ export default function ShipmentDetailPage() {
       .then(async ([nextShipment, nextProfile]) => {
         setShipment(nextShipment);
         setProfile(nextProfile);
+        setEventTime(toNextTrackingDateTime(nextShipment.trackingEvents));
         if (canAddTracking(nextProfile.staffRole) || canCorrectTracking(nextProfile.staffRole)) {
           const options = await apiFetch<TrackingStatusOption[]>(`/admin/shipments/${params.id}/tracking-events/statuses`);
           setStatuses(options);
@@ -117,7 +118,7 @@ export default function ShipmentDetailPage() {
       setShipment(refreshed);
       setCorrectionEventId(null);
       setDescription(""); setReason(""); setEvidenceDocumentId("");
-      setEventTime(toLocalDateTime(new Date()));
+      setEventTime(toNextTrackingDateTime(refreshed.trackingEvents));
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.body.message : "Could not save tracking event.");
     } finally {
@@ -209,7 +210,7 @@ export default function ShipmentDetailPage() {
                   </select>
                 </label>
                 <label className="text-xs font-semibold text-slate-600">Event time
-                  <input type="datetime-local" value={eventTime} onChange={(event) => setEventTime(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  <input type="datetime-local" step="1" value={eventTime} onChange={(event) => setEventTime(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                 </label>
                 <label className="text-xs font-semibold text-slate-600">City
                   <input value={city} onChange={(event) => setCity(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
@@ -262,7 +263,16 @@ export default function ShipmentDetailPage() {
 
 function toLocalDateTime(date: Date): string {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
+  return local.toISOString().slice(0, 19);
+}
+
+function toNextTrackingDateTime(events: TrackingEvent[]): string {
+  const latestEventTime = events.reduce(
+    (latest, event) => Math.max(latest, new Date(event.eventTime).getTime()),
+    Number.NEGATIVE_INFINITY
+  );
+  const earliestNextEventTime = Number.isFinite(latestEventTime) ? latestEventTime + 1_000 : Date.now();
+  return toLocalDateTime(new Date(Math.max(Date.now(), earliestNextEventTime)));
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

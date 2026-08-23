@@ -34,8 +34,6 @@ export const notificationsEmailHandler: QueueHandler = async (message, tx) => {
   // happened" rather than "already know who to notify and how."
   const resolved = await resolveNotification(message, tx);
   if (!resolved) {
-    const trackingEventId = (message.payload as { trackingEventId?: string }).trackingEventId;
-    if (trackingEventId) await tx.trackingEvent.updateMany({ where: { id: trackingEventId }, data: { notificationState: "SUPPRESSED" } });
     return; // legitimately nothing to notify (e.g. no individual owner on an organisation shipment)
   }
 
@@ -76,13 +74,11 @@ export const notificationsEmailHandler: QueueHandler = async (message, tx) => {
       status: "SENT",
     },
   });
-  const trackingEventId = (message.payload as { trackingEventId?: string }).trackingEventId;
-  if (trackingEventId) {
-    await tx.trackingEvent.updateMany({
-      where: { id: trackingEventId },
-      data: { notificationState: "SENT" },
-    });
-  }
+
+  // Tracking events are immutable audit records. Their notificationState is
+  // the producer-time eligibility snapshot; actual delivery outcomes live in
+  // Notification and DeliveryAttempt. Updating the event here would violate
+  // the database's append-only tracking guard and roll back this transaction.
 };
 
 async function resolveNotification(
