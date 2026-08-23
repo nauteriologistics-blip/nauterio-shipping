@@ -36,7 +36,7 @@
   },
   "Register": {
     "title": "Create your account",
-    "subtitle": "Set up a Customer Portal account to manage bookings, track shipments and view documents.",
+    "subtitle": "Create a Customer Portal account to manage bookings, track shipments and view documents. During controlled onboarding, some email addresses may need an invitation from Nauterio operations.",
     "fullNameLabel": "Full name",
     "emailLabel": "Email address",
     "phoneLabel": "Phone",
@@ -49,8 +49,8 @@
     "termsLink": "Terms of Service",
     "termsAnd": "and",
     "privacyLink": "Privacy Policy",
-    "submitButton": "Create account",
-    "submitting": "Creating account...",
+    "submitButton": "Request account",
+    "submitting": "Requesting account...",
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in",
     "mustAcceptTerms": "You must accept the Terms of Service to create an account.",
@@ -307,7 +307,7 @@
     "enterpriseFeature1": "Account model to be confirmed",
     "enterpriseFeature2": "Integration discovery",
     "enterpriseFeature3": "Operational acceptance planning",
-    "tiersDisclaimer": "Volume discounts are agreed per account once contract rates are approved — figures above are placeholders, not published rate cards.",
+    "tiersDisclaimer": "Volume discounts are agreed per account once contract rates are approved. The tiers above describe account profiles, not published rate cards.",
     "whyChooseHeading": "Why choose Nauterio for Business?",
     "whyChooseSubheading": "A practical workspace for reviewed shipments, partner delivery coordination and customer visibility.",
     "corridorTitle": "Partner-Coordinated Delivery",
@@ -382,7 +382,7 @@
     "corridorLabel": "One corridor. Clearer shipping.",
     "heroTitle": "Italy to the United States, without the logistics guesswork.",
     "heroSubtitle": "Plan shipments in one place, with partner-coordinated collection and delivery, milestone visibility and a clear handoff at every stage.",
-    "getInstantQuote": "Create an Account",
+    "getInstantQuote": "Request Access",
     "trackShipmentButton": "Track Shipment",
     "quickTrackLabel": "Quick Track",
     "quickTrackPlaceholder": "Enter tracking number (e.g. NT-123456-US)",
@@ -471,7 +471,7 @@
     ],
     "ctaHeading": "Planning an Italy–USA shipment?",
     "ctaSubtitle": "Build an indicative estimate now. We will label what is confirmed and what still requires operational review.",
-    "ctaButton": "Create Your Account"
+    "ctaButton": "Request Access"
   },
   "Footer": {
     "brandDescription": "A dedicated shipping platform for the Italy–United States corridor: air, ocean, and parcel freight with customs guidance and tracking in one place.",
