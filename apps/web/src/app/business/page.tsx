@@ -6,19 +6,31 @@ import { Check, Truck, Headset, Shield, FileCheck, ArrowRight, CheckCircle2 } fr
 
 export default function BusinessPage() {
   const t = useTranslations("BusinessPage");
-  const [copied, setCopied] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setSubmitting(true);
+    setError(null);
     const form = new FormData(e.currentTarget);
-    const inquiry = [
-      `Company: ${String(form.get("companyName") ?? "")}`,
-      `Monthly volume: ${String(form.get("monthlyVolume") ?? "")}`,
-      `Work email: ${String(form.get("workEmail") ?? "")}`,
-      `Requirements: ${String(form.get("message") ?? "")}`,
-    ].join("\n");
-    await navigator.clipboard.writeText(inquiry);
-    setCopied(true);
+    const response = await fetch("/api/v1/business-inquiries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyName: String(form.get("companyName") ?? ""),
+        monthlyVolume: String(form.get("monthlyVolume") ?? ""),
+        workEmail: String(form.get("workEmail") ?? ""),
+        message: String(form.get("message") ?? ""),
+      }),
+    }).catch(() => null);
+    setSubmitting(false);
+    if (!response?.ok) {
+      setError(t("requestError"));
+      return;
+    }
+    setSubmitted(true);
   };
 
   return (
@@ -143,7 +155,7 @@ export default function BusinessPage() {
       {/* Contact Form */}
       <section id="contact" className="py-24 px-4 max-w-4xl mx-auto scroll-mt-24">
         <div className="bg-[#081F3D] rounded-3xl p-10 md:p-16 shadow-xl text-white">
-          {copied ? (
+          {submitted ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-8 h-8 text-emerald-400" aria-hidden="true" />
@@ -184,8 +196,9 @@ export default function BusinessPage() {
                   <label htmlFor="message" className="block text-sm font-semibold text-white/90 mb-2">{t("messageLabel")}</label>
                   <textarea id="message" name="message" rows={4} className="w-full px-4 py-4 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#F28C18] text-white placeholder-white/40" placeholder={t("messagePlaceholder")}></textarea>
                 </div>
-                <button type="submit" className="w-full py-4 rounded-xl bg-[#F28C18] hover:bg-[#F28C18]/90 text-white font-bold text-lg flex items-center justify-center gap-2 transition-colors">
-                  {t("submitRequest")} <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                {error && <p role="alert" className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">{error}</p>}
+                <button type="submit" disabled={submitting} className="w-full py-4 rounded-xl bg-[#F28C18] hover:bg-[#F28C18]/90 text-white font-bold text-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-60">
+                  {submitting ? t("submitting") : t("submitRequest")} {!submitting && <ArrowRight className="w-5 h-5" aria-hidden="true" />}
                 </button>
               </form>
             </>

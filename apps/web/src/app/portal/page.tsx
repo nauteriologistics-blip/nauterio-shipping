@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { AlertTriangle, ArrowRight, Package, Plus, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, FileText, Package, Plus, ShieldCheck } from "lucide-react";
 import { getPortalDashboardData, type ShipmentSummary } from "@/lib/portal-data.server";
 import { formatDateRange } from "./format";
-import { PayInvoiceButton } from "./PayInvoiceButton";
 
 const SERVICE_NAMES: Record<string, string> = {
   "air-express": "Air Express",
@@ -18,6 +17,10 @@ function routeLabel(shipment: ShipmentSummary): string {
   return `${origin} → ${destination}`;
 }
 
+function formatMoney(amountMinorUnits: string | number, currency: string): string {
+  return new Intl.NumberFormat("en", { style: "currency", currency }).format(Number(amountMinorUnits) / 100);
+}
+
 export default async function CustomerPortal() {
   const [data, t] = await Promise.all([getPortalDashboardData(), getTranslations("Portal")]);
   if (!data) redirect("/signin?sessionExpired=1");
@@ -26,7 +29,6 @@ export default async function CustomerPortal() {
     (shipment) => shipment.lifecycleStatus === "ACTIVE" || shipment.lifecycleStatus === "ACTION_REQUIRED",
   );
   const actionRequired = activeShipments.filter((shipment) => shipment.lifecycleStatus === "ACTION_REQUIRED");
-  const unpaidInvoices = data.invoices.filter((invoice) => invoice.status === "ISSUED" || invoice.status === "PARTIALLY_PAID");
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
@@ -99,15 +101,45 @@ export default async function CustomerPortal() {
         )}
       </section>
 
-      {unpaidInvoices.length > 0 && <section aria-labelledby="payment-heading">
-        <h2 id="payment-heading" className="mb-3 text-sm font-extrabold uppercase tracking-wide text-[#081F3D]">Payment required</h2>
-        <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-amber-300 bg-white shadow-sm">
-          {unpaidInvoices.map((invoice) => <div key={invoice.id} className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
-            <div><p className="font-bold text-[#081F3D]">Invoice {invoice.invoiceNumber}</p><p className="mt-1 text-xs text-slate-500">Pay this invoice to receive your tracking number.</p><p className="mt-2 text-lg font-black text-[#081F3D]">{new Intl.NumberFormat("en", { style: "currency", currency: invoice.currency }).format(Number(invoice.totalAmountMinorUnits) / 100)}</p></div>
-            <PayInvoiceButton invoiceId={invoice.id} />
-          </div>)}
-        </div>
-      </section>}
+      <section aria-labelledby="invoices-heading">
+        <h2 id="invoices-heading" className="text-sm font-extrabold text-[#081F3D] uppercase tracking-wide mb-3 flex items-center gap-2">
+          <FileText className="w-4 h-4" /> Invoices
+        </h2>
+        {data.invoices.length === 0 ? (
+          <EmptyState message="No invoices are available yet." />
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">
+            {data.invoices.map((invoice) => (
+              <div key={invoice.id} className="p-5">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-mono text-sm font-black text-[#081F3D]">{invoice.invoiceNumber}</p>
+                      <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-extrabold text-blue-800">
+                        {invoice.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Review invoice details here. Payment is handled by Nauterio operations outside the website.
+                    </p>
+                  </div>
+                  <p className="text-lg font-black text-[#081F3D]">{formatMoney(invoice.totalAmountMinorUnits, invoice.currency)}</p>
+                </div>
+                {invoice.lines.length > 0 && (
+                  <ul className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-xs text-slate-600">
+                    {invoice.lines.map((line) => (
+                      <li key={line.id} className="flex justify-between gap-4">
+                        <span>{line.description}</span>
+                        <span className="font-bold text-[#081F3D]">{formatMoney(line.amountMinorUnits, line.currency)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section aria-labelledby="shipment-requests-heading">
         <h2 id="shipment-requests-heading" className="text-sm font-extrabold text-[#081F3D] uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -124,7 +156,7 @@ export default async function CustomerPortal() {
                   <p className="mt-1 text-xs text-slate-500">{request.draftDataJson.serviceId?.replace(/_/g, " ") ?? "Service pending"}</p>
                   {request.decisionReason && <p className="mt-2 text-xs text-red-700">{request.decisionReason}</p>}
                 </div>
-                <span className={`self-start rounded-full px-3 py-1 text-[10px] font-extrabold ${request.requestStatus === "REJECTED" ? "bg-red-100 text-red-800" : request.requestStatus === "PAID" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                <span className={`self-start rounded-full px-3 py-1 text-[10px] font-extrabold ${request.requestStatus === "REJECTED" ? "bg-red-100 text-red-800" : request.requestStatus === "CONVERTED" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                   {request.requestStatus.replace(/_/g, " ")}
                 </span>
               </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare } from "lucide-react";
+import { LayoutDashboard, Package, ClipboardList, Users, LogOut, FileCheck, Activity, MessagesSquare, Building2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { logout } from "@/lib/auth";
 
@@ -42,6 +42,7 @@ const NAV_ITEMS = [
   { href: "/shipments", label: "Shipments", icon: Package, permission: "shipment:read" },
   { href: "/documents", label: "Document Review", icon: FileCheck, permission: "document:review" },
   { href: "/customers", label: "Customers", icon: Users, permission: "customer_pii:view" },
+  { href: "/business-inquiries", label: "Business Inquiries", icon: Building2, permission: "support:manage" },
   { href: "/support", label: "Support", icon: MessagesSquare, permission: "support:manage" },
   { href: "/pilot", label: "Pilot Control", icon: Activity, permission: "pilot:manage" },
 ] as const satisfies ReadonlyArray<{ href: string; label: string; icon: typeof LayoutDashboard; permission: NavigationPermission }>;

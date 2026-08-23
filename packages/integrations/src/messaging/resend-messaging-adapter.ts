@@ -22,5 +22,17 @@ function renderTemplate(code: string, variables: Record<string, string>): { subj
   if (code === "staff_signin_link") { const url = escapeHtml(variables.signInUrl ?? ""); return { subject: "Sign in to Nauterio Admin", html: `<p><a href="${url}">Sign in to Nauterio Admin</a></p><p>This single-use link expires in 15 minutes. If you did not request it, you can ignore this email.</p>` }; }
   if (code === "shipment_created") return { subject: `Shipment ${tracking} approved`, html: `<p>Your shipment <strong>${tracking}</strong> has been approved.</p>` };
   if (code === "shipment_status_updated") return { subject: `${tracking}: shipment update`, html: `<p>Your shipment <strong>${tracking}</strong> is now ${escapeHtml((variables.status ?? "updated").replace(/_/g, " "))}.</p>` };
+  if (code === "business_inquiry_created") {
+    return {
+      subject: `Business inquiry: ${escapeHtml(variables.companyName ?? "New lead")}`,
+      html: [
+        "<p>A new Nauterio business inquiry was submitted.</p>",
+        `<p><strong>Company:</strong> ${escapeHtml(variables.companyName ?? "")}</p>`,
+        `<p><strong>Email:</strong> ${escapeHtml(variables.workEmail ?? "")}</p>`,
+        `<p><strong>Monthly volume:</strong> ${escapeHtml(variables.monthlyVolume ?? "")}</p>`,
+        `<p><strong>Requirements:</strong><br>${escapeHtml(variables.message ?? "").replace(/\n/g, "<br>")}</p>`,
+      ].join(""),
+    };
+  }
   throw new Error(`Unknown email template: ${code}`);
 }

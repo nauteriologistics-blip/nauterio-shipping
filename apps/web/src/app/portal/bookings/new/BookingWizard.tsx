@@ -465,7 +465,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             <Check className="w-10 h-10 text-green-600" />
           </div>
           <h2 className="text-2xl font-black text-[#081F3D]">Request Submitted</h2>
-          <p className="text-slate-600 text-sm">Your request is awaiting operations review. After approval, you will receive an invoice. Your tracking number will be issued only after payment is confirmed.</p>
+          <p className="text-slate-600 text-sm">Your request is awaiting operations review. After approval, your invoice and tracking number will appear in your dashboard. Payment is not collected through the website.</p>
           <div className="flex justify-center gap-4 pt-4">
             <button
               onClick={() => router.push("/portal")}

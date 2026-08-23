@@ -97,6 +97,7 @@ model User {
   supportConversations     SupportConversation[] @relation("SupportConversationCustomer")
   supportConversationsAssigned SupportConversation[] @relation("SupportConversationAssignee")
   supportMessagesAuthored  SupportMessage[]      @relation("SupportMessageAuthor")
+  businessInquiriesReviewed BusinessInquiry[]     @relation("BusinessInquiryReviewer")
 
   @@index([status])
   @@map("users")
@@ -1349,6 +1350,30 @@ model ContentPage {
   policyVersions PolicyVersion[]
 
   @@map("content_pages")
+}
+
+// ---------------------------------------------------------------------------
+// Business inquiries
+// ---------------------------------------------------------------------------
+
+model BusinessInquiry {
+  id            String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  companyName   String    @map("company_name")
+  monthlyVolume String    @map("monthly_volume")
+  workEmail     String    @map("work_email")
+  message       String?
+  status        String    @default("OPEN") // OPEN | CONTACTED | CLOSED
+  reviewedById  String?   @map("reviewed_by_id") @db.Uuid
+  reviewedBy    User?     @relation("BusinessInquiryReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt    DateTime? @map("reviewed_at")
+  sourcePage    String    @default("/business") @map("source_page")
+  userAgentHash String?   @map("user_agent_hash")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([workEmail])
+  @@map("business_inquiries")
 }
 
 model PolicyVersion {

@@ -1,0 +1,9 @@
+name = "nauterio-render-keepalive"
+main = "src/index.ts"
+compatibility_date = "2026-08-23"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+BACKEND_HEALTHZ_URL = "https://nauterio-shipping.onrender.com/v1/healthz"

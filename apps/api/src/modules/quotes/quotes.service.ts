@@ -23,7 +23,13 @@ import { AuditService } from "../audit/audit.module";
  * `3610.4999999999995`). Doing the arithmetic in minor units from the
  * start makes that class of error structurally impossible.
  */
-const INDICATIVE_RATES: Record<string, { flatMinorUnits: number; perKgMinorUnits: number }> = {
+interface FreightRate {
+  flatMinorUnits: number;
+  perKgMinorUnits: number;
+  minimumChargeMinorUnits?: number;
+}
+
+const INDICATIVE_RATES: Record<string, FreightRate> = {
   "air-express": { flatMinorUnits: 3500, perKgMinorUnits: 650 },
   "air-economy": { flatMinorUnits: 2200, perKgMinorUnits: 480 },
   "ocean-freight": { flatMinorUnits: 12000, perKgMinorUnits: 120 },
@@ -56,11 +62,17 @@ export class QuotesService {
     // with no float-representation risk - this is the one, deliberate
     // boundary conversion from float kg to integer arithmetic.
     const chargeableWeightHundredthsKg = BigInt(Math.round(weights.chargeableWeightKg * 100));
-    const rate = INDICATIVE_RATES[dto.service];
+    const prisma = getPrismaClient();
+    const serviceId = mapServiceId(dto.service);
+    const approvedRate = await findApprovedRateRule(serviceId, weights.chargeableWeightKg);
+    const rate = approvedRate ?? INDICATIVE_RATES[dto.service];
 
-    const baseRateMinorUnits =
+    const calculatedBaseRateMinorUnits =
       BigInt(rate.flatMinorUnits) +
       divRound(chargeableWeightHundredthsKg * BigInt(rate.perKgMinorUnits), 100n);
+    const baseRateMinorUnits = rate.minimumChargeMinorUnits !== undefined
+      ? bigintMax(BigInt(rate.minimumChargeMinorUnits), calculatedBaseRateMinorUnits)
+      : calculatedBaseRateMinorUnits;
 
     const customsFeeMinorUnits = dto.addCustoms ? BigInt(INDICATIVE_CUSTOMS_FEE_MINOR_UNITS) : 0n;
     const pickupFeeMinorUnits = dto.addPickup ? BigInt(INDICATIVE_PICKUP_FEE_MINOR_UNITS) : 0n;
@@ -90,9 +102,10 @@ export class QuotesService {
       insuranceFeeEur: minorToEur(insuranceFeeMinorUnits),
       totalPriceEur: minorToEur(totalMinorUnits),
       isDeMinimisEligible: declaredValueMinorUnits <= DE_MINIMIS_THRESHOLD_MINOR_UNITS,
-      isIndicative: true,
-      disclaimer:
-        "This price is an illustrative estimate, not an approved rate card. Final pricing requires confirmed carrier contracts and rate approval.",
+      isIndicative: !approvedRate,
+      disclaimer: approvedRate
+        ? "This estimate uses the current approved Nauterio rate card. Final operational acceptance is confirmed when the request is reviewed."
+        : "This price is an illustrative estimate, not an approved rate card. Final pricing requires confirmed carrier contracts and rate approval.",
     };
 
     // Persist the quote snapshot (spec section 15.1: "Accepted quotes
@@ -100,11 +113,10 @@ export class QuotesService {
     // unaccepted quotes so abandonment/conversion can be measured later.
     // total = sum(lines) by construction, not by coincidence (DATA-010) -
     // every line and the total are written from the same BigInt values.
-    const prisma = getPrismaClient();
     const quoteId = await prisma.$transaction(async (tx) => {
       const created = await tx.quote.create({
         data: {
-          serviceId: mapServiceId(dto.service),
+          serviceId,
           status: "DRAFT",
           // CreateQuoteDto is a class instance (not a plain object literal),
           // so it lacks the index signature Prisma's InputJsonValue requires
@@ -119,7 +131,7 @@ export class QuotesService {
           actualWeightKg: resultWithoutId.actualWeightKg,
           volumetricWeightKg: resultWithoutId.volumetricWeightKg,
           chargeableWeightKg: resultWithoutId.chargeableWeightKg,
-          isIndicative: true,
+          isIndicative: !approvedRate,
           totalAmountMinorUnits: totalMinorUnits,
           currency: "EUR",
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days, matches draft T&Cs copy
@@ -160,6 +172,37 @@ export class QuotesService {
 
     return { quoteId, ...resultWithoutId };
   }
+}
+
+async function findApprovedRateRule(
+  serviceId: "AIR_EXPRESS" | "AIR_ECONOMY" | "OCEAN_FREIGHT",
+  chargeableWeightKg: number
+): Promise<FreightRate | null> {
+  const prisma = getPrismaClient();
+  const now = new Date();
+  const card = await prisma.rateCard.findFirst({
+    where: {
+      serviceId,
+      approved: true,
+      effectiveFrom: { lte: now },
+      OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+    },
+    include: { rules: true },
+    orderBy: [{ effectiveFrom: "desc" }, { version: "desc" }],
+  });
+  const rule = card?.rules
+    .sort((a, b) => a.minWeightKg - b.minWeightKg)
+    .find((candidate) => chargeableWeightKg >= candidate.minWeightKg && (candidate.maxWeightKg == null || chargeableWeightKg <= candidate.maxWeightKg));
+  if (!rule) return null;
+  return {
+    flatMinorUnits: Number(rule.flatFeeAmountMinorUnits),
+    perKgMinorUnits: Number(rule.perKgAmountMinorUnits),
+    minimumChargeMinorUnits: Number(rule.minimumChargeAmountMinorUnits),
+  };
+}
+
+function bigintMax(left: bigint, right: bigint): bigint {
+  return left > right ? left : right;
 }
 
 /** Round-half-up integer division - `(a + b/2) / b` with BigInt's

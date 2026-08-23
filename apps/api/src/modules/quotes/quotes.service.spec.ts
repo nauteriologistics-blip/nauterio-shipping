@@ -19,15 +19,22 @@ interface MockQuoteCreateArgs {
   data: { isIndicative: boolean; currency: string };
 }
 
+interface MockRateCardFindFirstArgs {
+  where: { serviceId?: string; approved?: boolean };
+}
+
 describe("QuotesService", () => {
   let service: QuotesService;
   let mockQuoteCreate: jest.Mock<Promise<{ id: string }>, [MockQuoteCreateArgs]>;
+  let mockRateCardFindFirst: jest.Mock<Promise<null>, [MockRateCardFindFirstArgs]>;
 
   beforeEach(async () => {
     mockQuoteCreate = jest.fn<Promise<{ id: string }>, [MockQuoteCreateArgs]>().mockResolvedValue({ id: "quote-1" });
+    mockRateCardFindFirst = jest.fn<Promise<null>, [MockRateCardFindFirstArgs]>().mockResolvedValue(null);
     const mockAuditEventCreate = jest.fn().mockResolvedValue({});
     const mockTx = { quote: { create: mockQuoteCreate }, auditEvent: { create: mockAuditEventCreate } };
     (databaseModule.getPrismaClient as jest.Mock).mockReturnValue({
+      rateCard: { findFirst: mockRateCardFindFirst },
       quote: { create: mockQuoteCreate },
       $transaction: jest.fn((callback: (tx: typeof mockTx) => unknown) => callback(mockTx)),
     });
@@ -87,6 +94,12 @@ describe("QuotesService", () => {
     const createArgs = mockQuoteCreate.mock.calls[0][0];
     expect(createArgs.data.isIndicative).toBe(true);
     expect(createArgs.data.currency).toBe("EUR");
+  });
+
+  it("checks approved rate cards before falling back to indicative pricing", async () => {
+    await service.calculate(baseDto);
+    const findArgs = mockRateCardFindFirst.mock.calls[0][0];
+    expect(findArgs.where).toEqual(expect.objectContaining({ serviceId: "AIR_EXPRESS", approved: true }));
   });
 
   it("uses volumetric weight when it exceeds actual weight", async () => {

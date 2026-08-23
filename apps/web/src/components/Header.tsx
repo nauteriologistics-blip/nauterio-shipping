@@ -22,7 +22,6 @@ export default function Header() {
     { label: t("navServices"), href: "/services" },
     { label: t("navQuote"), href: "/quote" },
     { label: t("navTrack"), href: "/tracking" },
-    { label: t("navCustoms"), href: "/customs" },
     { label: t("navBusiness"), href: "/business" },
     { label: t("navContact"), href: "/business#contact" },
   ];

@@ -1,5 +1,4 @@
-import { BadRequestException, Controller, Get, Headers, Post, Body, Param, ParseUUIDPipe, Query, RawBodyRequest, Req, UseGuards } from "@nestjs/common";
-import type { Request } from "express";
+import { Controller, Get, Post, Body, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
@@ -8,7 +7,6 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 import { BillingService } from "./billing.service";
 import { CreateInvoiceDto, PayInvoiceDto } from "./dto/create-invoice.dto";
-import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
 
 @ApiTags("billing")
@@ -50,7 +48,7 @@ export class BillingController {
   @Post(":id/pay")
   @RequirePermission("invoice:read")
   @RequireIdempotencyKey()
-  @ApiOperation({ summary: "Initiate payment for an invoice" })
+  @ApiOperation({ summary: "Disabled: online payment is not collected through Nauterio" })
   async payInvoice(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: PayInvoiceDto,
@@ -61,17 +59,5 @@ export class BillingController {
       userId: user.userId,
       organisationId: user.organisationId,
     });
-  }
-}
-
-@ApiTags("billing-webhooks")
-@Controller("webhooks/stripe")
-export class StripeWebhookController {
-  constructor(private readonly service: BillingService) {}
-
-  @Post()
-  async receive(@Req() req: RawBodyRequest<Request>, @Headers("stripe-signature") signature: string | undefined, @CorrelationId() correlationId: string) {
-    if (!signature || !req.rawBody) throw new BadRequestException("Missing Stripe signature or raw body");
-    return this.service.processStripeWebhook(req.rawBody.toString("utf8"), signature, correlationId);
   }
 }

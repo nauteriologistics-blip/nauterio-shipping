@@ -286,7 +286,7 @@
   "BusinessPage": {
     "badge": "B2B SOLUTIONS",
     "heroTitle": "Business Shipping Solutions",
-    "heroSubtitle": "A preview of the tools Nauterio is designing for businesses shipping regularly on the Italy-USA corridor.",
+    "heroSubtitle": "Tell us what you need to move. Nauterio coordinates with delivery partners and confirms collection and delivery coverage during review.",
     "starterTitle": "Starter",
     "starterVolume": "Up to 50 shipments/month",
     "volumeRatesApply": "Planned account profile",
@@ -309,17 +309,17 @@
     "enterpriseFeature3": "Operational acceptance planning",
     "tiersDisclaimer": "Volume discounts are agreed per account once contract rates are approved — figures above are placeholders, not published rate cards.",
     "whyChooseHeading": "Why choose Nauterio for Business?",
-    "whyChooseSubheading": "Purpose-built tools for the Italy-USA corridor, not a generic global platform.",
-    "corridorTitle": "Corridor Specialists",
-    "corridorBody": "We focus exclusively on Italy-USA freight rather than spreading across every global lane, so booking and customs data entry are built around this specific route.",
+    "whyChooseSubheading": "A practical workspace for reviewed shipments, partner delivery coordination and customer visibility.",
+    "corridorTitle": "Partner-Coordinated Delivery",
+    "corridorBody": "We work with delivery partners to coordinate collection and delivery, with coverage and timing confirmed before a shipment is accepted.",
     "riskTitle": "Risk Management",
     "riskBody": "Optional cargo protection will be available once insurance terms are finalised with a partner.",
     "customsDataTitle": "Guided Customs Data",
     "customsDataBody": "Commercial invoice and HS code guidance is built into the booking flow to help you prepare accurate CBP filings.",
     "supportTitle": "Support Context",
     "supportBody": "The planned account workspace keeps shipment, document and exception context together; response commitments will be published only after staffing is confirmed.",
-    "requestReceivedTitle": "Inquiry copied",
-    "requestReceivedBody": "Nothing was transmitted. Your inquiry is on your clipboard, ready to send once Nauterio publishes its verified business contact channel.",
+    "requestReceivedTitle": "Inquiry received",
+    "requestReceivedBody": "Thanks — your request has been saved for Nauterio operations to review and follow up.",
     "contactHeading": "Let's talk about your volume",
     "contactSubheading": "Tell us about your shipping needs so we can follow up when business accounts open.",
     "companyNameLabel": "Company Name",
@@ -332,7 +332,9 @@
     "workEmailLabel": "Work Email",
     "messageLabel": "Message",
     "messagePlaceholder": "Tell us about your current challenges...",
-    "submitRequest": "Copy Inquiry"
+    "submitRequest": "Submit Inquiry",
+    "submitting": "Submitting...",
+    "requestError": "We could not submit your inquiry right now. Please try again shortly."
   },
   "DriverPage": {
     "headerTitle": "Driver Courier PWA",
@@ -381,7 +383,7 @@
     "previewMessage": "Nauterio is currently validating its Italy–USA service before accepting live shipments.",
     "corridorLabel": "One corridor. Clearer shipping.",
     "heroTitle": "Italy to the United States, without the logistics guesswork.",
-    "heroSubtitle": "Plan air and ocean shipments in one place, with guided customs information, milestone visibility and a clear handoff at every stage.",
+    "heroSubtitle": "Plan shipments in one place, with partner-coordinated collection and delivery, milestone visibility and a clear handoff at every stage.",
     "getInstantQuote": "Create an Account",
     "trackShipmentButton": "Track Shipment",
     "quickTrackLabel": "Quick Track",
@@ -398,7 +400,7 @@
     "exampleLabel": "Example",
     "trustBar": [
       { "title": "Support Built In", "desc": "Ticketed support through the portal" },
-      { "title": "Guided Customs Filing", "desc": "Commercial invoice built into booking" },
+      { "title": "Delivery Partners", "desc": "Collection and delivery coverage confirmed during review" },
       { "title": "Milestone Tracking", "desc": "Updates from pickup to delivery" },
       { "title": "Pre-launch Transparency", "desc": "Unconfirmed services are labelled clearly" }
     ],
@@ -407,9 +409,9 @@
     "readinessBody": "Trust starts with knowing the difference between a working platform capability and a commercial service that still needs a signed partner agreement.",
     "readinessItems": [
       { "title": "Indicative estimates", "desc": "Compare air and ocean options using package and route details.", "status": "available" },
-      { "title": "Customs preparation", "desc": "Review required commercial data and restricted-goods guidance.", "status": "available" },
+      { "title": "Partner delivery coordination", "desc": "We work with delivery partners to coordinate collection and delivery where coverage is available.", "status": "available" },
       { "title": "Live carrier execution", "desc": "Carrier accounts, collection commitments and final schedules require confirmation.", "status": "pending" },
-      { "title": "Payment and protection", "desc": "Production payment, insurance and claims terms are not yet active.", "status": "pending" }
+      { "title": "Approved rate cards", "desc": "The platform can use approved rate cards once real business rates are loaded.", "status": "pending" }
     ],
     "servicesHeading": "Our Shipping Services",
     "servicesSubheading": "Tailored logistics solutions for the Italy-USA trade lane, balancing speed and cost efficiency.",
@@ -436,7 +438,7 @@
     "proofBusinessTitle": "Business shipping",
     "proofBusinessDesc": "Plan repeat movements and discuss account requirements.",
     "routeHeading": "Built around one demanding corridor",
-    "routeParagraph": "Nauterio is being designed specifically for shipments between Italy and the United States. That focus keeps service selection, customs preparation and tracking centred on the real decisions this route requires—without pretending that unconfirmed carrier, broker or insurance arrangements are already live.",
+    "routeParagraph": "Nauterio coordinates shipments through reviewed service requests and delivery partners. Coverage, timing and final acceptance are confirmed during operations review instead of being promised blindly.",
     "routeFeature1Title": "Guided Customs Filing",
     "routeFeature1Desc": "Commercial invoice built into booking",
     "routeFeature2Title": "Milestone Tracking",
@@ -458,7 +460,7 @@
       },
       {
         "question": "Are my shipments insured?",
-        "answer": "Optional shipment protection will be offered at checkout once insurance terms are finalised with a partner. It is not yet available on this preview site."
+        "answer": "Online payment and checkout-based insurance are not part of the current operating model. Any required commercial settlement or protection terms are handled directly by Nauterio operations."
       },
       {
         "question": "Can I track my shipment in real-time?",
@@ -466,7 +468,7 @@
       },
       {
         "question": "What types of goods can you ship?",
-        "answer": "We're focused on commercial and personal goods on the Italy-USA lane. See the Customs page for prohibited and restricted item categories before booking."
+        "answer": "We support commercial and personal goods subject to operational review, partner coverage and legal restrictions. If a destination or item needs special handling, operations will confirm before accepting the shipment."
       }
     ],
     "ctaHeading": "Planning an Italy–USA shipment?",

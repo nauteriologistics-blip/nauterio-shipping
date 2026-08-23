@@ -1,5 +1,6 @@
 const targets = [
   ["API liveness", process.env.NAUTERIO_API_URL, "/v1/health", 200],
+  ["API no-index keepalive healthz", process.env.NAUTERIO_API_URL, "/v1/healthz", 204],
   ["API readiness", process.env.NAUTERIO_API_URL, "/v1/health/ready", 200],
   ["Customer website", process.env.NAUTERIO_WEB_URL, "/", 200],
   ["Customer sign-in", process.env.NAUTERIO_WEB_URL, "/signin", 200],

@@ -3,7 +3,7 @@
 ## Delivered
 
 - Customer registration writes an email-verification event to the transactional outbox in the same transaction as the user and token.
-- The worker routes verification, shipment approval, and tracking update messages through a real Resend HTTP adapter.
+- The worker routes verification, shipment approval, tracking update, and business-inquiry messages through a real Resend HTTP adapter.
 - Provider failures fail the queue message, preserving the existing retry and failed-event handling instead of recording false success.
 - Resend requests use the outbox message ID as their idempotency key.
 - Production processes refuse to start with the local mock email provider.
@@ -15,7 +15,7 @@
 ### Resend
 
 1. Verify the sending domain in Resend.
-2. Set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, and `EMAIL_FROM` on both Render services.
+2. Set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`, and optionally `BUSINESS_INQUIRY_TO_EMAIL` on the Render service.
 3. `EMAIL_FROM` must use the verified domain.
 
 ### Cognito
@@ -26,6 +26,8 @@
 4. Set `COGNITO_USER_POOL_ID` on the API Render service.
 5. Each Cognito staff user's `sub` must match an active Nauterio `users.cognito_sub` record with a non-null `staff_role`.
 
-## Remaining launch blocker
+## Current launch note
 
-Secure customer document upload/download remains intentionally closed until private object storage, signed URL generation, size/type enforcement, and malware scanning are implemented together. Metadata listing is already available; allowing uploads without quarantine and scanning would create a security gap.
+Secure customer document upload/download is implemented as a fail-closed flow: private object storage, signed URL generation, size/type enforcement, scanner dispatch, scanner callback, staff review, and clean-file download must all be configured before files become usable. If `MALWARE_SCANNER_URL` and `MALWARE_SCANNER_TOKEN` are not set, uploads remain blocked rather than accepting unscanned documents.
+
+Stripe/customer checkout is no longer part of the current operating model. Staff approval creates an invoice for customer review plus the shipment and tracking number; any commercial settlement is handled offline by operations.

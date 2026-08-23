@@ -58,7 +58,7 @@ export default function ShipmentRequestsPage() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[#081F3D]">Shipment requests</h1>
-          <p className="mt-1 text-sm text-slate-500">Review customer details before issuing the payable invoice.</p>
+          <p className="mt-1 text-sm text-slate-500">Review customer details before issuing the invoice and tracking number.</p>
         </div>
         <button onClick={() => void load()} className="text-sm font-semibold text-[#081F3D] hover:underline">Refresh</button>
       </div>
@@ -81,7 +81,7 @@ export default function ShipmentRequestsPage() {
                 </div>
                 <div className="flex gap-2">
                   <button disabled={workingId === request.id} onClick={() => void decide(request, "reject")} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">Reject</button>
-                  <button disabled={workingId === request.id} onClick={() => void decide(request, "approve")} className="rounded-lg bg-[#F28C18] px-4 py-2 text-sm font-bold text-[#081F3D] disabled:opacity-50">Approve & issue invoice</button>
+                  <button disabled={workingId === request.id} onClick={() => void decide(request, "approve")} className="rounded-lg bg-[#F28C18] px-4 py-2 text-sm font-bold text-[#081F3D] disabled:opacity-50">Approve & issue invoice/tracking</button>
                 </div>
               </div>
             </article>

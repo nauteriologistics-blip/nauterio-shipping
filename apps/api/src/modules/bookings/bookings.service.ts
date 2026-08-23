@@ -176,61 +176,23 @@ export class BookingsService {
     if (!booking) throw new NotFoundException(`Shipment request ${id} not found`);
     if (booking.requestStatus !== "SUBMITTED") throw new BadRequestException("Only submitted requests can be approved");
     if (!booking.userId) throw new BadRequestException("Request has no customer owner");
-    if (!booking.quote || booking.quote.expiresAt <= new Date()) throw new BadRequestException("A current quote is required before issuing an invoice");
+    if (!booking.quote || booking.quote.expiresAt <= new Date()) throw new BadRequestException("A current quote is required before approving the request");
     if (booking.quote.totalAmountMinorUnits <= 0n) throw new BadRequestException("Quote total must be greater than zero");
 
+    const draft = booking.draftDataJson as Record<string, unknown> | null;
+    const trackingNumber = await this.shipmentsService.generateTrackingNumber();
+    const weight = Number(draft?.weightKg ?? 1);
+    const length = Number(draft?.lengthCm ?? 1);
+    const width = Number(draft?.widthCm ?? 1);
+    const height = Number(draft?.heightCm ?? 1);
+    const volumetricWeight = (length * width * height) / 5000;
+
     return prisma.$transaction(async (tx) => {
-      const claimed = await tx.booking.updateMany({ where: { id, requestStatus: "SUBMITTED" as never }, data: { requestStatus: "AWAITING_PAYMENT" as never, reviewedAt: new Date(), reviewedByUserId: reviewerUserId } });
+      const claimed = await tx.booking.updateMany({ where: { id, requestStatus: "SUBMITTED" as never, convertedShipmentId: null }, data: { reviewedAt: new Date(), reviewedByUserId: reviewerUserId } });
       if (claimed.count !== 1) throw new BadRequestException("This request has already been reviewed");
       const acceptedQuote = await tx.quote.updateMany({ where: { id: booking.quote.id, status: "DRAFT" }, data: { status: "ACCEPTED", userId: booking.userId } });
       if (acceptedQuote.count !== 1) throw new BadRequestException("This quote has already been used or is no longer available");
-      const invoice = await tx.invoice.create({
-        data: {
-          invoiceNumber: `INV-${Date.now().toString(36).toUpperCase()}-${id.slice(0, 6).toUpperCase()}`,
-          bookingId: booking.id,
-          quoteId: booking.quote.id,
-          organisationId: booking.organisationId,
-          customerUserId: booking.userId,
-          totalAmountMinorUnits: booking.quote.totalAmountMinorUnits,
-          currency: booking.quote.currency,
-          status: "ISSUED",
-          issuedAt: new Date(),
-          dueAt: booking.quote.expiresAt,
-          lines: { create: booking.quote.lines.map((line) => ({ description: line.label, amountMinorUnits: line.amountMinorUnits, currency: line.currency })) },
-        },
-        include: { lines: true },
-      });
-      await tx.notification.create({ data: { userId: booking.userId, templateCode: "invoice_issued", channel: "IN_APP", renderedSubject: `Invoice ${invoice.invoiceNumber} is ready for payment`, renderedBodyHash: invoice.id.replaceAll("-", "") } });
-      await this.auditService.record({ actorUserId: reviewerUserId, action: "SHIPMENT_REQUEST_APPROVED_AND_INVOICED", entityType: "Booking", entityId: id, afterJson: { invoiceId: invoice.id, requestStatus: "AWAITING_PAYMENT" }, correlationId }, tx);
-      return { bookingId: id, requestStatus: "AWAITING_PAYMENT", invoice };
-    });
-  }
 
-  async fulfillPaidBooking(id: string, correlationId: string, actorUserId?: string) {
-    const prisma = getPrismaClient();
-    const booking = await prisma.booking.findUnique({ where: { id }, include: { quote: true, invoice: true } });
-    if (!booking?.userId || !booking.quote || !booking.invoice) throw new BadRequestException("Paid booking is incomplete");
-    if (booking.requestStatus === "CONVERTED" && booking.convertedShipmentId) return prisma.shipment.findUniqueOrThrow({ where: { id: booking.convertedShipmentId } });
-    if (booking.requestStatus !== "PAID" || booking.invoice.status !== "PAID") throw new BadRequestException("Tracking is issued only after verified payment");
-
-    const totalAmountMinorUnits = booking.invoice.totalAmountMinorUnits;
-    const currency = booking.invoice.currency;
-
-    const draft = booking.draftDataJson as Record<string, unknown> | null;
-    // DATA-013/REL-018: this used to generate its own tracking number
-    // inline (`randomBytes(3)` - 24 bits, the exact low-entropy scheme
-    // those findings flagged) instead of the shared, DB-verified generator -
-    // the one real caller of shipment creation was bypassing the fix
-    // entirely. `generateTrackingNumber()` is the single source of truth for
-    // this format now.
-    const trackingNumber = await this.shipmentsService.generateTrackingNumber();
-
-    const result = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.booking.updateMany({
-        where: { id, requestStatus: "PAID" as never, convertedShipmentId: null },
-        data: { requestStatus: "CONVERTED" as never },
-      });
-      if (claimed.count !== 1) throw new BadRequestException("This payment has already been fulfilled");
       const shipment = await tx.shipment.create({
         data: {
           trackingNumber,
@@ -257,25 +219,20 @@ export class BookingsService {
           },
           customerReference: (draft?.customerReference as string) || undefined,
           packageCount: 1,
-          totalActualWeightKg: (draft?.weightKg as number) || 1.0,
-          totalVolumetricWeightKg: (Number(draft?.lengthCm) * Number(draft?.widthCm) * Number(draft?.heightCm)) / 5000,
-          totalChargeableWeightKg: Math.max(Number(draft?.weightKg), (Number(draft?.lengthCm) * Number(draft?.widthCm) * Number(draft?.heightCm)) / 5000),
+          totalActualWeightKg: weight,
+          totalVolumetricWeightKg: volumetricWeight,
+          totalChargeableWeightKg: Math.max(weight, volumetricWeight),
           declaredValueAmountMinorUnits: BigInt(Math.round(Number(draft?.declaredValueEur ?? 0) * 100)),
           declaredValueCurrency: (draft?.currency as string) || "EUR",
-          totalAmountMinorUnits,
-          currency,
+          totalAmountMinorUnits: booking.quote.totalAmountMinorUnits,
+          currency: booking.quote.currency,
           lifecycleStatus: "ACTIVE",
           quoteId: booking.quote.id,
-          createdByUserId: actorUserId,
-          source: "payment",
+          createdByUserId: reviewerUserId,
+          source: "admin",
         },
       });
 
-      const weight = Number(draft?.weightKg ?? 1);
-      const length = Number(draft?.lengthCm ?? 1);
-      const width = Number(draft?.widthCm ?? 1);
-      const height = Number(draft?.heightCm ?? 1);
-      const volumetricWeight = (length * width * height) / 5000;
       await tx.package.create({
         data: {
           shipmentId: shipment.id,
@@ -290,9 +247,6 @@ export class BookingsService {
         },
       });
 
-      // System-generated, not staff/warehouse/carrier/driver input - no
-      // Approval is a system-controlled conversion; the customer never
-      // directly asserts the initial shipment tracking state.
       await tx.trackingEvent.create({
         data: {
           shipmentId: shipment.id,
@@ -305,15 +259,35 @@ export class BookingsService {
         },
       });
 
-      await tx.booking.update({
+      const invoice = await tx.invoice.create({
+        data: {
+          invoiceNumber: `INV-${Date.now().toString(36).toUpperCase()}-${id.slice(0, 6).toUpperCase()}`,
+          bookingId: booking.id,
+          quoteId: booking.quote.id,
+          organisationId: booking.organisationId,
+          customerUserId: booking.userId,
+          totalAmountMinorUnits: booking.quote.totalAmountMinorUnits,
+          currency: booking.quote.currency,
+          status: "ISSUED",
+          issuedAt: new Date(),
+          dueAt: booking.quote.expiresAt,
+          lines: {
+            create: booking.quote.lines.map((line) => ({
+              description: line.label,
+              shipmentId: shipment.id,
+              amountMinorUnits: line.amountMinorUnits,
+              currency: line.currency,
+            })),
+          },
+        },
+        include: { lines: true },
+      });
+
+      const updated = await tx.booking.update({
         where: { id },
         data: { convertedShipmentId: shipment.id, requestStatus: "CONVERTED" as never },
       });
-      await tx.invoiceLine.updateMany({ where: { invoiceId: booking.invoice.id }, data: { shipmentId: shipment.id } });
 
-      // eventType must match outbox-relay.ts's EVENT_TYPE_TO_QUEUE routing
-      // key exactly ("shipment.created") or the relay marks it FAILED as
-      // unroutable.
       await tx.outboxEvent.create({
         data: {
           eventType: "shipment.created",
@@ -326,23 +300,21 @@ export class BookingsService {
         },
       });
 
-      await this.auditService.record(
-        {
-          actorUserId,
-          action: "PAID_BOOKING_FULFILLED",
-          entityType: "Booking",
-          entityId: id,
-          afterJson: { bookingId: id, shipmentId: shipment.id, trackingNumber, paymentRequired: true },
-          correlationId,
+      await tx.notification.create({
+        data: {
+          userId: booking.userId,
+          templateCode: "invoice_issued_for_review",
+          channel: "IN_APP",
+          renderedSubject: `Invoice ${invoice.invoiceNumber} is ready for review`,
+          renderedBodyHash: invoice.id.replaceAll("-", ""),
         },
-        tx
-      );
+      });
 
-      return shipment;
+      await this.auditService.record({ actorUserId: reviewerUserId, action: "SHIPMENT_REQUEST_APPROVED_WITH_INVOICE_AND_TRACKING", entityType: "Booking", entityId: id, afterJson: { shipmentId: shipment.id, invoiceId: invoice.id, trackingNumber, requestStatus: updated.requestStatus, onlinePaymentRequired: false }, correlationId }, tx);
+      return { bookingId: id, requestStatus: updated.requestStatus, shipment, invoice };
     });
-
-    return result;
   }
+
 }
 
 function numbersMatch(a: unknown, b: unknown): boolean {

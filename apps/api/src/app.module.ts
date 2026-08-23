@@ -23,6 +23,7 @@ import { BillingModule } from "./modules/billing/billing.module";
 import { ClaimsReturnsModule } from "./modules/claims-returns/claims-returns.module";
 import { SupportModule } from "./modules/support/support.module";
 import { SupportConversationsModule } from "./modules/support/support-conversations.module";
+import { BusinessInquiriesModule } from "./modules/business-inquiries/business-inquiries.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ContentModule } from "./modules/content/content.module";
 import { ReportingModule } from "./modules/reporting/reporting.module";
@@ -118,6 +119,7 @@ import { PilotModule } from "./modules/pilot/pilot.module";
     ClaimsReturnsModule,
     SupportModule,
     SupportConversationsModule,
+    BusinessInquiriesModule,
     NotificationsModule,
     ContentModule,
     ReportingModule,

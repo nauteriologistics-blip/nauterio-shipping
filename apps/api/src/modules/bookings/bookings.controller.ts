@@ -82,7 +82,7 @@ export class BookingsController {
   @Post(":id/approve")
   @RequirePermission("shipment:create")
   @RequireIdempotencyKey()
-  @ApiOperation({ summary: "Approve a shipment request and issue its payable invoice" })
+  @ApiOperation({ summary: "Approve a shipment request and issue its invoice and tracking number" })
   async approveRequest(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser, @CorrelationId() correlationId: string) {
     return this.bookingsService.approveRequest(id, user.userId, correlationId);
   }
