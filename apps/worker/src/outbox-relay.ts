@@ -21,6 +21,7 @@ const EVENT_TYPE_TO_QUEUE: Record<string, QueueName> = {
   "quote.created": "notifications-email", // e.g. "your quote is ready" - illustrative until real templates exist
   "shipment.created": "notifications-email",
   "shipment.status.updated": "notifications-email",
+  "business.inquiry.created": "notifications-email",
   "claim.submitted": "notifications-email",
 };
 

@@ -150,6 +150,29 @@ async function resolveNotification(
         variables: { trackingNumber: shipment.trackingNumber, status: payload.status ?? shipment.currentTrackingCode },
       };
     }
+    case "business.inquiry.created": {
+      const payload = message.payload as {
+        email?: string;
+        templateCode?: string;
+        companyName?: string;
+        workEmail?: string;
+        monthlyVolume?: string;
+        message?: string;
+      };
+      if (!payload.email) {
+        throw new Error(`notifications-email: business inquiry message ${message.messageId} missing destination email`);
+      }
+      return {
+        email: payload.email,
+        templateCode: payload.templateCode ?? "business_inquiry_created",
+        variables: {
+          companyName: payload.companyName ?? "Unknown company",
+          workEmail: payload.workEmail ?? "unknown",
+          monthlyVolume: payload.monthlyVolume ?? "unknown",
+          message: payload.message ?? "",
+        },
+      };
+    }
     default: {
       // quote.created / claim.submitted: no current producer emits these
       // (confirmed by grep across apps/api/src - only shipment.created is
@@ -171,5 +194,6 @@ async function resolveNotification(
 function notificationSubject(templateCode: string, variables?: Record<string, string>): string {
   if (templateCode === "shipment_created") return `Shipment ${variables?.trackingNumber ?? ""} approved`;
   if (templateCode === "shipment_status_updated") return `${variables?.trackingNumber ?? "Shipment"}: ${(variables?.status ?? "Status updated").replace(/_/g, " ")}`;
+  if (templateCode === "business_inquiry_created") return `Business inquiry: ${variables?.companyName ?? "New lead"}`;
   return "Nauterio notification";
 }

@@ -56,8 +56,7 @@ const apiConfigSchema = z.object({
   API_PUBLIC_URL: z.string().url().default("http://localhost:4000"),
   PILOT_MODE: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
   PILOT_ALLOWED_EMAILS: z.string().default(""),
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  BUSINESS_INQUIRY_TO_EMAIL: z.string().email().optional(),
 });
 
 export type ApiConfig = z.infer<typeof apiConfigSchema>;
@@ -82,7 +81,6 @@ export function loadApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     // already fail closed with a 400 response when it is not configured, so
     // its absence must not prevent the API and unrelated worker jobs from
     // starting in production.
-    if (!result.data.STRIPE_SECRET_KEY || !result.data.STRIPE_WEBHOOK_SECRET) throw new Error("Invalid environment configuration: production requires Stripe payment credentials");
   }
   return result.data;
 }

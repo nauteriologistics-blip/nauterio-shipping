@@ -286,7 +286,7 @@
   "BusinessPage": {
     "badge": "SOLUZIONI B2B",
     "heroTitle": "Soluzioni di Spedizione per Aziende",
-    "heroSubtitle": "Un'anteprima degli strumenti che Nauterio sta progettando per le aziende che spediscono regolarmente sulla rotta Italia-USA.",
+    "heroSubtitle": "Raccontaci cosa devi movimentare. Nauterio coordina con partner di consegna e conferma copertura di ritiro e consegna durante la revisione.",
     "starterTitle": "Starter",
     "starterVolume": "Fino a 50 spedizioni/mese",
     "volumeRatesApply": "Profilo account pianificato",
@@ -309,17 +309,17 @@
     "enterpriseFeature3": "Pianificazione dell'accettazione operativa",
     "tiersDisclaimer": "Gli sconti per volume sono concordati per singolo account una volta approvate le tariffe contrattuali — le cifre sopra sono segnaposto, non listini pubblicati.",
     "whyChooseHeading": "Perché scegliere Nauterio per le Aziende?",
-    "whyChooseSubheading": "Strumenti su misura per la rotta Italia-USA, non una piattaforma globale generica.",
-    "corridorTitle": "Esperti della Rotta",
-    "corridorBody": "Ci concentriamo esclusivamente sul trasporto merci Italia-USA invece di disperderci su ogni rotta globale, così la prenotazione e l'inserimento dei dati doganali sono costruiti attorno a questa rotta specifica.",
+    "whyChooseSubheading": "Un'area pratica per spedizioni revisionate, coordinamento con partner di consegna e visibilità per il cliente.",
+    "corridorTitle": "Consegna Coordinata con Partner",
+    "corridorBody": "Collaboriamo con partner di consegna per coordinare ritiro e consegna, con copertura e tempi confermati prima dell'accettazione della spedizione.",
     "riskTitle": "Gestione del Rischio",
     "riskBody": "La protezione facoltativa del carico sarà disponibile una volta finalizzati i termini assicurativi con un partner.",
     "customsDataTitle": "Dati Doganali Guidati",
     "customsDataBody": "La fattura commerciale e la guida ai codici HS sono integrate nel flusso di prenotazione per aiutarti a preparare pratiche CBP accurate.",
     "supportTitle": "Contesto di Assistenza",
     "supportBody": "L'area account pianificata riunisce spedizione, documenti ed eccezioni; gli impegni di risposta saranno pubblicati solo dopo la conferma del personale.",
-    "requestReceivedTitle": "Richiesta copiata",
-    "requestReceivedBody": "Nessun dato è stato trasmesso. La richiesta è negli appunti, pronta per essere inviata quando Nauterio pubblicherà il canale aziendale verificato.",
+    "requestReceivedTitle": "Richiesta ricevuta",
+    "requestReceivedBody": "Grazie — la richiesta è stata salvata per la revisione e il follow-up delle operazioni Nauterio.",
     "contactHeading": "Parliamo del tuo volume",
     "contactSubheading": "Raccontaci le tue esigenze di spedizione così possiamo ricontattarti quando gli account business saranno aperti.",
     "companyNameLabel": "Nome Azienda",
@@ -332,7 +332,9 @@
     "workEmailLabel": "Email Aziendale",
     "messageLabel": "Messaggio",
     "messagePlaceholder": "Raccontaci le tue sfide attuali...",
-    "submitRequest": "Copia Richiesta"
+    "submitRequest": "Invia Richiesta",
+    "submitting": "Invio in corso...",
+    "requestError": "Non siamo riusciti a inviare la richiesta. Riprova tra poco."
   },
   "DriverPage": {
     "headerTitle": "PWA Corriere Autista",
@@ -381,7 +383,7 @@
     "previewMessage": "Nauterio sta validando il servizio Italia–USA prima di accettare spedizioni reali.",
     "corridorLabel": "Una rotta. Spedizioni più chiare.",
     "heroTitle": "Dall'Italia agli Stati Uniti, senza incertezze logistiche.",
-    "heroSubtitle": "Pianifica spedizioni aeree e marittime in un unico posto, con informazioni doganali guidate, visibilità sulle tappe e passaggi di consegna chiari.",
+    "heroSubtitle": "Pianifica spedizioni in un unico posto, con ritiro e consegna coordinati tramite partner, visibilità sulle tappe e passaggi operativi chiari.",
     "getInstantQuote": "Crea un Account",
     "trackShipmentButton": "Traccia Spedizione",
     "quickTrackLabel": "Traccia Rapida",
@@ -398,7 +400,7 @@
     "exampleLabel": "Esempio",
     "trustBar": [
       { "title": "Assistenza Integrata", "desc": "Assistenza con ticket tramite l'area riservata" },
-      { "title": "Pratiche Doganali Guidate", "desc": "Fattura commerciale inclusa nella prenotazione" },
+      { "title": "Partner di Consegna", "desc": "Copertura di ritiro e consegna confermata in revisione" },
       { "title": "Tracciamento delle Tappe", "desc": "Aggiornamenti dal ritiro alla consegna" },
       { "title": "Trasparenza Pre-lancio", "desc": "I servizi non confermati sono indicati chiaramente" }
     ],
@@ -407,9 +409,9 @@
     "readinessBody": "La fiducia nasce dalla distinzione tra una funzionalità operativa della piattaforma e un servizio commerciale che richiede ancora un accordo firmato con un partner.",
     "readinessItems": [
       { "title": "Stime indicative", "desc": "Confronta opzioni aeree e marittime usando i dettagli del collo e della rotta.", "status": "available" },
-      { "title": "Preparazione doganale", "desc": "Verifica i dati commerciali richiesti e le indicazioni sulle merci soggette a restrizioni.", "status": "available" },
+      { "title": "Consegna coordinata con partner", "desc": "Collaboriamo con partner di consegna per coordinare ritiro e consegna dove la copertura è disponibile.", "status": "available" },
       { "title": "Esecuzione con vettori", "desc": "Account vettore, impegni di ritiro e calendari finali richiedono conferma.", "status": "pending" },
-      { "title": "Pagamenti e protezione", "desc": "Pagamenti di produzione, assicurazione e condizioni di reclamo non sono ancora attivi.", "status": "pending" }
+      { "title": "Listini approvati", "desc": "La piattaforma può usare listini approvati quando saranno caricati i dati commerciali reali.", "status": "pending" }
     ],
     "servicesHeading": "I Nostri Servizi di Spedizione",
     "servicesSubheading": "Soluzioni logistiche su misura per la rotta Italia-USA, bilanciando velocità ed efficienza dei costi.",
@@ -436,7 +438,7 @@
     "proofBusinessTitle": "Spedizioni aziendali",
     "proofBusinessDesc": "Pianifica movimenti ricorrenti e valuta i requisiti dell'account.",
     "routeHeading": "Progettato attorno a una rotta impegnativa",
-    "routeParagraph": "Nauterio è progettato specificamente per le spedizioni tra Italia e Stati Uniti. Questa focalizzazione mantiene la scelta del servizio, la preparazione doganale e il tracciamento centrati sulle decisioni reali della rotta, senza presentare come già attivi accordi con vettori, broker o assicuratori non ancora confermati.",
+    "routeParagraph": "Nauterio coordina spedizioni tramite richieste revisionate e partner di consegna. Copertura, tempi e accettazione finale vengono confermati durante la revisione operativa invece di essere promessi senza verifica.",
     "routeFeature1Title": "Pratiche Doganali Guidate",
     "routeFeature1Desc": "Fattura commerciale inclusa nella prenotazione",
     "routeFeature2Title": "Tracciamento delle Tappe",
@@ -458,7 +460,7 @@
       },
       {
         "question": "Le mie spedizioni sono assicurate?",
-        "answer": "La protezione facoltativa della spedizione sarà offerta al checkout una volta finalizzati i termini assicurativi con un partner. Non è ancora disponibile su questo sito di anteprima."
+        "answer": "Il pagamento online e l'assicurazione al checkout non fanno parte del modello operativo attuale. Eventuali accordi commerciali o termini di protezione vengono gestiti direttamente dalle operazioni Nauterio."
       },
       {
         "question": "Posso tracciare la mia spedizione in tempo reale?",
@@ -466,7 +468,7 @@
       },
       {
         "question": "Che tipo di merci potete spedire?",
-        "answer": "Ci occupiamo di merci commerciali e personali sulla rotta Italia-USA. Consulta la pagina Dogana per le categorie di articoli proibiti e soggetti a restrizioni prima di prenotare."
+        "answer": "Supportiamo merci commerciali e personali soggette a revisione operativa, copertura dei partner e restrizioni legali. Se una destinazione o un articolo richiede gestione speciale, le operazioni confermeranno prima dell'accettazione."
       }
     ],
     "ctaHeading": "Stai pianificando una spedizione Italia–USA?",

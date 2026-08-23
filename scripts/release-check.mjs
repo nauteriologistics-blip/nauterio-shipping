@@ -10,7 +10,13 @@ const requiredFiles = [
   "docs/implementation/phase-8-document-operations.md",
   "docs/implementation/phase-9-release-acceptance.md",
   "docs/implementation/phase-10-controlled-pilot.md",
+  "docs/runbooks/no-payment-operating-model.md",
+  "docs/runbooks/render-free-worker-and-keepalive.md",
+  "docs/runbooks/backup-restore-monitoring-acceptance.md",
+  "infra/cloudflare/render-keepalive/wrangler.toml",
   "scripts/pilot-daily-report.mjs",
+  "scripts/worker-readiness.mjs",
+  "scripts/monitoring-readiness.mjs",
   "scripts/security-check.mjs",
   "scripts/load-smoke.mjs",
   "scripts/acceptance-production.mjs",
@@ -29,6 +35,7 @@ for (const expected of [
   "20260817150000_revocable_auth_sessions",
   "20260817160000_document_review_workflow",
   "20260817170000_controlled_pilot",
+  "20260823100000_business_inquiries",
 ]) {
   if (!migrations.includes(expected)) failures.push(`Missing migration ${expected}`);
 }

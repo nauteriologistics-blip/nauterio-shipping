@@ -44,7 +44,7 @@ export interface InvoiceSummary {
   invoiceNumber: string;
   totalAmountMinorUnits: string | number;
   currency: string;
-  status: "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "VOID" | "REFUNDED";
+  status: "DRAFT" | "ISSUED" | "PAID" | "OVERDUE" | "VOID";
   dueAt: string | null;
   lines: { id: string; description: string; amountMinorUnits: string | number; currency: string }[];
 }
