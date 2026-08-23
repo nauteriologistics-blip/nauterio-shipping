@@ -21,11 +21,14 @@ class HealthService {
 
   /** Used for deployment gating and manual checks only - never as the ALB
    * liveness target. A short, explicit timeout so a stalled DB fails fast
-   * rather than hanging the health check itself. */
+   * rather than hanging the health check itself. The API runs on Render and
+   * Postgres is hosted on Neon, so the readiness probe needs to tolerate
+   * normal cross-provider/cold-start latency without marking a healthy service
+   * unavailable. */
   async readiness(): Promise<{ status: "ok"; database: "ok" }> {
     const prisma = getPrismaClient();
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("readiness DB check timed out")), 2000)
+      setTimeout(() => reject(new Error("readiness DB check timed out")), 10000)
     );
     try {
       await Promise.race([prisma.$queryRaw`SELECT 1`, timeout]);
