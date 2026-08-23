@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Nauterio Logistics | Shipping from Italy to the United States Made Clear",
-  description: "A pre-launch platform for planning Italy–USA air and ocean shipments, with indicative estimates, customs preparation guidance and milestone visibility.",
+  description: "A logistics platform for planning Italy–USA air and ocean shipments, with reviewed estimates, customs preparation guidance and milestone visibility.",
   keywords: ["Italy to USA shipping", "air freight Milan to JFK", "customs broker Italy US", "parcel shipping Italy to America", "Nauterio Logistics"],
 };
 

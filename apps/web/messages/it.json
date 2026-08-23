@@ -379,8 +379,8 @@
     "verifyAndPrint": "Verifica e Registra Accettazione"
   },
   "Home": {
-    "previewLabel": "Pre-lancio",
-    "previewMessage": "Nauterio sta validando il servizio Italia–USA prima di accettare spedizioni reali.",
+    "previewLabel": "Operazioni pilota",
+    "previewMessage": "Nauterio coordina richieste di spedizione Italia–USA tramite revisione operativa prima dell'accettazione finale.",
     "corridorLabel": "Una rotta. Spedizioni più chiare.",
     "heroTitle": "Dall'Italia agli Stati Uniti, senza incertezze logistiche.",
     "heroSubtitle": "Pianifica spedizioni in un unico posto, con ritiro e consegna coordinati tramite partner, visibilità sulle tappe e passaggi operativi chiari.",
@@ -402,16 +402,16 @@
       { "title": "Assistenza Integrata", "desc": "Assistenza con ticket tramite l'area riservata" },
       { "title": "Partner di Consegna", "desc": "Copertura di ritiro e consegna confermata in revisione" },
       { "title": "Tracciamento delle Tappe", "desc": "Aggiornamenti dal ritiro alla consegna" },
-      { "title": "Trasparenza Pre-lancio", "desc": "I servizi non confermati sono indicati chiaramente" }
+      { "title": "Processo di Revisione Chiaro", "desc": "Copertura, tempi e condizioni finali vengono confermati prima dell'accettazione della spedizione" }
     ],
     "readinessEyebrow": "Stato del servizio",
-    "readinessHeading": "Niente promesse vaghe. Scopri cosa è pronto e cosa è ancora in validazione.",
-    "readinessBody": "La fiducia nasce dalla distinzione tra una funzionalità operativa della piattaforma e un servizio commerciale che richiede ancora un accordo firmato con un partner.",
+    "readinessHeading": "Pianificazione chiara prima che la merce si muova.",
+    "readinessBody": "Nauterio separa stime, controlli documentali, coordinamento con partner e accettazione finale, così il cliente vede esattamente il passaggio successivo.",
     "readinessItems": [
       { "title": "Stime indicative", "desc": "Confronta opzioni aeree e marittime usando i dettagli del collo e della rotta.", "status": "available" },
       { "title": "Consegna coordinata con partner", "desc": "Collaboriamo con partner di consegna per coordinare ritiro e consegna dove la copertura è disponibile.", "status": "available" },
-      { "title": "Esecuzione con vettori", "desc": "Account vettore, impegni di ritiro e calendari finali richiedono conferma.", "status": "pending" },
-      { "title": "Listini approvati", "desc": "La piattaforma può usare listini approvati quando saranno caricati i dati commerciali reali.", "status": "pending" }
+      { "title": "Esecuzione con vettori", "desc": "Impegni di ritiro e calendari finali vengono confermati durante la revisione operativa.", "status": "pending" },
+      { "title": "Condizioni commerciali revisionate", "desc": "Le tariffe finali vengono emesse dalle operazioni Nauterio dopo la revisione dei dettagli della spedizione.", "status": "pending" }
     ],
     "servicesHeading": "I Nostri Servizi di Spedizione",
     "servicesSubheading": "Soluzioni logistiche su misura per la rotta Italia-USA, bilanciando velocità ed efficienza dei costi.",
@@ -456,7 +456,7 @@
       },
       {
         "question": "Gestite lo sdoganamento negli Stati Uniti?",
-        "answer": "La piattaforma è progettata per guidarti nella compilazione della fattura commerciale e dei dati doganali durante la prenotazione. La piena intermediazione doganale richiede una partnership confermata con un broker, non ancora finalizzata."
+        "answer": "La piattaforma ti guida nella compilazione della fattura commerciale e dei dati doganali durante la prenotazione. Eventuale supporto di intermediazione doganale viene confermato durante la revisione operativa."
       },
       {
         "question": "Le mie spedizioni sono assicurate?",
@@ -464,7 +464,7 @@
       },
       {
         "question": "Posso tracciare la mia spedizione in tempo reale?",
-        "answer": "Riceverai aggiornamenti sulle tappe dal ritiro alla consegna nella pagina di tracciamento. Questa anteprima utilizza dati di esempio; l'integrazione live con i corrieri non è ancora attiva."
+        "answer": "Riceverai aggiornamenti sulle tappe dal ritiro alla consegna nella pagina di tracciamento. Gli aggiornamenti specifici del vettore vengono aggiunti mentre ogni spedizione viene revisionata e gestita dalle operazioni."
       },
       {
         "question": "Che tipo di merci potete spedire?",
@@ -477,7 +477,7 @@
   },
   "Footer": {
     "brandDescription": "Una piattaforma di spedizione dedicata alla rotta Italia–Stati Uniti: trasporto aereo, marittimo e pacchi, con assistenza doganale e tracciamento in un unico posto.",
-    "registrationPending": "I dati di registrazione dell'azienda e i contatti saranno pubblicati qui una volta finalizzata la registrazione legale.",
+    "registrationPending": "Per domande aziendali, privacy o operative, usa il modulo business e il team Nauterio risponderà.",
     "servicesHeading": "Servizi",
     "airExpress": "Air Express",
     "airEconomy": "Air Economy",
@@ -493,6 +493,6 @@
     "termsOfService": "Termini di Servizio",
     "cookiePolicy": "Cookie Policy",
     "copyright": "© {year} Nauterio Logistics. Tutti i diritti riservati.",
-    "previewNotice": "Questo sito è un'anteprima pre-lancio. Date del servizio, copertura e prezzi mostrati sono indicativi e non ancora confermati."
+    "previewNotice": "Preventivi e dettagli del servizio vengono revisionati dalle operazioni Nauterio prima dell'accettazione finale della spedizione."
   }
 }

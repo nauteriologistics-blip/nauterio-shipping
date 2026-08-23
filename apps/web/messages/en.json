@@ -379,8 +379,8 @@
     "verifyAndPrint": "Verify and Record Intake"
   },
   "Home": {
-    "previewLabel": "Pre-launch",
-    "previewMessage": "Nauterio is currently validating its Italy–USA service before accepting live shipments.",
+    "previewLabel": "Pilot operations",
+    "previewMessage": "Nauterio coordinates Italy–USA shipment requests through an operations review before final acceptance.",
     "corridorLabel": "One corridor. Clearer shipping.",
     "heroTitle": "Italy to the United States, without the logistics guesswork.",
     "heroSubtitle": "Plan shipments in one place, with partner-coordinated collection and delivery, milestone visibility and a clear handoff at every stage.",
@@ -402,16 +402,16 @@
       { "title": "Support Built In", "desc": "Ticketed support through the portal" },
       { "title": "Delivery Partners", "desc": "Collection and delivery coverage confirmed during review" },
       { "title": "Milestone Tracking", "desc": "Updates from pickup to delivery" },
-      { "title": "Pre-launch Transparency", "desc": "Unconfirmed services are labelled clearly" }
+      { "title": "Clear Review Process", "desc": "Coverage, timing and final terms are confirmed before shipment acceptance" }
     ],
     "readinessEyebrow": "Service readiness",
-    "readinessHeading": "No vague promises. See what is ready and what is still being validated.",
-    "readinessBody": "Trust starts with knowing the difference between a working platform capability and a commercial service that still needs a signed partner agreement.",
+    "readinessHeading": "Clear shipment planning before anything moves.",
+    "readinessBody": "Nauterio separates estimates, document checks, partner coordination and final acceptance so customers can see exactly what happens next.",
     "readinessItems": [
       { "title": "Indicative estimates", "desc": "Compare air and ocean options using package and route details.", "status": "available" },
       { "title": "Partner delivery coordination", "desc": "We work with delivery partners to coordinate collection and delivery where coverage is available.", "status": "available" },
-      { "title": "Live carrier execution", "desc": "Carrier accounts, collection commitments and final schedules require confirmation.", "status": "pending" },
-      { "title": "Approved rate cards", "desc": "The platform can use approved rate cards once real business rates are loaded.", "status": "pending" }
+      { "title": "Carrier execution", "desc": "Collection commitments and final schedules are confirmed during operations review.", "status": "pending" },
+      { "title": "Reviewed commercial terms", "desc": "Final rates are issued by Nauterio operations after the shipment details are reviewed.", "status": "pending" }
     ],
     "servicesHeading": "Our Shipping Services",
     "servicesSubheading": "Tailored logistics solutions for the Italy-USA trade lane, balancing speed and cost efficiency.",
@@ -456,7 +456,7 @@
       },
       {
         "question": "Do you handle US Customs clearance?",
-        "answer": "The platform is built to guide you through commercial invoice and customs data as part of booking. Full customs brokerage requires a confirmed broker partnership, which is not yet finalised."
+        "answer": "The platform guides you through commercial invoice and customs data as part of booking. Any required customs brokerage support is confirmed during operations review."
       },
       {
         "question": "Are my shipments insured?",
@@ -464,7 +464,7 @@
       },
       {
         "question": "Can I track my shipment in real-time?",
-        "answer": "You'll receive milestone updates from pickup through delivery on the tracking page. This preview uses sample tracking data; live carrier integration is not yet connected."
+        "answer": "You'll receive milestone updates from pickup through delivery on the tracking page. Carrier-specific updates are added as each shipment is reviewed and handled by operations."
       },
       {
         "question": "What types of goods can you ship?",
@@ -477,7 +477,7 @@
   },
   "Footer": {
     "brandDescription": "A dedicated shipping platform for the Italy–United States corridor: air, ocean, and parcel freight with customs guidance and tracking in one place.",
-    "registrationPending": "Company registration and contact details will be published here once legal registration is finalised.",
+    "registrationPending": "For business, privacy or operations questions, please use the business inquiry form and the Nauterio team will respond.",
     "servicesHeading": "Services",
     "airExpress": "Air Express",
     "airEconomy": "Air Economy",
@@ -493,6 +493,6 @@
     "termsOfService": "Terms of Service",
     "cookiePolicy": "Cookie Policy",
     "copyright": "© {year} Nauterio Logistics. All rights reserved.",
-    "previewNotice": "This site is a pre-launch preview. Service dates, coverage, and pricing shown are indicative and not yet confirmed."
+    "previewNotice": "Quotes and service details are reviewed by Nauterio operations before final shipment acceptance."
   }
 }
