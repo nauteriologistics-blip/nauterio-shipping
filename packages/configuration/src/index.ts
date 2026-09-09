@@ -43,6 +43,11 @@ const apiConfigSchema = z.object({
   // of sending it, so the flow is testable without SES.
   WEB_APP_URL: z.string().default("http://localhost:3000"),
   ADMIN_APP_URL: z.string().default("http://localhost:3001"),
+  // A deliberately separate, server-only credential for the staff console.
+  // The hash uses the versioned scrypt format verified by apps/api; the raw
+  // password must never be stored in this repository or exposed to clients.
+  ADMIN_LOGIN_EMAIL: z.string().email().optional(),
+  ADMIN_PASSWORD_SCRYPT: z.string().startsWith("scrypt$").optional(),
   EMAIL_PROVIDER: z.enum(["local", "resend"]).default("local"),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().email().default("notifications@nauterio.com"),

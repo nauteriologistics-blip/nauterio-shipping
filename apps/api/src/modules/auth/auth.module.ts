@@ -1,5 +1,5 @@
 import { randomBytes, createHash } from "node:crypto";
-import { BadRequestException, Controller, ForbiddenException, Injectable, Module, Post, Body, Req } from "@nestjs/common";
+import { BadRequestException, Controller, ForbiddenException, Injectable, Module, Post, Body, Req, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 import type { Request } from "express";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
@@ -7,11 +7,13 @@ import { getPrismaClient } from "@nauterio/database";
 import { loadApiConfig } from "@nauterio/configuration";
 import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 import { AuditService } from "../audit/audit.module";
-import { RegisterDto, RequestSignInDto, VerifyEmailDto } from "./dto/auth.dto";
+import { RegisterDto, RequestSignInDto, StaffPasswordLoginDto, VerifyEmailDto } from "./dto/auth.dto";
+import { verifyStaffPassword } from "./staff-password";
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h, spec 27.1 "short-lived"
 const SIGN_IN_TOKEN_TTL_MS = 15 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const STAFF_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
@@ -152,50 +154,53 @@ class AuthService {
     return { accepted: true };
   }
 
-  async requestStaffSignIn(dto: RequestSignInDto, correlationId?: string) {
+  async staffPasswordLogin(dto: StaffPasswordLoginDto, correlationId?: string, ipAddress?: string) {
+    const config = loadApiConfig();
+    if (!config.ADMIN_LOGIN_EMAIL || !config.ADMIN_PASSWORD_SCRYPT) {
+      throw new ServiceUnavailableException("Staff password sign-in is not configured.");
+    }
+
+    // Always perform the expensive password verification before rejecting a
+    // mismatched email so response timing does not become an account oracle.
+    const passwordMatches = await verifyStaffPassword(dto.password, config.ADMIN_PASSWORD_SCRYPT);
+    const emailMatches = dto.email.trim().toLowerCase() === config.ADMIN_LOGIN_EMAIL.trim().toLowerCase();
+    if (!emailMatches || !passwordMatches) {
+      throw new UnauthorizedException("Invalid email or password.");
+    }
+
     const prisma = getPrismaClient();
     const user = await prisma.user.findFirst({
       where: {
-        email: { equals: dto.email.trim(), mode: "insensitive" },
+        email: { equals: config.ADMIN_LOGIN_EMAIL.trim(), mode: "insensitive" },
         status: "ACTIVE",
         staffRole: { not: null },
       },
     });
-    if (!user) return { accepted: true };
+    if (!user) throw new UnauthorizedException("Invalid email or password.");
 
-    const rawToken = randomBytes(32).toString("base64url");
-    const config = loadApiConfig();
-    const url = new URL("/verify-email", config.ADMIN_APP_URL);
-    url.searchParams.set("token", rawToken);
-
+    const rawSessionToken = `nts_${randomBytes(32).toString("base64url")}`;
     await prisma.$transaction(async (tx) => {
-      await tx.emailVerificationToken.create({
+      await tx.authSession.create({
         data: {
           userId: user.id,
-          tokenHash: hashToken(rawToken),
-          expiresAt: new Date(Date.now() + SIGN_IN_TOKEN_TTL_MS),
-        },
-      });
-      await tx.outboxEvent.create({
-        data: {
-          eventType: "user.staff_signin_link.requested",
-          correlationId,
-          payloadJson: { userId: user.id, email: user.email, signInUrl: url.toString() },
+          tokenHash: hashToken(rawSessionToken),
+          expiresAt: new Date(Date.now() + STAFF_SESSION_TTL_MS),
         },
       });
       await this.auditService.record(
         {
           actorUserId: user.id,
-          action: "STAFF_SIGNIN_LINK_REQUESTED",
+          action: "STAFF_PASSWORD_SIGNIN_SUCCEEDED",
           entityType: "User",
           entityId: user.id,
           correlationId,
+          ipAddress,
         },
         tx
       );
     });
 
-    return { accepted: true };
+    return { sessionToken: rawSessionToken, userId: user.id, expiresInSeconds: STAFF_SESSION_TTL_MS / 1000 };
   }
 
   async verifyEmail(dto: VerifyEmailDto, correlationId?: string) {
@@ -299,11 +304,15 @@ class AuthController {
     return this.authService.requestSignIn(dto, correlationId);
   }
 
-  @Post("request-staff-signin")
+  @Post("staff-password-login")
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @ApiOperation({ summary: "Email a single-use staff sign-in link" })
-  async requestStaffSignIn(@Body() dto: RequestSignInDto, @CorrelationId() correlationId: string) {
-    return this.authService.requestStaffSignIn(dto, correlationId);
+  @ApiOperation({ summary: "Create a staff session using the configured admin credential" })
+  async staffPasswordLogin(
+    @Body() dto: StaffPasswordLoginDto,
+    @CorrelationId() correlationId: string,
+    @Req() req: Request
+  ) {
+    return this.authService.staffPasswordLogin(dto, correlationId, req.ip);
   }
 
   @Post("logout")

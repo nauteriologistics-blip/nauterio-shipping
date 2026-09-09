@@ -12,15 +12,15 @@ export function getCsrfToken(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export async function requestSignIn(email: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const res = await fetch("/api/auth/request-signin", {
+export async function login(email: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, password }),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-    return { ok: false, error: body?.message ?? body?.error ?? `Sign-in request failed (HTTP ${res.status}).` };
+    return { ok: false, error: body?.message ?? body?.error ?? `Sign-in failed (HTTP ${res.status}).` };
   }
   return { ok: true };
 }
