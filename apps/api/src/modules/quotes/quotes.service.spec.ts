@@ -52,6 +52,8 @@ describe("QuotesService", () => {
     widthCm: 30,
     heightCm: 20,
     declaredValueEur: 300,
+    originCountry: "DE",
+    destinationCountry: "CA",
     service: "air-express",
   };
 
@@ -88,6 +90,39 @@ describe("QuotesService", () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it("calculates an indicative quote for any international country pair", async () => {
+    const result = await service.calculate({
+      ...baseDto,
+      originCountry: "JP",
+      destinationCountry: "BR",
+    });
+
+    expect(result.quoteId).toBe("quote-1");
+    expect(result.totalPriceEur).toBeGreaterThan(0);
+    expect(mockQuoteCreate.mock.calls[0][0].data.isIndicative).toBe(true);
+  });
+
+  it("keeps pre-deployment quote clients working while the route fields roll out", async () => {
+    const result = await service.calculate({
+      weightKg: baseDto.weightKg,
+      lengthCm: baseDto.lengthCm,
+      widthCm: baseDto.widthCm,
+      heightCm: baseDto.heightCm,
+      declaredValueEur: baseDto.declaredValueEur,
+      service: baseDto.service,
+    });
+
+    expect(result.quoteId).toBe("quote-1");
+  });
+
+  it("rejects a same-country route", async () => {
+    await expect(service.calculate({
+      ...baseDto,
+      originCountry: "IT",
+      destinationCountry: "IT",
+    })).rejects.toThrow("Pickup and delivery countries must be different");
+  });
+
   it("persists a quote snapshot for every calculation (spec 15.1: 'Accepted quotes snapshot every calculation input')", async () => {
     await service.calculate(baseDto);
     expect(mockQuoteCreate).toHaveBeenCalledTimes(1);
@@ -111,5 +146,20 @@ describe("QuotesService", () => {
       heightCm: 40, // volumetric = 24kg
     });
     expect(result.chargeableWeightKg).toBe(24);
+  });
+
+  it("handles the documented maximum package inputs without overflowing", async () => {
+    const result = await service.calculate({
+      ...baseDto,
+      weightKg: 1000,
+      lengthCm: 500,
+      widthCm: 500,
+      heightCm: 500,
+      declaredValueEur: 1_000_000,
+    });
+
+    expect(result.chargeableWeightKg).toBe(25_000);
+    expect(Number.isFinite(result.totalPriceEur)).toBe(true);
+    expect(result.totalPriceEur).toBeGreaterThan(0);
   });
 });

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
+import { IsEmail, IsIn, IsNotIn, IsNumber, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
 
 const SERVICE_IDS = ["AIR_EXPRESS", "AIR_ECONOMY", "OCEAN_FREIGHT"] as const;
 const COUNTRY_CODE = /^[A-Z]{2}$/;
@@ -13,7 +13,7 @@ export class CreateAdminShipmentDto {
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(300) senderLine1!: string;
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) senderCity!: string;
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(30) senderPostalCode!: string;
-  @ApiProperty({ example: "IT" }) @Matches(COUNTRY_CODE) senderCountry!: string;
+  @ApiProperty({ example: "IT" }) @Matches(COUNTRY_CODE) @IsNotIn(["GH"]) senderCountry!: string;
   @ApiProperty() @IsString() @MinLength(3) @MaxLength(40) senderPhone!: string;
   @ApiProperty({ required: false }) @IsOptional() @IsEmail() @MaxLength(254) senderEmail?: string;
 
@@ -21,7 +21,7 @@ export class CreateAdminShipmentDto {
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(300) receiverLine1!: string;
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(120) receiverCity!: string;
   @ApiProperty() @IsString() @MinLength(1) @MaxLength(30) receiverPostalCode!: string;
-  @ApiProperty({ example: "US" }) @Matches(COUNTRY_CODE) receiverCountry!: string;
+  @ApiProperty({ example: "US" }) @Matches(COUNTRY_CODE) @IsNotIn(["GH"]) receiverCountry!: string;
   @ApiProperty() @IsString() @MinLength(3) @MaxLength(40) receiverPhone!: string;
   @ApiProperty({ required: false }) @IsOptional() @IsEmail() @MaxLength(254) receiverEmail?: string;
 

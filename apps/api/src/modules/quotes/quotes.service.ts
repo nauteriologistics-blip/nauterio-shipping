@@ -45,6 +45,10 @@ export class QuotesService {
   constructor(private readonly auditService: AuditService) {}
 
   async calculate(dto: CreateQuoteDto, correlationId?: string): Promise<QuoteResult> {
+    if (dto.originCountry && dto.destinationCountry && dto.originCountry === dto.destinationCountry) {
+      throw new BadRequestException("Pickup and delivery countries must be different for an international shipment.");
+    }
+
     const service = getService(dto.service);
     if (!service) {
       throw new BadRequestException(`Unknown service '${dto.service}'`);
