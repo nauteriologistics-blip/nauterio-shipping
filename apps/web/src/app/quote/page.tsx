@@ -56,6 +56,7 @@ interface FormData {
 }
 
 const ROUTE_COUNTRIES = [
+  { code: "AE" },
   { code: "AT" },
   { code: "AU" },
   { code: "BE" },
@@ -65,7 +66,6 @@ const ROUTE_COUNTRIES = [
   { code: "ES" },
   { code: "FR" },
   { code: "GB" },
-  { code: "GH" },
   { code: "IN" },
   { code: "IT" },
   { code: "JP" },
@@ -74,9 +74,8 @@ const ROUTE_COUNTRIES = [
   { code: "PL" },
   { code: "PT" },
   { code: "SE" },
-  { code: "ZA" },
-  { code: "AE" },
   { code: "US" },
+  { code: "ZA" },
   { code: "OTHER" },
 ] as const;
 
