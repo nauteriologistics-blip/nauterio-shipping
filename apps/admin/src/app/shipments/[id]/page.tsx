@@ -139,8 +139,11 @@ export default function ShipmentDetailPage() {
     const reason = hold ? window.prompt("Why is this shipment being placed on hold? This is shown to the customer.")?.trim() : undefined;
     if (hold && !reason) return;
     try {
-      const updated = await apiFetch<ShipmentDetail>(`/admin/shipments/${params.id}/${hold ? "hold" : "release-hold"}`, { method: "POST", headers: { "Idempotency-Key": `hold-${params.id}-${hold}-${crypto.randomUUID()}` }, body: JSON.stringify(hold ? { reason } : {}) });
-      setShipment(updated);
+      await apiFetch(`/admin/shipments/${params.id}/${hold ? "hold" : "release-hold"}`, { method: "POST", headers: { "Idempotency-Key": `hold-${params.id}-${hold}-${crypto.randomUUID()}` }, body: JSON.stringify(hold ? { reason } : {}) });
+      // Mutation responses contain the shipment row only. Reload the detail
+      // projection so relation-backed UI such as documents and tracking
+      // history never receives an incomplete object.
+      setShipment(await apiFetch<ShipmentDetail>(`/shipments/${params.id}`));
     } catch (cause) { setError(cause instanceof ApiError ? cause.body.message : "Could not update shipment hold."); }
   }
 
@@ -152,12 +155,12 @@ export default function ShipmentDetailPage() {
     setSavingEta(true);
     setError(null);
     try {
-      const updated = await apiFetch<ShipmentDetail>(`/admin/shipments/${params.id}/estimated-delivery`, {
+      const updated = await apiFetch<Pick<ShipmentDetail, "estimatedDeliveryFrom" | "estimatedDeliveryTo">>(`/admin/shipments/${params.id}/estimated-delivery`, {
         method: "PATCH",
         headers: { "Idempotency-Key": `eta-${params.id}-${crypto.randomUUID()}` },
         body: JSON.stringify({ estimatedDeliveryFrom, estimatedDeliveryTo }),
       });
-      setShipment(updated);
+      setShipment(await apiFetch<ShipmentDetail>(`/shipments/${params.id}`));
       setEstimatedDeliveryFrom(toDateInput(updated.estimatedDeliveryFrom));
       setEstimatedDeliveryTo(toDateInput(updated.estimatedDeliveryTo));
     } catch (cause) {

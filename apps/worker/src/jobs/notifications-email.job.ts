@@ -146,6 +146,25 @@ async function resolveNotification(
         variables: { trackingNumber: shipment.trackingNumber, status: payload.status ?? shipment.currentTrackingCode },
       };
     }
+    case "shipment.eta.updated": {
+      const payload = message.payload as { shipmentId?: string; estimatedDeliveryFrom?: string; estimatedDeliveryTo?: string };
+      if (!payload.shipmentId || !payload.estimatedDeliveryFrom || !payload.estimatedDeliveryTo) {
+        throw new Error(`notifications-email: shipment.eta.updated message ${message.messageId} is incomplete`);
+      }
+      const shipment = await tx.shipment.findUnique({ where: { id: payload.shipmentId }, include: { ownerUser: true } });
+      if (!shipment) throw new Error(`notifications-email: shipment ${payload.shipmentId} not found`);
+      if (!shipment.ownerUser?.email) return null;
+      return {
+        userId: shipment.ownerUser.id,
+        email: shipment.ownerUser.email,
+        templateCode: "shipment_eta_updated",
+        variables: {
+          trackingNumber: shipment.trackingNumber,
+          estimatedDeliveryFrom: payload.estimatedDeliveryFrom,
+          estimatedDeliveryTo: payload.estimatedDeliveryTo,
+        },
+      };
+    }
     case "business.inquiry.created": {
       const payload = message.payload as {
         email?: string;
@@ -190,6 +209,7 @@ async function resolveNotification(
 function notificationSubject(templateCode: string, variables?: Record<string, string>): string {
   if (templateCode === "shipment_created") return `Shipment ${variables?.trackingNumber ?? ""} approved`;
   if (templateCode === "shipment_status_updated") return `${variables?.trackingNumber ?? "Shipment"}: ${(variables?.status ?? "Status updated").replace(/_/g, " ")}`;
+  if (templateCode === "shipment_eta_updated") return `${variables?.trackingNumber ?? "Shipment"}: delivery estimate updated`;
   if (templateCode === "business_inquiry_created") return `Business inquiry: ${variables?.companyName ?? "New lead"}`;
   return "Nauterio notification";
 }

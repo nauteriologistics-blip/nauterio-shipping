@@ -94,6 +94,23 @@ function renderTemplate(code: string, variables: Record<string, string>): { subj
       text: `A movement was recorded for your Nauterio shipment.\n\nTracking number: ${rawTracking}\nCurrent status: ${status}\nView the full timeline: ${trackingUrl}\n\nYou are receiving this transactional update because this shipment is associated with your Nauterio customer account.`,
     };
   }
+  if (code === "shipment_eta_updated") {
+    const trackingUrl = publicTrackingUrl(rawTracking);
+    const estimatedDeliveryFrom = variables.estimatedDeliveryFrom ?? "Not available";
+    const estimatedDeliveryTo = variables.estimatedDeliveryTo ?? "Not available";
+    return {
+      subject: `${trackingSubject}: delivery estimate updated`,
+      html: emailLayout({
+        heading: "Your delivery estimate was updated",
+        intro: "Nauterio operations has published a new estimated delivery window for your shipment.",
+        actionLabel: "View shipment tracking",
+        actionUrl: trackingUrl,
+        detail: `<strong>Tracking number:</strong> ${tracking}<br><strong>Estimated delivery:</strong> ${escapeHtml(estimatedDeliveryFrom)} to ${escapeHtml(estimatedDeliveryTo)}`,
+        detailIsHtml: true,
+      }),
+      text: `The estimated delivery window for your Nauterio shipment was updated.\n\nTracking number: ${rawTracking}\nEstimated delivery: ${estimatedDeliveryFrom} to ${estimatedDeliveryTo}\nView shipment tracking: ${trackingUrl}`,
+    };
+  }
   if (code === "business_inquiry_created") {
     const companyName = variables.companyName ?? "New lead";
     const workEmail = variables.workEmail ?? "";
