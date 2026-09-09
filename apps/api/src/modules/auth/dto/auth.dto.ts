@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 const SUPPORTED_LANGUAGES = ["en", "it"] as const;
 
@@ -48,4 +48,16 @@ export class RequestSignInDto {
   @ApiProperty()
   @IsEmail()
   email!: string;
+}
+
+export class StaffPasswordLoginDto {
+  @ApiProperty()
+  @IsEmail()
+  email!: string;
+
+  @ApiProperty({ format: "password" })
+  @IsString()
+  @MinLength(16)
+  @MaxLength(256)
+  password!: string;
 }
