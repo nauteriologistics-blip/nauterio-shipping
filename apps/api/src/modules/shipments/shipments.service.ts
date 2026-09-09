@@ -1,10 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { getPrismaClient, type Prisma } from "@nauterio/database";
 import { randomBytes } from "node:crypto";
 import { STAFF_ROLES } from "@nauterio/contracts";
 import { paginateCursor } from "../../common/pagination/paginate-cursor";
 import { shipmentScopeWhere, type ShipmentScopeCaller } from "../../common/authorization/shipment-scope";
 import type { ShipmentLifecycleStatusFilter } from "./dto/list-shipments.dto";
+import type { CreateAdminShipmentDto } from "./dto/create-admin-shipment.dto";
+import { AuditService } from "../audit/audit.module";
+import { calculateChargeableWeight } from "@nauterio/validation";
 
 const MAX_TRACKING_EVENTS_RETURNED = 100;
 
@@ -30,6 +33,110 @@ export type ShipmentListScope = ShipmentScopeCaller;
 
 @Injectable()
 export class ShipmentsService {
+  constructor(private readonly auditService: AuditService) {}
+
+  async createAdminShipment(dto: CreateAdminShipmentDto, actorUserId: string, correlationId: string) {
+    const prisma = getPrismaClient();
+    const owner = await prisma.user.findFirst({
+      where: { id: dto.ownerUserId, staffRole: null, erasedAt: null, status: "ACTIVE" },
+      select: {
+        id: true,
+        organisationMemberships: {
+          where: { status: "ACTIVE" },
+          take: 1,
+          select: { organisationId: true },
+        },
+      },
+    });
+    if (!owner) throw new BadRequestException("Select an active customer account");
+
+    const service = await prisma.service.findFirst({ where: { id: dto.serviceId, active: true }, select: { id: true } });
+    if (!service) throw new BadRequestException("Select an active shipping service");
+
+    const weights = calculateChargeableWeight({
+      actualWeightKg: dto.weightKg,
+      lengthCm: dto.lengthCm,
+      widthCm: dto.widthCm,
+      heightCm: dto.heightCm,
+    });
+    const trackingNumber = await this.generateTrackingNumber(dto.receiverCountry);
+    const declaredValueAmountMinorUnits = BigInt(Math.round(dto.declaredValue * 100));
+    const totalAmountMinorUnits = BigInt(Math.round(dto.totalAmount * 100));
+
+    return prisma.$transaction(async (tx) => {
+      const shipment = await tx.shipment.create({
+        data: {
+          trackingNumber,
+          ownerUserId: owner.id,
+          organisationId: owner.organisationMemberships[0]?.organisationId,
+          senderNameSnapshot: dto.senderName.trim(),
+          senderAddressSnapshot: {
+            line1: dto.senderLine1.trim(), city: dto.senderCity.trim(), postalCode: dto.senderPostalCode.trim(),
+            countryCode: dto.senderCountry, phone: dto.senderPhone.trim(), email: dto.senderEmail?.trim() || null,
+          },
+          receiverNameSnapshot: dto.receiverName.trim(),
+          receiverAddressSnapshot: {
+            line1: dto.receiverLine1.trim(), city: dto.receiverCity.trim(), postalCode: dto.receiverPostalCode.trim(),
+            countryCode: dto.receiverCountry, phone: dto.receiverPhone.trim(), email: dto.receiverEmail?.trim() || null,
+          },
+          customerReference: dto.customerReference?.trim() || undefined,
+          serviceId: service.id,
+          packageCount: 1,
+          totalActualWeightKg: weights.actualWeightKg,
+          totalVolumetricWeightKg: weights.volumetricWeightKg,
+          totalChargeableWeightKg: weights.chargeableWeightKg,
+          declaredValueAmountMinorUnits,
+          declaredValueCurrency: dto.currency,
+          isDeMinimisEligible: false,
+          totalAmountMinorUnits,
+          currency: dto.currency,
+          lifecycleStatus: "ACTIVE",
+          currentTrackingCode: "SHIPMENT_CREATED",
+          createdByUserId: actorUserId,
+          source: "admin",
+        },
+      });
+      await tx.package.create({
+        data: {
+          shipmentId: shipment.id,
+          packageNumber: `${trackingNumber}-P001`,
+          sequenceNumber: 1,
+          actualWeightKg: weights.actualWeightKg,
+          lengthCm: dto.lengthCm,
+          widthCm: dto.widthCm,
+          heightCm: dto.heightCm,
+          volumetricWeightKg: weights.volumetricWeightKg,
+          chargeableWeightKg: weights.chargeableWeightKg,
+        },
+      });
+      await tx.trackingEvent.create({
+        data: {
+          shipmentId: shipment.id,
+          canonicalCode: "SHIPMENT_CREATED",
+          publicTitleEn: "Shipment created",
+          publicTitleIt: "Spedizione creata",
+          publicDescriptionEn: "Nauterio Logistics has created this shipment.",
+          sourceType: "STAFF",
+          eventTime: new Date(),
+          actorUserId,
+          notificationState: "ELIGIBLE",
+        },
+      });
+      await tx.outboxEvent.create({
+        data: { eventType: "shipment.created", correlationId, payloadJson: { shipmentId: shipment.id, trackingNumber, source: "admin" } },
+      });
+      await this.auditService.record({
+        actorUserId,
+        action: "SHIPMENT_CREATED_MANUALLY",
+        entityType: "Shipment",
+        entityId: shipment.id,
+        afterJson: { trackingNumber, ownerUserId: owner.id, serviceId: service.id, source: "admin" },
+        correlationId,
+      }, tx);
+      return shipment;
+    });
+  }
+
   /**
    * List scoping happens here, not in PermissionGuard: the guard only knows
    * the caller's role at route-entry time, before any records are loaded
@@ -137,10 +244,11 @@ export class ShipmentsService {
    * gets a tracking number that is already known-unique, rather than
    * discovering a collision only at insert time.
    */
-  async generateTrackingNumber(): Promise<string> {
+  async generateTrackingNumber(destinationCountry = "US"): Promise<string> {
     const prisma = getPrismaClient();
+    const destinationSuffix = /^[A-Z]{2}$/.test(destinationCountry) ? destinationCountry : "XX";
     for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt++) {
-      const candidate = `NT-${randomTrackingSuffix()}-US`;
+      const candidate = `NT-${randomTrackingSuffix()}-${destinationSuffix}`;
       const existing = await prisma.shipment.findUnique({
         where: { trackingNumber: candidate },
         select: { id: true },

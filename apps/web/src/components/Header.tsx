@@ -30,6 +30,7 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
   // shipment/request screens join this list when their implementation lands.
   const PORTAL_NAV_ITEMS = [
     { label: t("navPortalDashboard"), href: "/portal" },
+    { label: t("navTrack"), href: "/tracking" },
     { label: t("navPortalDocuments"), href: "/portal/documents" },
     { label: "Support", href: "/portal/support" },
     { label: unreadCount > 0 ? `${t("navPortalNotifications")} (${unreadCount})` : t("navPortalNotifications"), href: "/portal/notifications" },

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
@@ -6,7 +6,10 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 import { ListShipmentsQueryDto } from "./dto/list-shipments.dto";
+import { CreateAdminShipmentDto } from "./dto/create-admin-shipment.dto";
 import { ShipmentsService } from "./shipments.service";
+import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
+import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
 
 @ApiTags("shipments")
 @ApiBearerAuth()
@@ -23,6 +26,13 @@ export class ShipmentsController {
       { cursor: query.cursor, limit: query.limit },
       { status: query.status, createdAfter: query.createdAfter, createdBefore: query.createdBefore }
     );
+  }
+
+  @Post("admin")
+  @RequirePermission("shipment:create")
+  @RequireIdempotencyKey()
+  async createAdminShipment(@Body() dto: CreateAdminShipmentDto, @CurrentUser() user: AuthenticatedUser, @CorrelationId() correlationId: string) {
+    return this.shipmentsService.createAdminShipment(dto, user.userId, correlationId);
   }
 
   @Get(":id")

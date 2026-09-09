@@ -58,6 +58,9 @@ Ambiguous speech is interpreted only where the visible UI confirms the point.
   and that the number appears consistently in the portal, admin and email.
 - [x] Give authorised staff controls to add/correct tracking milestones and
   update the estimated-delivery window, with public tracking reading both.
+- [x] Add a dedicated operator screen to create a shipment and generate its
+  tracking number without requiring a customer-submitted booking first.
+- [x] Keep **Track** visible in the signed-in customer navigation.
 - [ ] Verify those controls against the deployed production database with a
   disposable end-to-end shipment.
 - [ ] Add end-to-end monitoring for quote failures, authentication redirects,
