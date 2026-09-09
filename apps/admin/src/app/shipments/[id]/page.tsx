@@ -39,6 +39,8 @@ interface ShipmentDetail {
   actionRequiredReason: string | null;
   operationalHold: boolean;
   holdReason: string | null;
+  estimatedDeliveryFrom: string | null;
+  estimatedDeliveryTo: string | null;
   trackingEvents: TrackingEvent[];
   documents: Array<{ id: string; type: string; reviewStatus: string }>;
 }
@@ -63,12 +65,17 @@ export default function ShipmentDetailPage() {
   const [evidenceDocumentId, setEvidenceDocumentId] = useState("");
   const [correctionEventId, setCorrectionEventId] = useState<string | null>(null);
   const [savingEvent, setSavingEvent] = useState(false);
+  const [estimatedDeliveryFrom, setEstimatedDeliveryFrom] = useState("");
+  const [estimatedDeliveryTo, setEstimatedDeliveryTo] = useState("");
+  const [savingEta, setSavingEta] = useState(false);
 
   useEffect(() => {
     Promise.all([apiFetch<ShipmentDetail>(`/shipments/${params.id}`), apiFetch<Profile>("/me")])
       .then(async ([nextShipment, nextProfile]) => {
         setShipment(nextShipment);
         setProfile(nextProfile);
+        setEstimatedDeliveryFrom(toDateInput(nextShipment.estimatedDeliveryFrom));
+        setEstimatedDeliveryTo(toDateInput(nextShipment.estimatedDeliveryTo));
         setEventTime(toNextTrackingDateTime(nextShipment.trackingEvents));
         if (canAddTracking(nextProfile.staffRole) || canCorrectTracking(nextProfile.staffRole)) {
           const options = await apiFetch<TrackingStatusOption[]>(`/admin/shipments/${params.id}/tracking-events/statuses`);
@@ -137,6 +144,29 @@ export default function ShipmentDetailPage() {
     } catch (cause) { setError(cause instanceof ApiError ? cause.body.message : "Could not update shipment hold."); }
   }
 
+  async function saveEstimatedDelivery() {
+    if (!estimatedDeliveryFrom || !estimatedDeliveryTo) {
+      setError("Enter both estimated delivery dates.");
+      return;
+    }
+    setSavingEta(true);
+    setError(null);
+    try {
+      const updated = await apiFetch<ShipmentDetail>(`/admin/shipments/${params.id}/estimated-delivery`, {
+        method: "PATCH",
+        headers: { "Idempotency-Key": `eta-${params.id}-${crypto.randomUUID()}` },
+        body: JSON.stringify({ estimatedDeliveryFrom, estimatedDeliveryTo }),
+      });
+      setShipment(updated);
+      setEstimatedDeliveryFrom(toDateInput(updated.estimatedDeliveryFrom));
+      setEstimatedDeliveryTo(toDateInput(updated.estimatedDeliveryTo));
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.body.message : "Could not update estimated delivery.");
+    } finally {
+      setSavingEta(false);
+    }
+  }
+
   return (
     <AdminShell>
       <Link href="/shipments" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#081F3D]">
@@ -196,6 +226,24 @@ export default function ShipmentDetailPage() {
               value={`${(Number(shipment.declaredValueAmountMinorUnits) / 100).toFixed(2)} ${shipment.declaredValueCurrency}`}
             />
           </div>
+
+          {canManageHold && !["DELIVERED", "CANCELLED", "ARCHIVED"].includes(shipment.lifecycleStatus) && (
+            <section className="rounded-xl border border-slate-200 bg-white p-5">
+              <h2 className="text-sm font-bold uppercase text-[#081F3D]">Estimated delivery window</h2>
+              <p className="mt-1 text-xs text-slate-500">This window is shown on customer and public tracking.</p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label className="text-xs font-semibold text-slate-600">From
+                  <input type="date" value={estimatedDeliveryFrom} onChange={(event) => setEstimatedDeliveryFrom(event.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">To
+                  <input type="date" value={estimatedDeliveryTo} min={estimatedDeliveryFrom || undefined} onChange={(event) => setEstimatedDeliveryTo(event.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+                <button onClick={() => void saveEstimatedDelivery()} disabled={savingEta || !estimatedDeliveryFrom || !estimatedDeliveryTo} className="rounded-lg bg-[#081F3D] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">
+                  {savingEta ? "Saving…" : "Update ETA"}
+                </button>
+              </div>
+            </section>
+          )}
 
           {canRecordMovement && shipment.lifecycleStatus !== "ARCHIVED" && !shipment.operationalHold && (
             <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -264,6 +312,10 @@ export default function ShipmentDetailPage() {
 function toLocalDateTime(date: Date): string {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 19);
+}
+
+function toDateInput(value: string | null): string {
+  return value ? value.slice(0, 10) : "";
 }
 
 function toNextTrackingDateTime(events: TrackingEvent[]): string {

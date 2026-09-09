@@ -49,7 +49,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
     senderLine1: "",
     senderCity: searchParams.get("pickupCity") ?? "",
     senderPostalCode: "",
-    senderCountry: "IT",
+    senderCountry: searchParams.get("originCountry") ?? "IT",
 
     receiverName: "",
     receiverPhone: "",
@@ -57,7 +57,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
     receiverLine1: "",
     receiverCity: searchParams.get("deliveryCity") ?? "",
     receiverPostalCode: "",
-    receiverCountry: "US",
+    receiverCountry: searchParams.get("destinationCountry") ?? "US",
 
     weightKg: Number(searchParams.get("weightKg")) || 1,
     lengthCm: Number(searchParams.get("lengthCm")) || 10,
@@ -159,7 +159,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
       <div className="flex justify-between items-center bg-[#081F3D] text-white p-6 rounded-2xl border border-blue-900 shadow-xl">
         <div>
           <h1 className="text-xl font-black text-white">Create New Express Shipment</h1>
-          <p className="text-xs text-slate-300">Italy → USA Air Freight Booking Portal</p>
+          <p className="text-xs text-slate-300">{formData.senderCountry} → {formData.receiverCountry} Freight Booking Portal</p>
         </div>
         <div className="flex items-center gap-2">
           {[1, 2, 3, 4].map((s) => (
@@ -267,7 +267,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
             {/* Sender */}
             <div className="space-y-3 bg-[#F3F6FA] p-5 rounded-xl border border-slate-200">
-              <h3 className="font-extrabold text-[#081F3D]">Shipper (Italy)</h3>
+              <h3 className="font-extrabold text-[#081F3D]">Shipper ({formData.senderCountry})</h3>
               <input
                 type="text"
                 placeholder="Company/Name"
@@ -304,7 +304,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
 
             {/* Receiver */}
             <div className="space-y-3 bg-[#F3F6FA] p-5 rounded-xl border border-slate-200">
-              <h3 className="font-extrabold text-[#081F3D]">Recipient (USA)</h3>
+              <h3 className="font-extrabold text-[#081F3D]">Recipient ({formData.receiverCountry})</h3>
               <input
                 type="text"
                 placeholder="Company/Name"
@@ -431,6 +431,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
             <ClipboardCheck className="w-5 h-5 text-[#F28C18]" /> Step 4: Review Shipment Request
           </h2>
           <div className="bg-[#F3F6FA] p-5 rounded-2xl border border-slate-200 text-sm space-y-3">
+            <p><strong>Quote reference:</strong> <span className="font-mono text-xs">{quoteId}</span></p>
             <p><strong>Goods:</strong> {formData.goodsDescription || "Not provided"}</p>
             <p><strong>Route:</strong> {formData.senderCity}, {formData.senderCountry} → {formData.receiverCity}, {formData.receiverCountry}</p>
             <p><strong>Package:</strong> {formData.weightKg} kg · {formData.lengthCm} × {formData.widthCm} × {formData.heightCm} cm</p>
@@ -466,6 +467,7 @@ export default function NewBookingWizard({ senderName }: { senderName: string })
           </div>
           <h2 className="text-2xl font-black text-[#081F3D]">Request Submitted</h2>
           <p className="text-slate-600 text-sm">Your request is awaiting operations review. After approval, your invoice and tracking number will appear in your dashboard. Payment is not collected through the website.</p>
+          <p className="text-xs text-slate-500">Quote reference: <span className="font-mono text-[#081F3D]">{quoteId}</span></p>
           <div className="flex justify-center gap-4 pt-4">
             <button
               onClick={() => router.push("/portal")}

@@ -9,7 +9,7 @@ import { Menu, X, Globe, LogOut } from "lucide-react";
 import { logout } from "@/lib/auth";
 import { LOCALE_COOKIE, SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
 
-export default function Header() {
+export default function Header({ hasSession = false }: { hasSession?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale() as Locale;
@@ -124,11 +124,16 @@ export default function Header() {
             <span>{locale.toUpperCase()}</span>
           </button>
 
-          {isPortal ? (
+          {isPortal || hasSession ? (
             <>
               <Link href="/quote" className="rounded-full bg-[#F28C18] px-6 py-2.5 font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#d97c14]">
                 {tPortal("newShipment")}
               </Link>
+              {!isPortal && (
+                <Link href="/portal" className="rounded-full px-3 py-2 font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D]">
+                  {t("portal")}
+                </Link>
+              )}
               <button
                 onClick={() => void handleSignOut()}
                 disabled={signingOut}
@@ -182,7 +187,7 @@ export default function Header() {
               {SUPPORTED_LOCALES.map((l) => l.toUpperCase()).join(" / ")}
               <span className="text-gray-400">({locale.toUpperCase()})</span>
             </button>
-            {isPortal ? (
+            {isPortal || hasSession ? (
               <button
                 onClick={() => void handleSignOut()}
                 disabled={signingOut}
@@ -201,11 +206,11 @@ export default function Header() {
               </Link>
             )}
             <Link
-              href={isPortal ? "/quote" : "/register"}
+              href={isPortal || hasSession ? "/quote" : "/register"}
               className="bg-[#F28C18] text-white text-center px-6 py-3 rounded-full font-medium mt-2"
               onClick={() => setMobileMenuOpen(false)}
             >
-              {isPortal ? tPortal("newShipment") : t("startShipping")}
+              {isPortal || hasSession ? tPortal("newShipment") : t("startShipping")}
             </Link>
           </div>
         </div>

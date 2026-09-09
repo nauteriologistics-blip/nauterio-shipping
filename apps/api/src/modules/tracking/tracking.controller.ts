@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 import { TrackingService } from "./tracking.service";
@@ -10,6 +10,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 import { AddAdminTrackingEventDto, CorrectAdminTrackingEventDto } from "./dto/admin-tracking-event.dto";
 import { PlaceShipmentHoldDto } from "./dto/shipment-hold.dto";
+import { UpdateEstimatedDeliveryDto } from "./dto/update-estimated-delivery.dto";
 
 @ApiTags("tracking")
 @Controller("tracking")
@@ -75,5 +76,12 @@ export class AdminShipmentHoldController {
   @RequireIdempotencyKey()
   release(@Param("shipmentId", ParseUUIDPipe) shipmentId: string, @CurrentUser() user: AuthenticatedUser, @CorrelationId() correlationId: string) {
     return this.trackingService.setOperationalHold(shipmentId, false, undefined, user.userId, correlationId);
+  }
+
+  @Patch("estimated-delivery")
+  @RequirePermission("shipment:edit")
+  @RequireIdempotencyKey()
+  updateEstimatedDelivery(@Param("shipmentId", ParseUUIDPipe) shipmentId: string, @Body() dto: UpdateEstimatedDeliveryDto, @CurrentUser() user: AuthenticatedUser, @CorrelationId() correlationId: string) {
+    return this.trackingService.updateEstimatedDelivery(shipmentId, dto, user.userId, correlationId);
   }
 }

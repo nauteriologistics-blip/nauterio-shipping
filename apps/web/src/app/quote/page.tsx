@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -44,12 +45,45 @@ interface FormData {
   width: string;
   height: string;
   value: string;
+  originCountry: string;
   pickupCity: string;
   pickupZip: string;
+  destinationCountry: string;
   deliveryCity: string;
   deliveryState: string;
   deliveryZip: string;
   serviceId: ServiceId | "";
+}
+
+const ROUTE_COUNTRIES = [
+  { code: "IT" },
+  { code: "DE" },
+  { code: "FR" },
+  { code: "GB" },
+  { code: "GH" },
+  { code: "US" },
+  { code: "CA" },
+  { code: "OTHER" },
+] as const;
+
+const AUTOMATED_ORIGIN = "IT";
+const AUTOMATED_DESTINATION = "US";
+
+async function wakePricingApi(): Promise<void> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const response = await fetch("/api/v1/healthz", {
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (response.ok) return;
+    } catch {
+      // A sleeping Render instance can outlive the first proxy request. The
+      // wake-up continues server-side, so a bounded retry normally reaches
+      // the now-running service without asking the customer to start over.
+    }
+    if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
 }
 
 function QuoteCalculator() {
@@ -68,6 +102,7 @@ function QuoteCalculator() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isFetchingQuotes, setIsFetchingQuotes] = useState(false);
+  const [quoteRequestNonce, setQuoteRequestNonce] = useState(0);
 
   const [formData, setFormData] = useState<FormData>(() => {
     const preselected = searchParams.get("service");
@@ -77,8 +112,10 @@ function QuoteCalculator() {
       width: "",
       height: "",
       value: "",
+      originCountry: AUTOMATED_ORIGIN,
       pickupCity: "",
       pickupZip: "",
+      destinationCountry: AUTOMATED_DESTINATION,
       deliveryCity: "",
       deliveryState: "",
       deliveryZip: "",
@@ -103,11 +140,19 @@ function QuoteCalculator() {
   const chargeableWeight = Math.max(actualWeight, volumetricWeight);
   const selectedService = getService(formData.serviceId);
   const selectedQuote = formData.serviceId ? quotesByService[formData.serviceId] : undefined;
+  const supportsAutomatedPricing = formData.originCountry === AUTOMATED_ORIGIN && formData.destinationCountry === AUTOMATED_DESTINATION;
+
+  const handleRouteChange = (name: "originCountry" | "destinationCountry", value: string) => {
+    setFormError(null);
+    setQuoteError(null);
+    setQuotesByService({});
+    setFormData((previous) => ({ ...previous, [name]: value, serviceId: "" }));
+  };
 
   // Fetch live indicative pricing from the API for every service once the
   // user has entered package details and reaches the service-selection step.
   useEffect(() => {
-    if (currentStep < 3 || actualWeight <= 0) return;
+    if (currentStep < 3 || actualWeight <= 0 || !supportsAutomatedPricing) return;
 
     let cancelled = false;
 
@@ -115,16 +160,12 @@ function QuoteCalculator() {
       setIsFetchingQuotes(true);
       setQuoteError(null);
       try {
-        const entries = await Promise.all(
+        await wakePricingApi();
+        if (cancelled) return;
+        const results = await Promise.allSettled(
           SERVICES.map(async (service) => {
             const csrfToken = getCsrfToken();
-            const res = await fetch("/api/v1/quotes", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
-              },
-              body: JSON.stringify({
+            const request = {
                 weightKg: Number(formData.weight),
                 lengthCm: Number(formData.length),
                 widthCm: Number(formData.width),
@@ -133,16 +174,35 @@ function QuoteCalculator() {
                 service: service.id,
                 addCustoms: true,
                 addInsurance: true,
-              }),
-            });
-            if (!res.ok) {
-              throw new Error(res.status >= 500 ? t("quoteUnavailableMessage") : t("quoteErrorMessage"));
+              };
+            let res: Response | null = null;
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+              try {
+                res = await fetch("/api/v1/quotes", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+                  },
+                  body: JSON.stringify(request),
+                });
+              } catch {
+                res = null;
+              }
+              if (res?.ok || (res && res.status < 500 && res.status !== 429)) break;
+              if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 1500 : 5000));
             }
+            if (!res?.ok) throw new Error(t("quoteUnavailableMessage"));
             const json = (await res.json()) as QuoteResult;
             return [service.id, json] as const;
           })
         );
-        if (!cancelled) setQuotesByService(Object.fromEntries(entries));
+        const entries = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+        if (!cancelled) {
+          setQuotesByService(Object.fromEntries(entries));
+          if (entries.length === 0) setQuoteError(t("quoteUnavailableMessage"));
+          else if (entries.length < SERVICES.length) setQuoteError(t("partialQuoteMessage"));
+        }
       } catch (cause) {
         if (!cancelled) {
           setQuoteError(cause instanceof Error ? cause.message : t("quoteUnavailableMessage"));
@@ -158,7 +218,7 @@ function QuoteCalculator() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value]);
+  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value, supportsAutomatedPricing, quoteRequestNonce]);
 
   const router = useRouter();
 
@@ -177,7 +237,9 @@ function QuoteCalculator() {
       params.set("heightCm", formData.height);
       params.set("declaredValueEur", formData.value || "0");
       params.set("pickupCity", formData.pickupCity);
+      params.set("originCountry", formData.originCountry);
       params.set("deliveryCity", formData.deliveryCity);
+      params.set("destinationCountry", formData.destinationCountry);
       params.set("quoteId", selectedQuote.quoteId);
       params.set("totalPriceEur", String(selectedQuote.totalPriceEur));
     }
@@ -204,13 +266,14 @@ function QuoteCalculator() {
       }
     }
     if (currentStep === 2) {
-      const routeFields = [formData.pickupCity, formData.pickupZip, formData.deliveryCity, formData.deliveryState, formData.deliveryZip];
+      const routeFields = [formData.pickupCity, formData.pickupZip, formData.deliveryCity, formData.deliveryZip];
+      if (formData.destinationCountry === "US") routeFields.push(formData.deliveryState);
       if (routeFields.some((value) => !value.trim())) {
         setFormError(t("addressValidationError"));
         return;
       }
     }
-    if (currentStep === 3 && (!formData.serviceId || !selectedQuote || isFetchingQuotes || quoteError)) {
+    if (currentStep === 3 && (!supportsAutomatedPricing || !formData.serviceId || !selectedQuote || isFetchingQuotes)) {
       setFormError(t("selectCalculatedQuoteError"));
       return;
     }
@@ -361,6 +424,17 @@ function QuoteCalculator() {
                       {t("pickupOriginHeading")}
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2">
+                        <label htmlFor="originCountry" className="block text-sm font-medium text-slate-700 mb-2">{t("countryLabel")}</label>
+                        <select
+                          id="originCountry"
+                          value={formData.originCountry}
+                          onChange={(event) => handleRouteChange("originCountry", event.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
+                        >
+                          {ROUTE_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{t(`countries.${country.code}`)}</option>)}
+                        </select>
+                      </div>
                       <div>
                         <label htmlFor="pickupCity" className="block text-sm font-medium text-slate-700 mb-2">{t("cityLabel")}</label>
                         <input
@@ -392,6 +466,17 @@ function QuoteCalculator() {
                       {t("deliveryDestinationHeading")}
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="md:col-span-3">
+                        <label htmlFor="destinationCountry" className="block text-sm font-medium text-slate-700 mb-2">{t("countryLabel")}</label>
+                        <select
+                          id="destinationCountry"
+                          value={formData.destinationCountry}
+                          onChange={(event) => handleRouteChange("destinationCountry", event.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
+                        >
+                          {ROUTE_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{t(`countries.${country.code}`)}</option>)}
+                        </select>
+                      </div>
                       <div className="md:col-span-2">
                         <label htmlFor="deliveryCity" className="block text-sm font-medium text-slate-700 mb-2">{t("cityLabel")}</label>
                         <input
@@ -429,14 +514,33 @@ function QuoteCalculator() {
                     {t("selectServiceHeading")}
                   </h2>
 
-                  {quoteError && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-800 text-sm">
-                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-                      {quoteError}
+                  {!supportsAutomatedPricing && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                      <p className="font-bold">{t("customRouteHeading")}</p>
+                      <p className="mt-1">{t("customRouteBody")}</p>
+                      <Link href="/business#contact" className="mt-2 inline-block font-bold text-blue-800 underline underline-offset-2">
+                        {t("requestRouteReviewLink")}
+                      </Link>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 gap-4">
+                  {quoteError && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-800 text-sm">
+                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+                      <div className="flex-1">
+                        <p>{quoteError}</p>
+                        <button
+                          type="button"
+                          onClick={() => setQuoteRequestNonce((value) => value + 1)}
+                          className="mt-2 font-bold underline underline-offset-2"
+                        >
+                          {t("retryPricingButton")}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {supportsAutomatedPricing && <div className="grid grid-cols-1 gap-4">
                     {SERVICES.map((service) => {
                       const Icon = SERVICE_ICONS[service.id];
                       const catalogKey = SERVICE_CATALOG_KEYS[service.id];
@@ -491,7 +595,7 @@ function QuoteCalculator() {
                         </div>
                       );
                     })}
-                  </div>
+                  </div>}
                 </div>
               )}
 
@@ -507,11 +611,11 @@ function QuoteCalculator() {
                     <div className="grid grid-cols-2 gap-6 pb-6 border-b border-slate-200">
                       <div>
                         <p className="text-sm text-slate-500 mb-1">{t("originLabel")}</p>
-                        <p className="font-semibold text-[#081F3D]">{formData.pickupCity || t("milanFallback")}, IT {formData.pickupZip}</p>
+                        <p className="font-semibold text-[#081F3D]">{formData.pickupCity || t("milanFallback")}, {formData.originCountry} {formData.pickupZip}</p>
                       </div>
                       <div>
                         <p className="text-sm text-slate-500 mb-1">{t("destinationLabel")}</p>
-                        <p className="font-semibold text-[#081F3D]">{formData.deliveryCity || t("newYorkFallback")}, {formData.deliveryState || t("nyFallback")} {formData.deliveryZip}</p>
+                        <p className="font-semibold text-[#081F3D]">{formData.deliveryCity || t("newYorkFallback")}, {formData.destinationCountry} {formData.deliveryState || t("nyFallback")} {formData.deliveryZip}</p>
                       </div>
                     </div>
 
@@ -557,7 +661,7 @@ function QuoteCalculator() {
                 {currentStep < 4 ? (
                   <button
                     onClick={handleNext}
-                    disabled={currentStep === 3 && (isFetchingQuotes || !formData.serviceId || !selectedQuote)}
+                    disabled={currentStep === 3 && (!supportsAutomatedPricing || isFetchingQuotes || !formData.serviceId || !selectedQuote)}
                     className="flex items-center gap-2 px-8 py-4 bg-[#F28C18] text-white rounded-full font-medium hover:bg-[#e07a12] transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {t("nextStepButton")}
@@ -586,9 +690,9 @@ function QuoteCalculator() {
                 <div>
                   <div className="text-white/60 text-sm mb-1">{t("routeLabel")}</div>
                   <div className="font-medium flex items-center justify-between">
-                    <span>{formData.pickupCity || t("italyFallback")}</span>
+                    <span>{formData.pickupCity || formData.originCountry}</span>
                     <ArrowRight className="w-4 h-4 text-[#F28C18] mx-2" aria-hidden="true" />
-                    <span>{formData.deliveryCity || t("usaFallback")}</span>
+                    <span>{formData.deliveryCity || formData.destinationCountry}</span>
                   </div>
                 </div>
 
@@ -622,9 +726,15 @@ function QuoteCalculator() {
                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">
                   <span className="text-lg font-medium">{t("totalEstimateLabel")}</span>
                   <span className="text-3xl font-bold text-[#F28C18]">
-                    {selectedQuote ? `€${selectedQuote.totalPriceEur.toFixed(2)}` : "€0.00"}
+                    {selectedQuote ? `€${selectedQuote.totalPriceEur.toFixed(2)}` : isFetchingQuotes ? t("calculatingPrice") : "—"}
                   </span>
                 </div>
+                {selectedQuote && (
+                  <div className="border-t border-white/10 pt-4">
+                    <div className="text-white/60 text-xs">{t("quoteReferenceLabel")}</div>
+                    <div className="mt-1 break-all font-mono text-xs text-white" data-testid="quote-reference">{selectedQuote.quoteId}</div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 flex items-start gap-3 bg-white/5 rounded-xl p-4">
@@ -633,6 +743,15 @@ function QuoteCalculator() {
                   {selectedQuote?.disclaimer ?? t("defaultDisclaimer")}
                 </p>
               </div>
+              {currentStep === 4 && selectedQuote && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-xs leading-5 text-white/75">
+                  <p className="font-bold text-white">{t("paymentHelpHeading")}</p>
+                  <p className="mt-1">{t("paymentHelpBody")}</p>
+                  <Link href="/business#contact" className="mt-2 inline-block font-bold text-[#F28C18] hover:underline">
+                    {t("contactSupportLink")}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
