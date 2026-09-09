@@ -36,6 +36,10 @@ export class ShipmentsService {
   constructor(private readonly auditService: AuditService) {}
 
   async createAdminShipment(dto: CreateAdminShipmentDto, actorUserId: string, correlationId: string) {
+    if (dto.senderCountry === dto.receiverCountry) {
+      throw new BadRequestException("Sender and receiver countries must be different for an international shipment");
+    }
+
     const prisma = getPrismaClient();
     const owner = await prisma.user.findFirst({
       where: { id: dto.ownerUserId, staffRole: null, erasedAt: null, status: "ACTIVE" },

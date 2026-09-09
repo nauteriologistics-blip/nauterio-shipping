@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { getCsrfToken } from "@/lib/auth";
+import { CSRF_HEADER } from "@/lib/session";
+
+interface RequestErrorBody {
+  message?: string;
+  fieldErrors?: Record<string, string[]>;
+}
 
 export default function BusinessPage() {
   const t = useTranslations("BusinessPage");
@@ -17,9 +24,13 @@ export default function BusinessPage() {
     setSubmitting(true);
     setError(null);
     const form = new FormData(event.currentTarget);
+    const csrfToken = getCsrfToken();
     const response = await fetch("/api/v1/business-inquiries", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+      },
       body: JSON.stringify({
         companyName: String(form.get("companyName") ?? ""),
         monthlyVolume: String(form.get("monthlyVolume") ?? ""),
@@ -29,7 +40,9 @@ export default function BusinessPage() {
     }).catch(() => null);
     setSubmitting(false);
     if (!response?.ok) {
-      setError(t("requestError"));
+      const body = await response?.json().catch(() => null) as RequestErrorBody | null;
+      const detail = body?.fieldErrors ? Object.values(body.fieldErrors).flat()[0] : body?.message;
+      setError(detail || t("requestError"));
       return;
     }
     setSubmitted(true);

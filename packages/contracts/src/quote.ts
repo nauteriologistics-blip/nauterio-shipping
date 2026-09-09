@@ -6,6 +6,8 @@ export interface QuoteRequest {
   widthCm: number;
   heightCm: number;
   declaredValueEur: number;
+  originCountry: string;
+  destinationCountry: string;
   service: ServiceId;
   addCustoms?: boolean;
   addPickup?: boolean;

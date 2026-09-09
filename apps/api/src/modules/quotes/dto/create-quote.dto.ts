@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsNumber, IsOptional, Max, Min } from "class-validator";
+import { IsBoolean, IsIn, IsNotIn, IsNumber, IsOptional, Matches, Max, Min } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { SERVICES, type ServiceId } from "@nauterio/contracts";
 
@@ -14,6 +14,7 @@ const SERVICE_IDS = SERVICES.map((s) => s.id) as [ServiceId, ...ServiceId[]];
 const MAX_WEIGHT_KG = 1000;
 const MAX_DIMENSION_CM = 500;
 const MAX_DECLARED_VALUE_EUR = 1_000_000;
+const COUNTRY_CODE = /^[A-Z]{2}$/;
 
 export class CreateQuoteDto {
   @ApiProperty() @IsNumber() @Min(0.01) @Max(MAX_WEIGHT_KG) weightKg!: number;
@@ -21,6 +22,12 @@ export class CreateQuoteDto {
   @ApiProperty() @IsNumber() @Min(1) @Max(MAX_DIMENSION_CM) widthCm!: number;
   @ApiProperty() @IsNumber() @Min(1) @Max(MAX_DIMENSION_CM) heightCm!: number;
   @ApiProperty() @IsNumber() @Min(0) @Max(MAX_DECLARED_VALUE_EUR) declaredValueEur!: number;
+  // Optional at the API boundary for a backwards-compatible deployment:
+  // the current web release did not send route fields. The updated web app
+  // always sends both; once all API clients have migrated these can become
+  // required without interrupting in-flight quote requests.
+  @ApiProperty({ example: "IT", required: false }) @IsOptional() @Matches(COUNTRY_CODE) @IsNotIn(["GH"]) originCountry?: string;
+  @ApiProperty({ example: "US", required: false }) @IsOptional() @Matches(COUNTRY_CODE) @IsNotIn(["GH"]) destinationCountry?: string;
   @ApiProperty({ enum: SERVICE_IDS }) @IsIn(SERVICE_IDS) service!: ServiceId;
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() addCustoms?: boolean;
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() addPickup?: boolean;

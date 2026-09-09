@@ -9,6 +9,8 @@ export const FIXTURE_SHIPMENT_INPUT = {
   widthCm: 30,
   heightCm: 20,
   declaredValueEur: 300,
+  originCountry: "IT",
+  destinationCountry: "US",
   service: "air-express" as const,
 };
 

@@ -69,4 +69,37 @@ describe("ShipmentsService tracking number generation", () => {
     expect(tx.outboxEvent.create).toHaveBeenCalledTimes(1);
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: "SHIPMENT_CREATED_MANUALLY" }), tx);
   });
+
+  it("accepts the documented upper boundaries without overflowing money or weight calculations", async () => {
+    const createdShipment = { id: "shipment-high", trackingNumber: "NT-1234567890-JP" };
+    const shipmentCreate = jest.fn<
+      Promise<typeof createdShipment>,
+      [{ data: { declaredValueAmountMinorUnits: bigint; totalAmountMinorUnits: bigint } }]
+    >().mockResolvedValue(createdShipment);
+    const tx = {
+      shipment: { create: shipmentCreate },
+      package: { create: jest.fn().mockResolvedValue({}) },
+      trackingEvent: { create: jest.fn().mockResolvedValue({}) },
+      outboxEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    (databaseModule.getPrismaClient as jest.Mock).mockReturnValue({
+      user: { findFirst: jest.fn().mockResolvedValue({ id: "00000000-0000-0000-0000-000000000001", organisationMemberships: [] }) },
+      service: { findFirst: jest.fn().mockResolvedValue({ id: "OCEAN_FREIGHT" }) },
+      shipment: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn((callback: (value: typeof tx) => unknown) => callback(tx)),
+    });
+
+    await expect(new ShipmentsService(audit).createAdminShipment({
+      ownerUserId: "00000000-0000-0000-0000-000000000001",
+      serviceId: "OCEAN_FREIGHT",
+      senderName: "High-value sender", senderLine1: "1 Via Roma", senderCity: "Milan", senderPostalCode: "20121", senderCountry: "IT", senderPhone: "+390000000",
+      receiverName: "High-value receiver", receiverLine1: "1 Chiyoda", receiverCity: "Tokyo", receiverPostalCode: "100-0001", receiverCountry: "JP", receiverPhone: "+810000000",
+      weightKg: 1000, lengthCm: 500, widthCm: 500, heightCm: 500,
+      declaredValue: 1_000_000, totalAmount: 10_000_000, currency: "EUR",
+    }, "staff-1", "correlation-high")).resolves.toBe(createdShipment);
+
+    const shipmentCreateInput = shipmentCreate.mock.calls[0][0];
+    expect(shipmentCreateInput.data.declaredValueAmountMinorUnits).toBe(100_000_000n);
+    expect(shipmentCreateInput.data.totalAmountMinorUnits).toBe(1_000_000_000n);
+  });
 });

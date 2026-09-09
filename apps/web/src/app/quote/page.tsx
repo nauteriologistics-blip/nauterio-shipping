@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Package, MapPin, Plane, Ship, Check, ArrowRight, ArrowLeft,
   Info, Shield, Clock, Calculator, AlertCircle
@@ -12,6 +12,7 @@ import confetti from "canvas-confetti";
 import { SERVICES, getService, type ServiceId } from "@/lib/services";
 import { getCsrfToken } from "@/lib/auth";
 import { CSRF_HEADER } from "@/lib/session";
+import { getCountryOptions } from "@/lib/countries";
 
 const SERVICE_ICONS: Record<ServiceId, typeof Plane> = {
   "air-express": Plane,
@@ -56,33 +57,6 @@ interface FormData {
   serviceId: ServiceId | "";
 }
 
-const ROUTE_COUNTRIES = [
-  { code: "AE" },
-  { code: "AT" },
-  { code: "AU" },
-  { code: "BE" },
-  { code: "CA" },
-  { code: "CN" },
-  { code: "DE" },
-  { code: "ES" },
-  { code: "FR" },
-  { code: "GB" },
-  { code: "IN" },
-  { code: "IT" },
-  { code: "JP" },
-  { code: "NG" },
-  { code: "NL" },
-  { code: "PL" },
-  { code: "PT" },
-  { code: "SE" },
-  { code: "US" },
-  { code: "ZA" },
-  { code: "OTHER" },
-] as const;
-
-const AUTOMATED_ORIGIN = "IT";
-const AUTOMATED_DESTINATION = "US";
-
 async function wakePricingApi(): Promise<void> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -103,6 +77,8 @@ async function wakePricingApi(): Promise<void> {
 function QuoteCalculator() {
   const t = useTranslations("QuotePage");
   const tCatalog = useTranslations("ServiceCatalog");
+  const locale = useLocale();
+  const countryOptions = useMemo(() => getCountryOptions(locale), [locale]);
   const searchParams = useSearchParams();
   const steps = [
     { id: 1, title: t("stepPackageDetails") },
@@ -155,7 +131,11 @@ function QuoteCalculator() {
   const chargeableWeight = Math.max(actualWeight, volumetricWeight);
   const selectedService = getService(formData.serviceId);
   const selectedQuote = formData.serviceId ? quotesByService[formData.serviceId] : undefined;
-  const supportsAutomatedPricing = formData.originCountry === AUTOMATED_ORIGIN && formData.destinationCountry === AUTOMATED_DESTINATION;
+  const routeReady = Boolean(
+    formData.originCountry &&
+    formData.destinationCountry &&
+    formData.originCountry !== formData.destinationCountry
+  );
 
   const handleRouteChange = (name: "originCountry" | "destinationCountry", value: string) => {
     setFormError(null);
@@ -171,7 +151,7 @@ function QuoteCalculator() {
     // to the review step must keep the exact quote reference the user saw and
     // selected; re-fetching here silently replaced it with a new database
     // record just before booking.
-    if (currentStep !== 3 || actualWeight <= 0 || !supportsAutomatedPricing) return;
+    if (currentStep !== 3 || actualWeight <= 0 || !routeReady) return;
 
     let cancelled = false;
 
@@ -190,6 +170,8 @@ function QuoteCalculator() {
                 widthCm: Number(formData.width),
                 heightCm: Number(formData.height),
                 declaredValueEur: Number(formData.value) || 0,
+                originCountry: formData.originCountry,
+                destinationCountry: formData.destinationCountry,
                 service: service.id,
                 addCustoms: true,
                 addInsurance: formData.addInsurance,
@@ -237,7 +219,7 @@ function QuoteCalculator() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value, formData.addInsurance, supportsAutomatedPricing, quoteRequestNonce]);
+  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value, formData.addInsurance, formData.originCountry, formData.destinationCountry, routeReady, quoteRequestNonce]);
 
   const router = useRouter();
 
@@ -279,7 +261,13 @@ function QuoteCalculator() {
     setFormError(null);
     if (currentStep === 1) {
       const dimensions = [formData.length, formData.width, formData.height].map(Number);
-      if (Number(formData.weight) <= 0 || dimensions.some((value) => value <= 0) || Number(formData.value) <= 0) {
+      const weight = Number(formData.weight);
+      const declaredValue = Number(formData.value);
+      if (
+        !Number.isFinite(weight) || weight <= 0 || weight > 1000 ||
+        dimensions.some((value) => !Number.isFinite(value) || value < 1 || value > 500) ||
+        !Number.isFinite(declaredValue) || declaredValue <= 0 || declaredValue > 1_000_000
+      ) {
         setFormError(t("packageValidationError"));
         return;
       }
@@ -291,8 +279,12 @@ function QuoteCalculator() {
         setFormError(t("addressValidationError"));
         return;
       }
+      if (formData.originCountry === formData.destinationCountry) {
+        setFormError(t("sameCountryRouteError"));
+        return;
+      }
     }
-    if (currentStep === 3 && (!supportsAutomatedPricing || !formData.serviceId || !selectedQuote || isFetchingQuotes)) {
+    if (currentStep === 3 && (!formData.serviceId || !selectedQuote || isFetchingQuotes)) {
       setFormError(t("selectCalculatedQuoteError"));
       return;
     }
@@ -381,7 +373,7 @@ function QuoteCalculator() {
                       <input
                         id="weight" type="number" name="weight" value={formData.weight} onChange={handleInputChange}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
-                        placeholder={t("actualWeightPlaceholder")}
+                        min="0.01" max="1000" step="0.01" placeholder={t("actualWeightPlaceholder")}
                       />
                     </div>
                     <div>
@@ -389,7 +381,7 @@ function QuoteCalculator() {
                       <input
                         id="value" type="number" name="value" value={formData.value} onChange={handleInputChange}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
-                        placeholder={t("declaredValuePlaceholder")}
+                        min="0.01" max="1000000" step="0.01" placeholder={t("declaredValuePlaceholder")}
                       />
                     </div>
                   </div>
@@ -401,19 +393,19 @@ function QuoteCalculator() {
                         aria-label={t("lengthAriaLabel")}
                         type="number" name="length" value={formData.length} onChange={handleInputChange}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
-                        placeholder={t("lengthPlaceholder")}
+                        min="1" max="500" step="0.1" placeholder={t("lengthPlaceholder")}
                       />
                       <input
                         aria-label={t("widthAriaLabel")}
                         type="number" name="width" value={formData.width} onChange={handleInputChange}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
-                        placeholder={t("widthPlaceholder")}
+                        min="1" max="500" step="0.1" placeholder={t("widthPlaceholder")}
                       />
                       <input
                         aria-label={t("heightAriaLabel")}
                         type="number" name="height" value={formData.height} onChange={handleInputChange}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
-                        placeholder={t("heightPlaceholder")}
+                        min="1" max="500" step="0.1" placeholder={t("heightPlaceholder")}
                       />
                     </div>
                   </fieldset>
@@ -457,7 +449,7 @@ function QuoteCalculator() {
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
                         >
                           <option value="" disabled>{t("selectOriginCountry")}</option>
-                          {ROUTE_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{t(`countries.${country.code}`)}</option>)}
+                          {countryOptions.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
                         </select>
                       </div>
                       <div>
@@ -500,7 +492,7 @@ function QuoteCalculator() {
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
                         >
                           <option value="" disabled>{t("selectDestinationCountry")}</option>
-                          {ROUTE_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{t(`countries.${country.code}`)}</option>)}
+                          {countryOptions.map((country) => <option key={country.code} value={country.code}>{country.name}</option>)}
                         </select>
                       </div>
                       <div className="md:col-span-2">
@@ -540,13 +532,14 @@ function QuoteCalculator() {
                     {t("selectServiceHeading")}
                   </h2>
 
-                  {!supportsAutomatedPricing && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                    <p className="font-bold">{t("routeEstimateHeading")}</p>
+                    <p className="mt-1">{t("routeEstimateBody")}</p>
+                  </div>
+
+                  {!routeReady && (
                     <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-                      <p className="font-bold">{t("customRouteHeading")}</p>
-                      <p className="mt-1">{t("customRouteBody")}</p>
-                      <Link href="/business#contact" className="mt-2 inline-block font-bold text-blue-800 underline underline-offset-2">
-                        {t("requestRouteReviewLink")}
-                      </Link>
+                      <p className="font-bold">{t("sameCountryRouteError")}</p>
                     </div>
                   )}
 
@@ -566,7 +559,7 @@ function QuoteCalculator() {
                     </div>
                   )}
 
-                  {supportsAutomatedPricing && <div className="grid grid-cols-1 gap-4">
+                  {routeReady && <div className="grid grid-cols-1 gap-4">
                     {SERVICES.map((service) => {
                       const Icon = SERVICE_ICONS[service.id];
                       const catalogKey = SERVICE_CATALOG_KEYS[service.id];
@@ -687,7 +680,7 @@ function QuoteCalculator() {
                 {currentStep < 4 ? (
                   <button
                     onClick={handleNext}
-                    disabled={currentStep === 3 && (!supportsAutomatedPricing || isFetchingQuotes || !formData.serviceId || !selectedQuote)}
+                    disabled={currentStep === 3 && (!routeReady || isFetchingQuotes || !formData.serviceId || !selectedQuote)}
                     className="flex items-center gap-2 rounded-md bg-[#d77718] px-8 py-4 font-medium text-white transition-colors hover:bg-[#b95f0d] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {t("nextStepButton")}
