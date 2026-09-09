@@ -8,9 +8,9 @@ import Footer from "@/components/Footer";
 import { SESSION_COOKIE } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Nauterio Logistics | Shipping from Italy to the United States Made Clear",
-  description: "A logistics platform for planning Italy–USA air and ocean shipments, with reviewed estimates, customs preparation guidance and milestone visibility.",
-  keywords: ["Italy to USA shipping", "air freight Milan to JFK", "customs broker Italy US", "parcel shipping Italy to America", "Nauterio Logistics"],
+  title: "Nauterio Logistics | International Shipping Made Clear",
+  description: "An international logistics platform for planning air, ocean, and parcel shipments, with reviewed estimates, customs guidance, and milestone visibility.",
+  keywords: ["international shipping", "air freight", "ocean freight", "parcel tracking", "customs guidance", "Nauterio Logistics"],
 };
 
 export default async function RootLayout({

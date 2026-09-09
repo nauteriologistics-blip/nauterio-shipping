@@ -17,7 +17,7 @@ const TRACKING_NUMBER_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 // 10 base32 characters = 50 bits = ~1.1e15 values, in the range the audit
 // recommended. The previous 6 hex characters (24 bits, 16.7M values) put a
 // collision at a coin flip by ~4,800 shipments; this pushes it past any
-// realistic lifetime volume for the corridor.
+// realistic lifetime volume across supported international routes.
 const TRACKING_NUMBER_LENGTH = 10;
 const MAX_GENERATION_ATTEMPTS = 5;
 

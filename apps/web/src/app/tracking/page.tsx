@@ -21,7 +21,7 @@ interface TrackedShipment {
   origin: string;
   destination: string;
   /** Full customer-facing label from the spec's 34-status canonical
-   * catalogue (Appendix C) - e.g. "Departed Italy", not a fixed enum. */
+   * catalogue (Appendix C) - e.g. "Departed origin country", not a fixed enum. */
   status: string;
   statusCategory: StatusCategory;
   estimatedDelivery: string;

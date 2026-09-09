@@ -172,7 +172,7 @@ async function main() {
     events: [
       { code: "SHIPMENT_CREATED", en: "Shipment created", it: "Spedizione creata", hoursAgo: 54 },
       { code: "PACKAGE_COLLECTED", en: "Package collected", it: "Pacco ritirato", hoursAgo: 48 },
-      { code: "DEPARTED_ORIGIN", en: "Departed Italy", it: "Partito dall'Italia", hoursAgo: 26 },
+      { code: "DEPARTED_ORIGIN", en: "Departed origin country", it: "Partito dal paese di origine", hoursAgo: 26 },
       { code: "INTERNATIONAL_TRANSIT", en: "In international transit", it: "In transito internazionale", hoursAgo: 4 },
     ],
   });
@@ -187,7 +187,7 @@ async function main() {
     actionRequiredReason: "Missing commercial invoice copy for FDA clearance of wine goods.",
     events: [
       { code: "SHIPMENT_CREATED", en: "Shipment created", it: "Spedizione creata", hoursAgo: 72 },
-      { code: "ARRIVED_DESTINATION", en: "Arrived in the United States", it: "Arrivato negli Stati Uniti", hoursAgo: 26 },
+      { code: "ARRIVED_DESTINATION", en: "Arrived in destination country", it: "Arrivato nel paese di destinazione", hoursAgo: 26 },
       { code: "CUSTOMS_ACTION_REQUIRED", en: "Customs action required", it: "Azione doganale richiesta", hoursAgo: 6 },
     ],
   });
@@ -202,8 +202,8 @@ async function main() {
     deliveredDaysAgo: 3,
     events: [
       { code: "SHIPMENT_CREATED", en: "Shipment created", it: "Spedizione creata", hoursAgo: 144 },
-      { code: "DEPARTED_ORIGIN", en: "Departed Italy", it: "Partito dall'Italia", hoursAgo: 120 },
-      { code: "ARRIVED_DESTINATION", en: "Arrived in the United States", it: "Arrivato negli Stati Uniti", hoursAgo: 96 },
+      { code: "DEPARTED_ORIGIN", en: "Departed origin country", it: "Partito dal paese di origine", hoursAgo: 120 },
+      { code: "ARRIVED_DESTINATION", en: "Arrived in destination country", it: "Arrivato nel paese di destinazione", hoursAgo: 96 },
       { code: "OUT_FOR_DELIVERY", en: "Out for delivery", it: "In consegna", hoursAgo: 76 },
       { code: "DELIVERED", en: "Delivered", it: "Consegnato", hoursAgo: 72 },
     ],

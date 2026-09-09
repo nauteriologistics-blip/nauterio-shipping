@@ -248,7 +248,7 @@ model Service {
 }
 
 /// Origin/destination coverage for a service (spec: Route entity). Launch
-/// scope is Italy -> USA only; modelled generally so route expansion doesn't
+/// route coverage is operationally reviewed; modelled generally so expansion doesn't
 /// require a schema change.
 model Route {
   id                String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
