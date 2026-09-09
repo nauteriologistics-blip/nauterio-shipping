@@ -2,6 +2,7 @@
 
 import { useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Search, MapPin, Package, CheckCircle2, AlertCircle, Clock, ArrowRight } from "lucide-react";
 
@@ -98,11 +99,12 @@ function TrackingContent() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-12">
-        <h1 className="text-3xl font-bold text-[#081F3D] mb-6">{t("heroTitle")}</h1>
+    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <div className="mb-12 border-b border-slate-300 pb-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#a95d14]">{t("eyebrow")}</p>
+        <h1 className="mb-6 mt-3 text-4xl font-semibold tracking-tight text-[#10233f]">{t("heroTitle")}</h1>
 
-        <form onSubmit={onSubmit} className="relative max-w-xl mx-auto flex items-center">
+        <form onSubmit={onSubmit} className="relative flex max-w-2xl items-center">
           <label htmlFor="tracking-search" className="sr-only">{t("trackingNumberLabel")}</label>
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
@@ -113,25 +115,27 @@ function TrackingContent() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("placeholder")}
-            className="block w-full pl-11 pr-32 py-4 border border-gray-200 rounded-full text-lg focus:ring-[#F28C18] focus:border-[#F28C18] shadow-sm bg-white"
+            className="block w-full rounded-md border border-slate-300 bg-white py-4 pl-11 pr-32 text-lg focus:border-[#d77718] focus:ring-[#d77718]"
           />
           <button
             type="submit"
-            className="absolute inset-y-2 right-2 bg-[#081F3D] hover:bg-[#081F3D]/90 text-white px-6 py-2 rounded-full font-medium transition-colors"
+            className="absolute inset-y-2 right-2 rounded-md bg-[#10233f] px-6 py-2 font-semibold text-white transition-colors hover:bg-[#18365e]"
           >
             {t("trackButton")}
           </button>
         </form>
 
-        <p className="mt-6 text-sm text-gray-500">{t("trackingFormatHint")}</p>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-500">{t("trackingFormatHint")}</p>
       </div>
+
+      {!searched && !isLoading && <section className="grid gap-8 border-y border-slate-300 bg-[#f7f6f2] p-6 md:grid-cols-2 md:p-8"><div><h2 className="font-semibold text-[#10233f]">{t("whereNumberHeading")}</h2><p className="mt-3 text-sm leading-6 text-slate-600">{t("whereNumberBody")}</p></div><div><h2 className="font-semibold text-[#10233f]">{t("needHelpHeading")}</h2><p className="mt-3 text-sm leading-6 text-slate-600">{t("needHelpBody")} <Link href="/portal/support" className="font-semibold underline">{t("messageSupport")}</Link></p></div></section>}
 
       {isLoading && (
         <p className="text-center text-gray-500" role="status">{t("loading")}</p>
       )}
 
       {!isLoading && searched && !shipment && lookupUnavailable && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-10 text-center" role="alert">
+        <div className="border-l-4 border-amber-500 bg-amber-50 p-8" role="alert">
           <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" aria-hidden="true" />
           <h3 className="text-xl font-medium text-amber-900 mb-2">{t("serviceUnavailableTitle")}</h3>
           <p className="text-amber-800">{t("serviceUnavailableBody")}</p>
@@ -139,7 +143,7 @@ function TrackingContent() {
       )}
 
       {!isLoading && searched && !shipment && !lookupUnavailable && (
-        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-10 text-center">
+        <div className="border-l-4 border-slate-300 bg-slate-50 p-8">
           <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" aria-hidden="true" />
           <h3 className="text-xl font-medium text-gray-900 mb-2">{t("notFoundTitle")}</h3>
           <p className="text-gray-500">{t("notFoundBody", { query })}</p>
@@ -149,7 +153,7 @@ function TrackingContent() {
       {!isLoading && shipment && (
         <div className="space-y-8">
           {shipment.actionRequired && (
-            <div className="bg-amber-50 border-l-4 border-amber-500 rounded-r-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex flex-col justify-between gap-4 border-l-4 border-amber-500 bg-amber-50 p-6 sm:flex-row sm:items-center">
               <div className="flex items-start gap-4">
                 <AlertCircle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <div>
@@ -157,14 +161,14 @@ function TrackingContent() {
                   <p className="text-amber-700 mt-1">{shipment.actionRequired}</p>
                 </div>
               </div>
-              <button className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-colors">
+              <Link href="/portal/documents" className="whitespace-nowrap rounded-md bg-amber-600 px-6 py-2.5 font-medium text-white transition-colors hover:bg-amber-700">
                 {t("uploadDocument")}
-              </button>
+              </Link>
             </div>
           )}
 
           {/* Status Header Card */}
-          <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+          <div className="border border-gray-200 bg-white p-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">{shipment.service}</p>
@@ -203,7 +207,7 @@ function TrackingContent() {
           </div>
 
           {/* Timeline */}
-          <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+          <div className="border border-gray-200 bg-white p-8">
             <h3 className="text-lg font-bold text-[#081F3D] mb-8">{t("historyHeading")}</h3>
 
             <div className="relative pl-4">

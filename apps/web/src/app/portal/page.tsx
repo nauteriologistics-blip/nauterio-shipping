@@ -9,6 +9,9 @@ const SERVICE_NAMES: Record<string, string> = {
   "air-express": "Air Express",
   "air-economy": "Air Economy",
   "ocean-freight": "Ocean Freight (LCL)",
+  AIR_EXPRESS: "Air Express",
+  AIR_ECONOMY: "Air Economy",
+  OCEAN_FREIGHT: "Ocean Freight (LCL)",
 };
 
 function routeLabel(shipment: ShipmentSummary): string {
@@ -153,7 +156,7 @@ export default async function CustomerPortal() {
               <div key={request.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <p className="font-bold text-[#081F3D]">{request.draftDataJson.goodsDescription ?? "Shipment request"}</p>
-                  <p className="mt-1 text-xs text-slate-500">{request.draftDataJson.serviceId?.replace(/_/g, " ") ?? "Service pending"}</p>
+                  <p className="mt-1 text-xs text-slate-500">{request.draftDataJson.serviceId ? SERVICE_NAMES[request.draftDataJson.serviceId] ?? request.draftDataJson.serviceId.replace(/_/g, " ").toLowerCase() : "Service pending"}</p>
                   {request.decisionReason && <p className="mt-2 text-xs text-red-700">{request.decisionReason}</p>}
                 </div>
                 <span className={`self-start rounded-full px-3 py-1 text-[10px] font-extrabold ${request.requestStatus === "REJECTED" ? "bg-red-100 text-red-800" : request.requestStatus === "CONVERTED" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
