@@ -69,7 +69,15 @@ export default function ShipmentsListPage() {
 
   return (
     <AdminShell>
-      <h1 className="text-xl font-bold text-[#081F3D]">Shipments</h1>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-[#081F3D]">Shipments</h1>
+          <p className="mt-1 text-sm text-slate-500">Create, find, and update operational shipments.</p>
+        </div>
+        <Link href="/shipments/new" className="rounded-lg bg-[#F28C18] px-4 py-2.5 text-sm font-bold text-[#081F3D] hover:bg-[#e07a12]">
+          Create shipment & tracking
+        </Link>
+      </div>
 
       {loading && (
         <p className="mt-6 text-sm text-slate-500" role="status">

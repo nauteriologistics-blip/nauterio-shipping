@@ -180,7 +180,7 @@ export class BookingsService {
     if (booking.quote.totalAmountMinorUnits <= 0n) throw new BadRequestException("Quote total must be greater than zero");
 
     const draft = booking.draftDataJson as Record<string, unknown> | null;
-    const trackingNumber = await this.shipmentsService.generateTrackingNumber();
+    const trackingNumber = await this.shipmentsService.generateTrackingNumber(stringFromDraft(draft, "receiverCountry", "US").toUpperCase());
     const weight = Number(draft?.weightKg ?? 1);
     const length = Number(draft?.lengthCm ?? 1);
     const width = Number(draft?.widthCm ?? 1);
