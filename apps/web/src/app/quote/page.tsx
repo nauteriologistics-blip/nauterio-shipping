@@ -152,7 +152,11 @@ function QuoteCalculator() {
   // Fetch live indicative pricing from the API for every service once the
   // user has entered package details and reaches the service-selection step.
   useEffect(() => {
-    if (currentStep < 3 || actualWeight <= 0 || !supportsAutomatedPricing) return;
+    // Only create quote records while the user is choosing a service. Moving
+    // to the review step must keep the exact quote reference the user saw and
+    // selected; re-fetching here silently replaced it with a new database
+    // record just before booking.
+    if (currentStep !== 3 || actualWeight <= 0 || !supportsAutomatedPricing) return;
 
     let cancelled = false;
 
