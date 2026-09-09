@@ -82,10 +82,10 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
 
   return (
     <header
-      className={`fixed left-0 top-0 z-50 w-full border-b transition-all duration-300 ${
+      className={`fixed left-0 top-0 z-50 w-full border-b transition-colors duration-200 ${
         isScrolled
-          ? "border-slate-200/80 bg-white/90 py-3 shadow-sm shadow-slate-200/60 backdrop-blur-xl"
-          : "border-transparent bg-white/80 py-5 backdrop-blur-xl"
+          ? "border-slate-200 bg-white/95 py-3 backdrop-blur-md"
+          : "border-slate-200 bg-white/95 py-4 backdrop-blur-md"
       }`}
     >
       <div className="container mx-auto px-6 md:px-12 flex items-center justify-between">
@@ -102,12 +102,12 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 p-1 shadow-sm lg:flex">
+        <nav className="hidden items-center gap-6 lg:flex">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D]"
+              className="border-b border-transparent py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-[#d77718] hover:text-[#10233f]"
             >
               {item.label}
             </Link>
@@ -119,7 +119,7 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
           <button
             onClick={switchLocale}
             aria-label={locale === "en" ? t("switchToItalian") : t("switchToEnglish")}
-            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#081F3D]"
+            className="flex items-center gap-1.5 px-2 py-2 text-sm font-semibold text-slate-500 transition-colors hover:text-[#10233f]"
           >
             <Globe className="w-4 h-4" aria-hidden="true" />
             <span>{locale.toUpperCase()}</span>
@@ -127,18 +127,18 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
 
           {isPortal || hasSession ? (
             <>
-              <Link href="/quote" className="rounded-full bg-[#F28C18] px-6 py-2.5 font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#d97c14]">
+              <Link href="/quote" className="rounded-md bg-[#d77718] px-5 py-2.5 font-semibold text-white transition-colors hover:bg-[#b95f0d]">
                 {tPortal("newShipment")}
               </Link>
               {!isPortal && (
-                <Link href="/portal" className="rounded-full px-3 py-2 font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D]">
+                <Link href="/portal" className="px-2 py-2 font-semibold text-slate-600 transition-colors hover:text-[#10233f]">
                   {t("portal")}
                 </Link>
               )}
               <button
                 onClick={() => void handleSignOut()}
                 disabled={signingOut}
-                className="flex items-center gap-1.5 rounded-full px-3 py-2 font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D] disabled:opacity-50"
+                className="flex items-center gap-1.5 px-2 py-2 font-semibold text-slate-600 transition-colors hover:text-[#10233f] disabled:opacity-50"
               >
                 <LogOut className="w-4 h-4" aria-hidden="true" />
                 {signingOut ? t("signingOut") : t("signOut")}
@@ -146,12 +146,12 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
             </>
           ) : (
             <>
-              <Link href="/signin" className="rounded-full px-3 py-2 font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-[#081F3D]">
+              <Link href="/signin" className="px-2 py-2 font-semibold text-slate-600 transition-colors hover:text-[#10233f]">
                 {t("signIn")}
               </Link>
               <Link
                 href="/register"
-                className="rounded-full bg-[#F28C18] px-8 py-3 font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#d97c14]"
+                className="rounded-md bg-[#d77718] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#b95f0d]"
               >
                 {t("startShipping")}
               </Link>
@@ -161,7 +161,7 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
 
         {/* Mobile Menu Toggle */}
         <button
-          className="rounded-full p-2 text-gray-800 transition-colors hover:bg-slate-100 lg:hidden"
+          className="p-2 text-gray-800 transition-colors hover:bg-slate-100 lg:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={t("toggleMenu")}
         >
@@ -171,7 +171,7 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="absolute left-0 top-full flex w-full flex-col gap-4 border-b border-gray-100 bg-white px-6 py-4 shadow-lg lg:hidden">
+        <div className="absolute left-0 top-full flex w-full flex-col gap-4 border-b border-slate-200 bg-white px-6 py-4 lg:hidden">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -208,7 +208,7 @@ export default function Header({ hasSession = false }: { hasSession?: boolean })
             )}
             <Link
               href={isPortal || hasSession ? "/quote" : "/register"}
-              className="bg-[#F28C18] text-white text-center px-6 py-3 rounded-full font-medium mt-2"
+              className="mt-2 rounded-md bg-[#d77718] px-6 py-3 text-center font-semibold text-white"
               onClick={() => setMobileMenuOpen(false)}
             >
               {isPortal || hasSession ? tPortal("newShipment") : t("startShipping")}

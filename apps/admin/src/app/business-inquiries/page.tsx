@@ -60,7 +60,7 @@ export default function BusinessInquiriesPage() {
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div>
           <h1 className="text-xl font-bold text-[#081F3D]">Business inquiries</h1>
-          <p className="mt-1 text-sm text-slate-500">Follow up on companies asking about recurring shipments and partner-coordinated delivery.</p>
+          <p className="mt-1 text-sm text-slate-500">Enquiries from the public business form. Reply by email, then record the follow-up status here.</p>
         </div>
         <div className="flex items-center gap-2">
           <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
@@ -92,6 +92,7 @@ export default function BusinessInquiriesPage() {
                 <p className="text-xs text-slate-400">Submitted {new Date(inquiry.createdAt).toLocaleString()}</p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <a href={`mailto:${inquiry.workEmail}?subject=${encodeURIComponent(`Your Nauterio shipping enquiry — ${inquiry.companyName}`)}`} className="rounded-md bg-[#F28C18] px-4 py-2 text-sm font-bold text-white">Reply by email</a>
                 <button disabled={workingId === inquiry.id} onClick={() => void updateInquiry(inquiry, "CONTACTED")} className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50">Mark contacted</button>
                 <button disabled={workingId === inquiry.id} onClick={() => void updateInquiry(inquiry, "CLOSED")} className="rounded-lg bg-[#081F3D] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Close</button>
               </div>

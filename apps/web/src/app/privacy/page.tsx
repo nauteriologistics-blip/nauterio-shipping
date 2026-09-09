@@ -1,45 +1,22 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
+export const metadata: Metadata = { title: "Privacy Notice | Nauterio Logistics", description: "How Nauterio Logistics uses and protects personal data." };
+
 const sections = [
-  ["1. Scope", "This notice covers the Nauterio website, customer portal, quote, booking, document, tracking, support, and administration workflows. Formal data-controller and registered contact details are provided through the applicable customer agreement or official business contact channel."],
-  ["2. Data we process", "Depending on the workflow, Nauterio may process account identity and contact details; sender and recipient details; package descriptions, dimensions, values, and customs documents; quote, booking, invoice, and settlement status; support messages; tracking events; consent records; security logs; and technical request metadata."],
-  ["3. Why we process it", "Data is used to provide requested platform functions, review and coordinate shipments, calculate and issue quotes, prepare invoices, communicate operational updates, prevent fraud and abuse, keep audit records, support customers, and meet legal or customs obligations. Marketing messages require a separate opt-in."],
-  ["4. Service providers and transfers", "Nauterio uses contracted infrastructure, database, cache, email, storage, security, and logistics providers. Some processing may occur outside the European Economic Area. Appropriate contractual and technical safeguards are reviewed for each production provider before customer data is transferred."],
-  ["5. Sharing", "Information may be shared only as needed with carriers, brokers, warehouses, delivery partners, technology providers, professional advisers, and competent authorities. Nauterio does not sell personal data."],
-  ["6. Retention", "Account, shipment, invoice, customs, support, audit, and security records are retained only for the period required for the relevant service, dispute, legal obligation, or security purpose. Expired verification and session records are designed to be cleaned up automatically."],
-  ["7. Security", "The platform uses access controls, server-side sessions, CSRF protection, permission checks, audit events, encrypted provider connections, and restricted document workflows. No service can guarantee absolute security; suspected incidents should be reported promptly through an official contact once published."],
-  ["8. Your choices and rights", "Subject to applicable law, you may ask to access, correct, delete, restrict, or export your personal data; object to certain processing; withdraw consent; or complain to a competent supervisory authority. Withdrawing marketing consent does not affect operational shipment messages."],
-  ["9. Contact", "Privacy, business, and operational inquiries can be submitted through the business inquiry form. Formal notice details are provided through the applicable customer agreement or official business contact channel."],
+  ["Who is responsible", "Nauterio Logistics, based and registered in Italy, is responsible for personal data processed through this website and customer portal. Privacy requests can be sent through our business contact form."],
+  ["What we collect", "We collect the information needed to run an account or shipment: customer contact details, sender and recipient details, cargo descriptions, dimensions and values, customs documents, quotes, invoices, support messages and tracking events. We also retain basic security records needed to protect the service."],
+  ["How we use it", "We use this information to answer enquiries, prepare and manage shipments, issue commercial documents, provide tracking and support, prevent misuse and meet legal or customs obligations. Marketing email is sent only where a person has separately agreed to receive it."],
+  ["Who receives it", "We share only the information needed by the organisations involved in the work, such as carriers, customs brokers, warehouses, delivery partners, technology providers, professional advisers and public authorities. Nauterio does not sell personal data."],
+  ["International processing", "An international shipment may require information to be processed outside the European Economic Area. We assess the recipient and use appropriate contractual or legal safeguards where the law requires them."],
+  ["How long we keep it", "Records are kept for as long as they are needed for the shipment, customer account, payment, claim, security purpose or legal obligation. Different records have different retention periods."],
+  ["Your rights", "Depending on the law that applies, you may ask to access, correct, delete, restrict or export your personal data, object to certain uses, or withdraw consent. You may also complain to the relevant data-protection authority."],
 ] as const;
 
 export default function PrivacyPage() {
-  return (
-    <main className="min-h-screen bg-slate-50 py-16 lg:py-24">
-      <div className="mx-auto max-w-4xl px-6">
-        <nav className="mb-6 text-sm text-slate-500" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-[#081F3D]">Home</Link> / Privacy
-        </nav>
-        <header className="rounded-3xl bg-[#081F3D] p-8 text-white lg:p-12">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">Privacy notice</p>
-          <h1 className="mt-3 text-4xl font-bold">Privacy Notice</h1>
-          <p className="mt-4 max-w-2xl text-slate-200">A transparent summary of the data used by Nauterio’s shipping platform.</p>
-          <p className="mt-4 text-sm text-slate-300">Last updated: August 18, 2026</p>
-        </header>
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-600 shadow-sm">
-          This notice explains the platform workflows at a high level. Shipment-specific privacy, customs, and operational terms are confirmed through the applicable customer agreement or official business contact channel.
-        </div>
-        <div className="mt-8 space-y-5">
-          {sections.map(([title, body]) => (
-            <section key={title} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-              <h2 className="text-xl font-bold text-[#081F3D]">{title}</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">{body}</p>
-            </section>
-          ))}
-        </div>
-        <p className="mt-8 text-sm text-slate-600">
-          Submit a privacy inquiry through the <Link href="/business" className="font-semibold text-[#081F3D] underline">business inquiry form</Link>.
-        </p>
-      </div>
-    </main>
-  );
+  return <LegalPage title="Privacy notice" intro="This notice explains what personal information Nauterio uses, why it is needed and who may receive it." sections={sections} />;
+}
+
+function LegalPage({ title, intro, sections }: { title: string; intro: string; sections: ReadonlyArray<readonly [string, string]> }) {
+  return <main className="min-h-screen bg-[#f7f6f2] py-14 text-[#10233f] lg:py-20"><article className="mx-auto max-w-4xl px-6"><nav className="text-sm text-slate-500"><Link href="/" className="underline hover:text-[#10233f]">Home</Link> / {title}</nav><header className="mt-10 border-y border-[#10233f] py-10"><h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{title}</h1><p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{intro}</p><p className="mt-5 text-sm text-slate-500">Last updated: 9 September 2026</p></header><div>{sections.map(([heading, body]) => <section key={heading} className="grid gap-3 border-b border-slate-300 py-8 md:grid-cols-[14rem_1fr]"><h2 className="text-lg font-semibold">{heading}</h2><p className="leading-7 text-slate-600">{body}</p></section>)}</div><p className="mt-8 leading-7 text-slate-600">For a privacy request, use the <Link href="/business#contact" className="font-semibold text-[#10233f] underline">business contact form</Link> and write “Privacy request” in the message.</p></article></main>;
 }

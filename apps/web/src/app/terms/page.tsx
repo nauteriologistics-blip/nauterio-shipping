@@ -1,45 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
+export const metadata: Metadata = { title: "Terms of Service | Nauterio Logistics", description: "Terms for using Nauterio's website, portal and international shipping services." };
+
 const sections = [
-  ["1. Shipment acceptance", "Registration, estimates, and service requests do not by themselves create a contract of carriage. A shipment becomes accepted only after Nauterio has reviewed it, issued final commercial terms, and expressly confirmed acceptance."],
-  ["2. Accounts", "You must provide accurate account and shipment information, keep access links and sessions secure, and notify Nauterio if you believe your account has been compromised. Access may be suspended to protect customers, comply with law, or investigate misuse."],
-  ["3. Quotes and bookings", "Online prices are indicative until a quote or invoice is expressly approved. Final charges may change after weighing, measuring, customs classification, inspection, route availability, carrier acceptance, or a customer-requested change. Taxes, duties, storage, inspection, and exceptional handling may be charged separately when applicable."],
-  ["4. Shipping responsibilities", "The sender is responsible for accurate descriptions, values, addresses, contact details, packaging, and required documents. Prohibited goods must not be submitted. Restricted goods may require permits or may be refused. Estimated transit dates are not guaranteed unless a signed service agreement expressly says otherwise."],
-  ["5. Customs and third parties", "Nauterio may coordinate with carriers, customs brokers, warehouses, and delivery partners. Government authorities and third parties remain responsible for their own decisions and processing times. The customer remains responsible for information supplied for customs declarations."],
-  ["6. Payments, cancellations, and refunds", "Payment terms, cancellation rights, refund eligibility, currency, and any credit terms are shown in the applicable final quote, invoice, or signed customer agreement. The platform must not display invented fees or credit terms in place of approved commercial terms."],
-  ["7. Liability and shipment protection", "Any carrier liability limit, claim deadline, insurance, or optional shipment-protection term must be stated in the final contract or applicable carrier convention. This website does not promise full-value compensation. Customers should not rely on a liability figure that has not been included in their accepted shipment documents."],
-  ["8. Acceptable use and intellectual property", "You may use the platform only for lawful shipping and account-management purposes. You may not interfere with the service, access another customer’s data, automate abusive traffic, or misuse Nauterio branding or software."],
-  ["9. Final legal details", "The operating legal entity, registered address, governing law, formal-notice address, and versioned commercial terms must be confirmed in the applicable final quote, invoice, or signed customer agreement. No draft company number, tax number, warehouse address, or legal mailbox should be treated as official."],
+  ["1. Using the service", "You must provide accurate contact, cargo and route information and use the website only for lawful purposes. Keep access links and account sessions secure and tell us promptly if you suspect unauthorised access."],
+  ["2. Estimates and acceptance", "An online estimate or submitted request is not an accepted shipment. Nauterio accepts a shipment only after checking the details and issuing the final rate, available schedule and collection arrangement."],
+  ["3. Changes to charges", "The final charge can change if the actual weight, dimensions, contents, classification or route differs from the information provided. Duties, taxes, storage, inspection and exceptional handling are separate where they apply."],
+  ["4. Your responsibilities", "The sender is responsible for suitable packaging and accurate descriptions, values, addresses and documents. Prohibited goods must not be tendered. Restricted goods may need permits or carrier approval and can be refused."],
+  ["5. Carriers, customs and delivery partners", "Nauterio may arrange services with independent carriers, brokers, warehouses and delivery partners. Authorities and third parties control their own decisions and processing times. Estimated dates are not guaranteed unless the accepted commercial terms say otherwise."],
+  ["6. Payment, cancellation and refunds", "Payment timing, currency, cancellation rights and refund conditions are stated in the approved quote, invoice or customer agreement for the shipment. Use only payment instructions supplied through an authenticated or otherwise verified Nauterio channel."],
+  ["7. Claims and protection", "Shipment protection is not automatic. Any cover, carrier liability limit, exclusions and claim deadline must appear in the accepted shipment documents. Do not assume that declared value is the amount payable after loss or damage."],
+  ["8. Applicable terms", "Nauterio Logistics is based and registered in Italy. Shipment-specific conditions, governing law, jurisdiction and formal notice details are stated in the approved commercial documents or customer agreement that applies to the service."],
 ] as const;
 
 export default function TermsPage() {
-  return (
-    <main className="min-h-screen bg-slate-50 py-16 lg:py-24">
-      <div className="mx-auto max-w-4xl px-6">
-        <nav className="mb-6 text-sm text-slate-500" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-[#081F3D]">Home</Link> / Terms
-        </nav>
-        <header className="rounded-3xl bg-[#081F3D] p-8 text-white lg:p-12">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">Platform terms</p>
-          <h1 className="mt-3 text-4xl font-bold">Terms of Service</h1>
-          <p className="mt-4 max-w-2xl text-slate-200">Plain-language platform terms for Nauterio’s international shipping workflow.</p>
-          <p className="mt-4 text-sm text-slate-300">Last updated: August 18, 2026 · Not final commercial terms</p>
-        </header>
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-600 shadow-sm">
-          Final rates, liability terms, formal notices, and shipment-specific conditions are issued through the applicable quote, invoice, or signed customer agreement.
-        </div>
-        <div className="mt-8 space-y-5">
-          {sections.map(([title, body]) => (
-            <section key={title} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-              <h2 className="text-xl font-bold text-[#081F3D]">{title}</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">{body}</p>
-            </section>
-          ))}
-        </div>
-        <p className="mt-8 text-sm text-slate-600">
-          For a business or legal inquiry, use the <Link href="/business" className="font-semibold text-[#081F3D] underline">business inquiry form</Link>.
-        </p>
-      </div>
-    </main>
-  );
+  return <main className="min-h-screen bg-[#f7f6f2] py-14 text-[#10233f] lg:py-20"><article className="mx-auto max-w-4xl px-6"><nav className="text-sm text-slate-500"><Link href="/" className="underline hover:text-[#10233f]">Home</Link> / Terms</nav><header className="mt-10 border-y border-[#10233f] py-10"><h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Terms of service</h1><p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">These terms cover the website, customer portal and shipment requests. The approved quote, invoice or customer agreement adds the commercial terms for each shipment.</p><p className="mt-5 text-sm text-slate-500">Last updated: 9 September 2026</p></header><div>{sections.map(([heading, body]) => <section key={heading} className="grid gap-3 border-b border-slate-300 py-8 md:grid-cols-[14rem_1fr]"><h2 className="text-lg font-semibold">{heading}</h2><p className="leading-7 text-slate-600">{body}</p></section>)}</div><p className="mt-8 text-slate-600">For a business or legal enquiry, use the <Link href="/business#contact" className="font-semibold text-[#10233f] underline">contact form</Link>.</p></article></main>;
 }

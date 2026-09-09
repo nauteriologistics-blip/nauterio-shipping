@@ -6,9 +6,9 @@ export default async function Footer() {
   const t = await getTranslations("Footer");
 
   return (
-    <footer className="border-t border-slate-200 bg-slate-950 pt-20 pb-10 text-white">
+    <footer className="border-t border-slate-800 bg-[#0b182a] pb-8 pt-14 text-white">
       <div className="container mx-auto px-6 md:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 mb-16">
+        <div className="mb-12 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           {/* Brand Column */}
           <div className="lg:col-span-4 pr-4">
             <Link href="/" className="flex items-center mb-6">
@@ -20,14 +20,21 @@ export default async function Footer() {
                 className="h-8 w-auto brightness-0 invert"
               />
             </Link>
-            <p className="mb-8 max-w-md leading-relaxed text-slate-300">{t("brandDescription")}</p>
+            <p className="mb-6 max-w-md leading-7 text-slate-300">{t("brandDescription")}</p>
             <p className="max-w-sm text-xs leading-6 text-slate-400">{t("registrationPending")}</p>
           </div>
 
-          {/* Only operational MVP destinations are linked at launch. */}
-          <div className="lg:col-span-3 lg:col-start-7">
+          <div className="lg:col-span-2 lg:col-start-6">
+            <h3 className="mb-5 font-semibold text-white">{t("servicesHeading")}</h3>
+            <ul className="space-y-3 text-sm">
+              <li><Link href="/services" className="text-slate-400 hover:text-[#efa146]">{t("compareAllServices")}</Link></li>
+              <li><Link href="/quote" className="text-slate-400 hover:text-[#efa146]">{t("getQuote")}</Link></li>
+              <li><Link href="/customs" className="text-slate-400 hover:text-[#efa146]">{t("customsCompliance")}</Link></li>
+            </ul>
+          </div>
+          <div className="lg:col-span-2">
             <h3 className="mb-6 font-bold text-white">{t("resourcesHeading")}</h3>
-            <ul className="space-y-4">
+            <ul className="space-y-3 text-sm">
               <li>
                 <Link href="/tracking" className="text-slate-400 transition-colors hover:text-[#F28C18]">
                   {t("trackShipment")}
@@ -38,12 +45,13 @@ export default async function Footer() {
                   {t("customerPortal")}
                 </Link>
               </li>
+              <li><Link href="/business#contact" className="text-slate-400 hover:text-[#efa146]">{t("businessSolutions")}</Link></li>
             </ul>
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <h3 className="mb-6 font-bold text-white">{t("legalHeading")}</h3>
-            <ul className="space-y-4">
+            <ul className="space-y-3 text-sm">
               <li>
                 <Link href="/privacy" className="text-slate-400 transition-colors hover:text-[#F28C18]">
                   {t("privacyPolicy")}

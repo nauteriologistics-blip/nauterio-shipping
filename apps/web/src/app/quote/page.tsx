@@ -52,6 +52,7 @@ interface FormData {
   deliveryCity: string;
   deliveryState: string;
   deliveryZip: string;
+  addInsurance: boolean;
   serviceId: ServiceId | "";
 }
 
@@ -132,6 +133,7 @@ function QuoteCalculator() {
       deliveryCity: "",
       deliveryState: "",
       deliveryZip: "",
+      addInsurance: false,
       serviceId: preselected && getService(preselected) ? (preselected as ServiceId) : "",
     };
   });
@@ -190,7 +192,7 @@ function QuoteCalculator() {
                 declaredValueEur: Number(formData.value) || 0,
                 service: service.id,
                 addCustoms: true,
-                addInsurance: true,
+                addInsurance: formData.addInsurance,
               };
             let res: Response | null = null;
             for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -235,7 +237,7 @@ function QuoteCalculator() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value, supportsAutomatedPricing, quoteRequestNonce]);
+  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value, formData.addInsurance, supportsAutomatedPricing, quoteRequestNonce]);
 
   const router = useRouter();
 
@@ -300,7 +302,7 @@ function QuoteCalculator() {
   if (isBooked) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-12 max-w-lg w-full text-center shadow-sm">
+        <div className="w-full max-w-lg border border-slate-200 bg-white p-12 text-center">
           <div className="w-24 h-24 bg-[#F28C18]/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
             <ArrowRight className="w-12 h-12 text-[#F28C18]" />
           </div>
@@ -314,13 +316,14 @@ function QuoteCalculator() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 lg:py-24 font-inter">
+    <div className="min-h-screen bg-[#f7f6f2] py-12 font-inter lg:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-[#081F3D] mb-4">{t("heroTitle")}</h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <div className="mb-12 border-b border-slate-300 pb-9">
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#a95d14]">{t("eyebrow")}</p>
+          <h1 className="mb-4 mt-3 text-4xl font-semibold tracking-tight text-[#10233f] md:text-5xl">{t("heroTitle")}</h1>
+          <p className="max-w-2xl text-lg leading-8 text-slate-600">
             {t("heroSubtitle")}
           </p>
         </div>
@@ -355,7 +358,7 @@ function QuoteCalculator() {
 
           {/* Main Content */}
           <div className="lg:col-span-8">
-            <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-sm border border-slate-100">
+            <div className="border border-slate-200 bg-white p-8 sm:p-10">
 
               {formError && (
                 <div role="alert" className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
@@ -429,6 +432,10 @@ function QuoteCalculator() {
                       </div>
                     </div>
                   )}
+                  <label className="flex cursor-pointer items-start gap-3 border-t border-slate-200 pt-5">
+                    <input type="checkbox" checked={formData.addInsurance} onChange={(event) => { setQuotesByService({}); setFormData((previous) => ({ ...previous, addInsurance: event.target.checked, serviceId: "" })); }} className="mt-1 h-4 w-4 accent-[#d77718]" />
+                    <span><span className="block font-semibold text-[#10233f]">{t("protectionOptionLabel")}</span><span className="mt-1 block text-sm leading-6 text-slate-600">{t("protectionOptionBody")}</span></span>
+                  </label>
                 </div>
               )}
 
@@ -579,7 +586,7 @@ function QuoteCalculator() {
                               setFormData({ ...formData, serviceId: service.id });
                             }
                           }}
-                          className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200
+                          className={`relative cursor-pointer rounded-md border-2 p-6 transition-colors duration-200
                             ${isSelected
                               ? "border-[#F28C18] bg-orange-50/30 shadow-md"
                               : "border-slate-200 hover:border-[#F28C18]/50 hover:bg-slate-50"}`}
@@ -626,7 +633,7 @@ function QuoteCalculator() {
                     {t("reviewHeading")}
                   </h2>
 
-                  <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-6">
+                  <div className="space-y-6 border border-slate-200 bg-slate-50 p-6">
                     <div className="grid grid-cols-2 gap-6 pb-6 border-b border-slate-200">
                       <div>
                         <p className="text-sm text-slate-500 mb-1">{t("originLabel")}</p>
@@ -667,7 +674,7 @@ function QuoteCalculator() {
               <div className="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between">
                 <button
                   onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-colors
+                  className={`flex items-center gap-2 rounded-md px-6 py-3 font-medium transition-colors
                     ${currentStep === 1
                       ? "text-slate-300 cursor-not-allowed"
                       : "text-slate-600 hover:bg-slate-100 border border-slate-200"}`}
@@ -681,7 +688,7 @@ function QuoteCalculator() {
                   <button
                     onClick={handleNext}
                     disabled={currentStep === 3 && (!supportsAutomatedPricing || isFetchingQuotes || !formData.serviceId || !selectedQuote)}
-                    className="flex items-center gap-2 px-8 py-4 bg-[#F28C18] text-white rounded-full font-medium hover:bg-[#e07a12] transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 rounded-md bg-[#d77718] px-8 py-4 font-medium text-white transition-colors hover:bg-[#b95f0d] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {t("nextStepButton")}
                     <ArrowRight className="w-5 h-5" aria-hidden="true" />
@@ -689,7 +696,7 @@ function QuoteCalculator() {
                 ) : (
                   <button
                     onClick={handleBook}
-                    className="flex items-center gap-2 px-8 py-4 bg-[#081F3D] text-white rounded-full font-medium hover:bg-[#0a274c] transition-colors shadow-sm"
+                    className="flex items-center gap-2 rounded-md bg-[#10233f] px-8 py-4 font-medium text-white transition-colors hover:bg-[#18365e]"
                   >
                     {t("confirmBookingButton")}
                     <Check className="w-5 h-5" aria-hidden="true" />
@@ -702,7 +709,7 @@ function QuoteCalculator() {
 
           {/* Sidebar */}
           <div className="lg:col-span-4">
-            <div className="bg-[#081F3D] rounded-3xl p-8 shadow-lg text-white sticky top-8">
+            <div className="sticky top-8 border-l-4 border-[#d77718] bg-[#10233f] p-8 text-white">
               <h3 className="text-xl font-bold mb-6 border-b border-white/10 pb-4">{t("quoteSummaryHeading")}</h3>
 
               <div className="space-y-6">
@@ -737,10 +744,7 @@ function QuoteCalculator() {
                   <span className="text-white/80">{t("customsFilingLabel")}</span>
                   <span>{selectedQuote ? `€${selectedQuote.customsFeeEur.toFixed(2)}` : "-"}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/80">{t("insuranceLabel")}</span>
-                  <span>{selectedQuote ? `€${selectedQuote.insuranceFeeEur.toFixed(2)}` : "-"}</span>
-                </div>
+                {selectedQuote && selectedQuote.insuranceFeeEur > 0 && <div className="flex justify-between text-sm"><span className="text-white/80">{t("insuranceLabel")}</span><span>€{selectedQuote.insuranceFeeEur.toFixed(2)}</span></div>}
 
                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">
                   <span className="text-lg font-medium">{t("totalEstimateLabel")}</span>
@@ -756,7 +760,7 @@ function QuoteCalculator() {
                 )}
               </div>
 
-              <div className="mt-6 flex items-start gap-3 bg-white/5 rounded-xl p-4">
+              <div className="mt-6 flex items-start gap-3 border-t border-white/15 pt-4">
                 <Info className="w-5 h-5 text-[#F28C18] shrink-0 mt-0.5" aria-hidden="true" />
                 <p className="text-xs text-white/70">
                   {selectedQuote?.disclaimer ?? t("defaultDisclaimer")}

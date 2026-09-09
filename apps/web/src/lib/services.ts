@@ -26,21 +26,21 @@ export const SERVICES: ServiceInfo[] = [
     name: "Air Express",
     transitLabel: "2-5 business days after export acceptance",
     description:
-      "Priority air freight for urgent documents and parcels, with door-to-door tracking.",
+      "The shortest available air schedule for urgent documents and parcels. Collection and destination delivery are confirmed for each route.",
   },
   {
     id: "air-economy",
     name: "Air Economy",
     transitLabel: "5-10 business days after export acceptance",
     description:
-      "Lower-cost air freight for non-urgent parcels, with full tracking and standard handling.",
+      "A lower-cost air option for freight that can travel on a more flexible schedule, with milestone tracking from collection to delivery.",
   },
   {
     id: "ocean-freight",
     name: "Ocean Freight (LCL)",
     transitLabel: "Schedule-based - exact sailing and transit shown at quote time",
     description:
-      "Less-than-container-load sea freight for heavier or bulkier shipments sharing container space.",
+      "Consolidated sea freight for palletised, heavy or bulky cargo. Cut-off dates, sailing schedules and destination charges are confirmed before booking.",
   },
 ];
 
