@@ -22,7 +22,7 @@ export default function TermsPage() {
         <header className="rounded-3xl bg-[#081F3D] p-8 text-white lg:p-12">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#F28C18]">Platform terms</p>
           <h1 className="mt-3 text-4xl font-bold">Terms of Service</h1>
-          <p className="mt-4 max-w-2xl text-slate-200">Plain-language platform terms for Nauterio’s Italy–United States shipping workflow.</p>
+          <p className="mt-4 max-w-2xl text-slate-200">Plain-language platform terms for Nauterio’s international shipping workflow.</p>
           <p className="mt-4 text-sm text-slate-300">Last updated: August 18, 2026 · Not final commercial terms</p>
         </header>
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-600 shadow-sm">

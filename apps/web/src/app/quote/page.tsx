@@ -56,13 +56,27 @@ interface FormData {
 }
 
 const ROUTE_COUNTRIES = [
-  { code: "IT" },
+  { code: "AT" },
+  { code: "AU" },
+  { code: "BE" },
+  { code: "CA" },
+  { code: "CN" },
   { code: "DE" },
+  { code: "ES" },
   { code: "FR" },
   { code: "GB" },
   { code: "GH" },
+  { code: "IN" },
+  { code: "IT" },
+  { code: "JP" },
+  { code: "NG" },
+  { code: "NL" },
+  { code: "PL" },
+  { code: "PT" },
+  { code: "SE" },
+  { code: "ZA" },
+  { code: "AE" },
   { code: "US" },
-  { code: "CA" },
   { code: "OTHER" },
 ] as const;
 
@@ -112,10 +126,10 @@ function QuoteCalculator() {
       width: "",
       height: "",
       value: "",
-      originCountry: AUTOMATED_ORIGIN,
+      originCountry: "",
       pickupCity: "",
       pickupZip: "",
-      destinationCountry: AUTOMATED_DESTINATION,
+      destinationCountry: "",
       deliveryCity: "",
       deliveryState: "",
       deliveryZip: "",
@@ -270,7 +284,7 @@ function QuoteCalculator() {
       }
     }
     if (currentStep === 2) {
-      const routeFields = [formData.pickupCity, formData.pickupZip, formData.deliveryCity, formData.deliveryZip];
+      const routeFields = [formData.originCountry, formData.pickupCity, formData.pickupZip, formData.destinationCountry, formData.deliveryCity, formData.deliveryZip];
       if (formData.destinationCountry === "US") routeFields.push(formData.deliveryState);
       if (routeFields.some((value) => !value.trim())) {
         setFormError(t("addressValidationError"));
@@ -436,6 +450,7 @@ function QuoteCalculator() {
                           onChange={(event) => handleRouteChange("originCountry", event.target.value)}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
                         >
+                          <option value="" disabled>{t("selectOriginCountry")}</option>
                           {ROUTE_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{t(`countries.${country.code}`)}</option>)}
                         </select>
                       </div>
@@ -478,6 +493,7 @@ function QuoteCalculator() {
                           onChange={(event) => handleRouteChange("destinationCountry", event.target.value)}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#F28C18]/50 focus:border-[#F28C18] transition-colors"
                         >
+                          <option value="" disabled>{t("selectDestinationCountry")}</option>
                           {ROUTE_COUNTRIES.map((country) => <option key={country.code} value={country.code}>{t(`countries.${country.code}`)}</option>)}
                         </select>
                       </div>
@@ -615,11 +631,11 @@ function QuoteCalculator() {
                     <div className="grid grid-cols-2 gap-6 pb-6 border-b border-slate-200">
                       <div>
                         <p className="text-sm text-slate-500 mb-1">{t("originLabel")}</p>
-                        <p className="font-semibold text-[#081F3D]">{formData.pickupCity || t("milanFallback")}, {formData.originCountry} {formData.pickupZip}</p>
+                        <p className="font-semibold text-[#081F3D]">{formData.pickupCity || t("originCityFallback")}, {formData.originCountry || t("originFallback")} {formData.pickupZip}</p>
                       </div>
                       <div>
                         <p className="text-sm text-slate-500 mb-1">{t("destinationLabel")}</p>
-                        <p className="font-semibold text-[#081F3D]">{formData.deliveryCity || t("newYorkFallback")}, {formData.destinationCountry} {formData.deliveryState || t("nyFallback")} {formData.deliveryZip}</p>
+                        <p className="font-semibold text-[#081F3D]">{formData.deliveryCity || t("destinationCityFallback")}, {formData.destinationCountry || t("destinationFallback")} {formData.deliveryState || t("regionFallback")} {formData.deliveryZip}</p>
                       </div>
                     </div>
 

@@ -164,16 +164,16 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-5">
                   <div>
-                    <p className="text-4xl font-black">MXP</p>
-                    <p className="mt-1 text-xs text-blue-100/70">{t("milan")}, IT</p>
+                    <p className="text-4xl font-black">FRA</p>
+                    <p className="mt-1 text-xs text-blue-100/70">{t("frankfurt")}, DE</p>
                   </div>
                   <div className="relative flex-1">
                     <div className="border-t border-dashed border-white/40" />
                     <div className="absolute -top-1.5 left-[62%] h-3 w-3 rounded-full border-2 border-[#081F3D] bg-[#F28C18]" />
                   </div>
                   <div className="text-right">
-                    <p className="text-4xl font-black">JFK</p>
-                    <p className="mt-1 text-xs text-blue-100/70">{t("newYork")}, US</p>
+                    <p className="text-4xl font-black">ACC</p>
+                    <p className="mt-1 text-xs text-blue-100/70">{t("accra")}, GH</p>
                   </div>
                 </div>
                 <div className="mt-10 grid grid-cols-3 gap-3 border-t border-white/10 pt-6">
@@ -392,8 +392,8 @@ export default function Home() {
               <div className="relative z-10 flex flex-col gap-8">
                 <div className="flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-[#081F3D]">MXP</p>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("milan")}</p>
+                    <p className="text-3xl font-bold text-[#081F3D]">FRA</p>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("frankfurt")}</p>
                   </div>
                   <div className="flex-1 px-8 relative flex items-center justify-center">
                     <div className="absolute inset-0 flex items-center">
@@ -402,15 +402,15 @@ export default function Home() {
                     <PlaneTakeoff className="h-8 w-8 text-[#F28C18] relative z-10 bg-white px-1" />
                   </div>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-[#081F3D]">JFK</p>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("newYork")}</p>
+                    <p className="text-3xl font-bold text-[#081F3D]">ACC</p>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("accra")}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-[#081F3D]">GOA</p>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("genoa")}</p>
+                    <p className="text-3xl font-bold text-[#081F3D]">LHR</p>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("london")}</p>
                   </div>
                   <div className="flex-1 px-8 relative flex items-center justify-center">
                     <div className="absolute inset-0 flex items-center">
@@ -419,8 +419,8 @@ export default function Home() {
                     <Ship className="h-8 w-8 text-[#081F3D] relative z-10 bg-white px-1" />
                   </div>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-[#081F3D]">EWR</p>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("newark")}</p>
+                    <p className="text-3xl font-bold text-[#081F3D]">YYZ</p>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{t("toronto")}</p>
                   </div>
                 </div>
               </div>

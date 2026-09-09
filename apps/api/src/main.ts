@@ -101,7 +101,7 @@ async function bootstrap() {
     const { DocumentBuilder, SwaggerModule } = await import("@nestjs/swagger");
     const swaggerConfig = new DocumentBuilder()
       .setTitle("Nauterio Logistics API")
-      .setDescription("Italy-USA shipping platform - REST API")
+      .setDescription("International logistics and shipment tracking platform - REST API")
       .setVersion("1.0")
       .addBearerAuth()
       .build();

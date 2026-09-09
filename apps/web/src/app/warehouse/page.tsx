@@ -234,7 +234,7 @@ export default function WarehousePWA() {
             type="text"
             value={uldContainer}
             onChange={(e) => setUldContainer(e.target.value)}
-            placeholder="e.g. ULD-MXP-AZ604-09"
+            placeholder="e.g. ULD-FRA-LH100-09"
             className="w-full bg-[#F3F6FA] font-mono text-xs font-bold rounded-xl px-3 py-2 border border-slate-200"
           />
         </div>
