@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -68,6 +69,7 @@ function QuoteCalculator() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isFetchingQuotes, setIsFetchingQuotes] = useState(false);
+  const [quoteRequestNonce, setQuoteRequestNonce] = useState(0);
 
   const [formData, setFormData] = useState<FormData>(() => {
     const preselected = searchParams.get("service");
@@ -115,16 +117,10 @@ function QuoteCalculator() {
       setIsFetchingQuotes(true);
       setQuoteError(null);
       try {
-        const entries = await Promise.all(
+        const results = await Promise.allSettled(
           SERVICES.map(async (service) => {
             const csrfToken = getCsrfToken();
-            const res = await fetch("/api/v1/quotes", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
-              },
-              body: JSON.stringify({
+            const request = {
                 weightKg: Number(formData.weight),
                 lengthCm: Number(formData.length),
                 widthCm: Number(formData.width),
@@ -133,16 +129,35 @@ function QuoteCalculator() {
                 service: service.id,
                 addCustoms: true,
                 addInsurance: true,
-              }),
-            });
-            if (!res.ok) {
-              throw new Error(res.status >= 500 ? t("quoteUnavailableMessage") : t("quoteErrorMessage"));
+              };
+            let res: Response | null = null;
+            for (let attempt = 0; attempt < 2; attempt += 1) {
+              try {
+                res = await fetch("/api/v1/quotes", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(csrfToken ? { [CSRF_HEADER]: csrfToken } : {}),
+                  },
+                  body: JSON.stringify(request),
+                });
+              } catch {
+                res = null;
+              }
+              if (res?.ok || (res && res.status < 500 && res.status !== 429)) break;
+              if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 1500));
             }
+            if (!res?.ok) throw new Error(t("quoteUnavailableMessage"));
             const json = (await res.json()) as QuoteResult;
             return [service.id, json] as const;
           })
         );
-        if (!cancelled) setQuotesByService(Object.fromEntries(entries));
+        const entries = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+        if (!cancelled) {
+          setQuotesByService(Object.fromEntries(entries));
+          if (entries.length === 0) setQuoteError(t("quoteUnavailableMessage"));
+          else if (entries.length < SERVICES.length) setQuoteError(t("partialQuoteMessage"));
+        }
       } catch (cause) {
         if (!cancelled) {
           setQuoteError(cause instanceof Error ? cause.message : t("quoteUnavailableMessage"));
@@ -158,7 +173,7 @@ function QuoteCalculator() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value]);
+  }, [currentStep, formData.weight, formData.length, formData.width, formData.height, formData.value, quoteRequestNonce]);
 
   const router = useRouter();
 
@@ -432,7 +447,16 @@ function QuoteCalculator() {
                   {quoteError && (
                     <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-800 text-sm">
                       <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-                      {quoteError}
+                      <div className="flex-1">
+                        <p>{quoteError}</p>
+                        <button
+                          type="button"
+                          onClick={() => setQuoteRequestNonce((value) => value + 1)}
+                          className="mt-2 font-bold underline underline-offset-2"
+                        >
+                          {t("retryPricingButton")}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -622,7 +646,7 @@ function QuoteCalculator() {
                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">
                   <span className="text-lg font-medium">{t("totalEstimateLabel")}</span>
                   <span className="text-3xl font-bold text-[#F28C18]">
-                    {selectedQuote ? `€${selectedQuote.totalPriceEur.toFixed(2)}` : "€0.00"}
+                    {selectedQuote ? `€${selectedQuote.totalPriceEur.toFixed(2)}` : isFetchingQuotes ? t("calculatingPrice") : "—"}
                   </span>
                 </div>
               </div>
@@ -633,6 +657,15 @@ function QuoteCalculator() {
                   {selectedQuote?.disclaimer ?? t("defaultDisclaimer")}
                 </p>
               </div>
+              {currentStep === 4 && selectedQuote && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-xs leading-5 text-white/75">
+                  <p className="font-bold text-white">{t("paymentHelpHeading")}</p>
+                  <p className="mt-1">{t("paymentHelpBody")}</p>
+                  <Link href="/business#contact" className="mt-2 inline-block font-bold text-[#F28C18] hover:underline">
+                    {t("contactSupportLink")}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
