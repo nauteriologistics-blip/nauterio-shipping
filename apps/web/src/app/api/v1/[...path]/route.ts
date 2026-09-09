@@ -67,7 +67,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   }
 
   const responseBody = await upstreamRes.text();
-  const res = new NextResponse(responseBody, { status: upstreamRes.status });
+  // Fetch permits reading an empty body from 204/304 responses, but the
+  // Response constructor correctly rejects attaching even an empty string
+  // as a body to a bodyless status. Passing null preserves healthz's 204
+  // instead of turning a successful API wake-up into a proxy-side 500.
+  const hasResponseBody = upstreamRes.status !== 204 && upstreamRes.status !== 304;
+  const res = new NextResponse(hasResponseBody ? responseBody : null, { status: upstreamRes.status });
   const upstreamContentType = upstreamRes.headers.get("content-type");
   if (upstreamContentType) res.headers.set("content-type", upstreamContentType);
   return res;

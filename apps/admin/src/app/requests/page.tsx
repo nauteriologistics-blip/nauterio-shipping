@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 
 interface ShipmentRequest {
   id: string;
+  quoteId: string | null;
   requestStatus: string;
   submittedAt: string | null;
   draftDataJson: Record<string, unknown>;
@@ -77,6 +78,7 @@ export default function ShipmentRequestsPage() {
                   <p><strong>Route:</strong> {String(data.senderCity ?? "—")}, {String(data.senderCountry ?? "—")} → {String(data.receiverCity ?? "—")}, {String(data.receiverCountry ?? "—")}</p>
                   <p><strong>Package:</strong> {String(data.weightKg ?? "—")} kg · {String(data.lengthCm ?? "—")} × {String(data.widthCm ?? "—")} × {String(data.heightCm ?? "—")} cm</p>
                   <p><strong>Service:</strong> {String(data.serviceId ?? "—").replace(/_/g, " ")}</p>
+                  <p><strong>Quote reference:</strong> <span className="font-mono text-xs">{request.quoteId ?? "—"}</span></p>
                   <p className="text-xs text-slate-400">Submitted {request.submittedAt ? new Date(request.submittedAt).toLocaleString() : "recently"}</p>
                 </div>
                 <div className="flex gap-2">

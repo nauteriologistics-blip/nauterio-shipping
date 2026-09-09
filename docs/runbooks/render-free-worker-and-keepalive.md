@@ -22,6 +22,14 @@ Deploy `infra/cloudflare/render-keepalive` as a Cloudflare Worker. It runs every
 
 The endpoint returns no body, no cache, and no index headers, so it is safe for a public keep-warm ping.
 
+## GitHub Actions fallback
+
+`.github/workflows/keep-api-warm.yml` calls the production `healthz` endpoint
+every five minutes and can also be triggered manually. Keep this fallback
+enabled until the Cloudflare worker is deployed or the Render service is moved
+to an always-on plan. The workflow uses only the public liveness endpoint and
+does not require production credentials.
+
 ## Verification
 
 Run:

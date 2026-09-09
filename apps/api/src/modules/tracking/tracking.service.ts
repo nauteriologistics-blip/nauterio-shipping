@@ -3,6 +3,7 @@ import { getPrismaClient } from "@nauterio/database";
 import { MVP_ADMIN_TRACKING_STATUSES, TRACKING_STATUS_META, TRACKING_STATUSES, canTransitionShipmentLifecycle, type MvpShipmentLifecycleStatus, type TrackingStatus } from "@nauterio/contracts";
 import { AuditService } from "../audit/audit.module";
 import type { AddAdminTrackingEventDto, CorrectAdminTrackingEventDto } from "./dto/admin-tracking-event.dto";
+import type { UpdateEstimatedDeliveryDto } from "./dto/update-estimated-delivery.dto";
 
 export interface PublicTrackingEvent {
   date: string;
@@ -73,6 +74,46 @@ export class TrackingService {
       const event = await tx.trackingEvent.create({ data: { shipmentId, canonicalCode: hold ? "DELAYED" : "PROCESSING_ORIGIN", publicTitleEn: hold ? "Shipment on hold" : "Shipment hold released", publicTitleIt: hold ? "Spedizione in sospeso" : "Sospensione rimossa", publicDescriptionEn: hold ? cleanReason : "Your shipment has resumed processing.", publicDescriptionIt: hold ? cleanReason : "La spedizione ha ripreso l'elaborazione.", internalDescription: hold ? cleanReason : "Operational hold released", sourceType: "STAFF", eventTime: new Date(), actorUserId, reason: cleanReason, notificationState: "ELIGIBLE" } });
       await tx.outboxEvent.create({ data: { eventType: "shipment.status.updated", correlationId, payloadJson: { shipmentId, trackingNumber: shipment.trackingNumber, trackingEventId: event.id, status: hold ? "OPERATIONAL_HOLD" : "HOLD_RELEASED" } } });
       await this.auditService.record({ actorUserId, action: hold ? "SHIPMENT_HOLD_PLACED" : "SHIPMENT_HOLD_RELEASED", entityType: "Shipment", entityId: shipmentId, afterJson: { operationalHold: hold, reason: cleanReason }, correlationId, reason: cleanReason }, tx);
+      return tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
+    });
+  }
+
+  async updateEstimatedDelivery(shipmentId: string, dto: UpdateEstimatedDeliveryDto, actorUserId: string, correlationId: string) {
+    const estimatedDeliveryFrom = startOfUtcDay(dto.estimatedDeliveryFrom);
+    const estimatedDeliveryTo = startOfUtcDay(dto.estimatedDeliveryTo);
+    if (estimatedDeliveryTo < estimatedDeliveryFrom) {
+      throw new BadRequestException("The delivery end date cannot be before the start date");
+    }
+
+    const prisma = getPrismaClient();
+    const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
+    if (!shipment) throw new NotFoundException("Shipment not found");
+    if (["DELIVERED", "CANCELLED", "ARCHIVED"].includes(shipment.lifecycleStatus)) {
+      throw new BadRequestException("Estimated delivery cannot be changed for a closed shipment");
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const claimed = await tx.shipment.updateMany({
+        where: { id: shipmentId, version: shipment.version },
+        data: { estimatedDeliveryFrom, estimatedDeliveryTo, version: { increment: 1 } },
+      });
+      if (claimed.count !== 1) throw new BadRequestException("Shipment changed; refresh and try again");
+      await tx.outboxEvent.create({
+        data: {
+          eventType: "shipment.eta.updated",
+          correlationId,
+          payloadJson: { shipmentId, trackingNumber: shipment.trackingNumber, estimatedDeliveryFrom: dto.estimatedDeliveryFrom, estimatedDeliveryTo: dto.estimatedDeliveryTo },
+        },
+      });
+      await this.auditService.record({
+        actorUserId,
+        action: "SHIPMENT_ESTIMATED_DELIVERY_UPDATED",
+        entityType: "Shipment",
+        entityId: shipmentId,
+        beforeJson: { estimatedDeliveryFrom: shipment.estimatedDeliveryFrom, estimatedDeliveryTo: shipment.estimatedDeliveryTo },
+        afterJson: { estimatedDeliveryFrom, estimatedDeliveryTo },
+        correlationId,
+      }, tx);
       return tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
     });
   }
@@ -222,7 +263,7 @@ export class TrackingService {
       statusCategory: deriveStatusCategory(shipment.lifecycleStatus, latestMeta?.actionRequired ?? false),
       estimatedDelivery: shipment.deliveredAt
         ? `Delivered ${shipment.deliveredAt.toISOString().slice(0, 10)}`
-        : shipment.estimatedDeliveryTo?.toISOString().slice(0, 10) ?? "Not yet available",
+        : formatEstimatedDelivery(shipment.estimatedDeliveryFrom, shipment.estimatedDeliveryTo),
       chargeableWeight: `${shipment.totalChargeableWeightKg.toFixed(2)} kg`,
       actionRequired: shipment.actionRequiredReason ?? undefined,
       events: visibleEvents.map((e) => ({
@@ -234,6 +275,17 @@ export class TrackingService {
       })),
     };
   }
+}
+
+function startOfUtcDay(value: string): Date {
+  return new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
+}
+
+function formatEstimatedDelivery(from: Date | null, to: Date | null): string {
+  const fromDate = from?.toISOString().slice(0, 10);
+  const toDate = to?.toISOString().slice(0, 10);
+  if (fromDate && toDate && fromDate !== toDate) return `${fromDate} to ${toDate}`;
+  return toDate ?? fromDate ?? "Not yet available";
 }
 
 function lifecycleForTrackingStatus(code: TrackingStatus): MvpShipmentLifecycleStatus {
