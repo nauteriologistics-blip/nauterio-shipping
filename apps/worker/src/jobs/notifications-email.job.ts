@@ -189,12 +189,6 @@ async function resolveNotification(
       };
     }
     default: {
-      // quote.created / claim.submitted: no current producer emits these
-      // (confirmed by grep across apps/api/src - only shipment.created is
-      // ever written to outbox_events) - kept for the routing table's own
-      // documented illustrative entries, on the older pre-resolved shape,
-      // so a future producer isn't forced through this file again to add
-      // its own case.
       const payload = message.payload as { userId?: string; email?: string; templateCode?: string };
       if (!payload.email || !payload.templateCode) {
         throw new Error(

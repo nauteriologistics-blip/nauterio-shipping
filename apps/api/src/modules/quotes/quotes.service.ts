@@ -6,12 +6,11 @@ import type { CreateQuoteDto } from "./dto/create-quote.dto";
 import { AuditService } from "../audit/audit.module";
 
 /**
- * Indicative placeholder rate model - REQUIRES_BUSINESS_EVIDENCE. No
- * approved RateCard/RateRule exists yet (CLAUDE.md: do not invent rate
- * cards). This mirrors the same flat+per-kg model the frontend's original
- * mock API used, moved here as the single real implementation, and is used
- * only until a real approved RateCard is loaded (see Prisma model RateCard
- * and its `approved` flag).
+ * Nauterio's published online planning schedule. These deliberately
+ * hardcoded prices give every supported international country pair the
+ * same deterministic calculation. They are not carrier tariffs and do not
+ * imply a carrier integration; exceptional handling, duties, taxes and
+ * storage remain outside the online calculation.
  *
  * DATA-010: every rate and every intermediate is an integer minor unit
  * (cent) from here on - CLAUDE.md and schema.prisma both require money to
@@ -29,15 +28,15 @@ interface FreightRate {
   minimumChargeMinorUnits?: number;
 }
 
-const INDICATIVE_RATES: Record<string, FreightRate> = {
+const ONLINE_RATES: Record<string, FreightRate> = {
   "air-express": { flatMinorUnits: 3500, perKgMinorUnits: 650 },
   "air-economy": { flatMinorUnits: 2200, perKgMinorUnits: 480 },
   "ocean-freight": { flatMinorUnits: 12000, perKgMinorUnits: 120 },
 };
 
-const INDICATIVE_CUSTOMS_FEE_MINOR_UNITS = 1850;
-const INDICATIVE_PICKUP_FEE_MINOR_UNITS = 1200;
-const INDICATIVE_INSURANCE_RATE_BASIS_POINTS = 150n; // 1.5% = 150 / 10,000
+const ONLINE_CUSTOMS_FEE_MINOR_UNITS = 1850;
+const ONLINE_PICKUP_FEE_MINOR_UNITS = 1200;
+const ONLINE_PROTECTION_RATE_BASIS_POINTS = 150n; // 1.5% = 150 / 10,000
 const DE_MINIMIS_THRESHOLD_MINOR_UNITS = 80_000n; // $800
 
 @Injectable()
@@ -68,8 +67,7 @@ export class QuotesService {
     const chargeableWeightHundredthsKg = BigInt(Math.round(weights.chargeableWeightKg * 100));
     const prisma = getPrismaClient();
     const serviceId = mapServiceId(dto.service);
-    const approvedRate = await findApprovedRateRule(serviceId, weights.chargeableWeightKg);
-    const rate = approvedRate ?? INDICATIVE_RATES[dto.service];
+    const rate = ONLINE_RATES[dto.service];
 
     const calculatedBaseRateMinorUnits =
       BigInt(rate.flatMinorUnits) +
@@ -78,15 +76,15 @@ export class QuotesService {
       ? bigintMax(BigInt(rate.minimumChargeMinorUnits), calculatedBaseRateMinorUnits)
       : calculatedBaseRateMinorUnits;
 
-    const customsFeeMinorUnits = dto.addCustoms ? BigInt(INDICATIVE_CUSTOMS_FEE_MINOR_UNITS) : 0n;
-    const pickupFeeMinorUnits = dto.addPickup ? BigInt(INDICATIVE_PICKUP_FEE_MINOR_UNITS) : 0n;
+    const customsFeeMinorUnits = dto.addCustoms ? BigInt(ONLINE_CUSTOMS_FEE_MINOR_UNITS) : 0n;
+    const pickupFeeMinorUnits = dto.addPickup ? BigInt(ONLINE_PICKUP_FEE_MINOR_UNITS) : 0n;
 
     // declaredValueEur is a customer-entered float (a form field, not a
     // stored amount) - converted once at the boundary, never touched as a
     // float again.
     const declaredValueMinorUnits = BigInt(Math.round(dto.declaredValueEur * 100));
     const insuranceFeeMinorUnits = dto.addInsurance !== false
-      ? divRound(declaredValueMinorUnits * INDICATIVE_INSURANCE_RATE_BASIS_POINTS, 10_000n)
+      ? divRound(declaredValueMinorUnits * ONLINE_PROTECTION_RATE_BASIS_POINTS, 10_000n)
       : 0n;
 
     const totalMinorUnits = baseRateMinorUnits + customsFeeMinorUnits + pickupFeeMinorUnits + insuranceFeeMinorUnits;
@@ -106,10 +104,8 @@ export class QuotesService {
       insuranceFeeEur: minorToEur(insuranceFeeMinorUnits),
       totalPriceEur: minorToEur(totalMinorUnits),
       isDeMinimisEligible: declaredValueMinorUnits <= DE_MINIMIS_THRESHOLD_MINOR_UNITS,
-      isIndicative: !approvedRate,
-      disclaimer: approvedRate
-        ? "This estimate uses the current approved Nauterio rate card. Final operational acceptance is confirmed when the request is reviewed."
-        : "This price is an illustrative estimate, not an approved rate card. Final pricing requires confirmed carrier contracts and rate approval.",
+      isIndicative: true,
+      disclaimer: "Calculated from Nauterio's published online planning schedule. Duties, taxes, storage and exceptional handling are separate when applicable.",
     };
 
     // Persist the quote snapshot (spec section 15.1: "Accepted quotes
@@ -135,7 +131,7 @@ export class QuotesService {
           actualWeightKg: resultWithoutId.actualWeightKg,
           volumetricWeightKg: resultWithoutId.volumetricWeightKg,
           chargeableWeightKg: resultWithoutId.chargeableWeightKg,
-          isIndicative: !approvedRate,
+          isIndicative: true,
           totalAmountMinorUnits: totalMinorUnits,
           currency: "EUR",
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days, matches draft T&Cs copy
@@ -176,33 +172,6 @@ export class QuotesService {
 
     return { quoteId, ...resultWithoutId };
   }
-}
-
-async function findApprovedRateRule(
-  serviceId: "AIR_EXPRESS" | "AIR_ECONOMY" | "OCEAN_FREIGHT",
-  chargeableWeightKg: number
-): Promise<FreightRate | null> {
-  const prisma = getPrismaClient();
-  const now = new Date();
-  const card = await prisma.rateCard.findFirst({
-    where: {
-      serviceId,
-      approved: true,
-      effectiveFrom: { lte: now },
-      OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
-    },
-    include: { rules: true },
-    orderBy: [{ effectiveFrom: "desc" }, { version: "desc" }],
-  });
-  const rule = card?.rules
-    .sort((a, b) => a.minWeightKg - b.minWeightKg)
-    .find((candidate) => chargeableWeightKg >= candidate.minWeightKg && (candidate.maxWeightKg == null || chargeableWeightKg <= candidate.maxWeightKg));
-  if (!rule) return null;
-  return {
-    flatMinorUnits: Number(rule.flatFeeAmountMinorUnits),
-    perKgMinorUnits: Number(rule.perKgAmountMinorUnits),
-    minimumChargeMinorUnits: Number(rule.minimumChargeAmountMinorUnits),
-  };
 }
 
 function bigintMax(left: bigint, right: bigint): bigint {

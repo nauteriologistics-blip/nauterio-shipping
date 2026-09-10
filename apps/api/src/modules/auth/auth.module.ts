@@ -261,7 +261,7 @@ class AuthService {
       // on) - verifying email and establishing a session happen together,
       // a standard "magic link" pattern, since there is no separate
       // password to sign in with in this dev-mode model.
-      return { sessionToken: rawSessionToken, userId: updated.id, expiresInSeconds: SESSION_TTL_MS / 1000 };
+      return { sessionToken: rawSessionToken, userId: updated.id, staffRole: updated.staffRole, expiresInSeconds: SESSION_TTL_MS / 1000 };
     });
   }
 

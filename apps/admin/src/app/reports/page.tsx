@@ -3,12 +3,18 @@
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { apiFetch, ApiError } from "@/lib/api";
-import { BarChart3, PackageCheck, AlertTriangle, Info } from "lucide-react";
+import { BarChart3, PackageCheck, AlertTriangle, FileCheck2, Headphones, ClipboardCheck, ReceiptText, BadgeCheck } from "lucide-react";
 
 interface OperationalSummary {
   activeShipments: number;
   actionRequired: number;
+  deliveredShipments: number;
   openClaims: number;
+  awaitingDocuments: number;
+  openSupport: number;
+  pendingRequests: number;
+  issuedInvoices: number;
+  paidInvoices: number;
 }
 
 export default function ReportsPage() {
@@ -52,47 +58,23 @@ export default function ReportsPage() {
         )}
 
         {summary && !loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
-              <div className="flex justify-between items-center text-slate-500">
-                <span className="text-xs font-bold">Active Shipments</span>
-                <PackageCheck className="w-4 h-4 text-emerald-600" />
-              </div>
-              <span className="text-2xl font-black text-slate-900">{summary.activeShipments}</span>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
-              <div className="flex justify-between items-center text-slate-500">
-                <span className="text-xs font-bold">Action Required</span>
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-              </div>
-              <span className="text-2xl font-black text-slate-900">{summary.actionRequired}</span>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
-              <div className="flex justify-between items-center text-slate-500">
-                <span className="text-xs font-bold">Open Claims</span>
-                <BarChart3 className="w-4 h-4 text-blue-600" />
-              </div>
-              <span className="text-2xl font-black text-slate-900">{summary.openClaims}</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <Counter label="Active shipments" value={summary.activeShipments} icon={<PackageCheck className="w-4 h-4 text-emerald-600" />} />
+            <Counter label="Action required" value={summary.actionRequired} icon={<AlertTriangle className="w-4 h-4 text-amber-500" />} />
+            <Counter label="Delivered shipments" value={summary.deliveredShipments} icon={<BadgeCheck className="w-4 h-4 text-emerald-600" />} />
+            <Counter label="Pending shipment requests" value={summary.pendingRequests} icon={<ClipboardCheck className="w-4 h-4 text-blue-600" />} />
+            <Counter label="Documents awaiting review" value={summary.awaitingDocuments} icon={<FileCheck2 className="w-4 h-4 text-violet-600" />} />
+            <Counter label="Support awaiting staff" value={summary.openSupport} icon={<Headphones className="w-4 h-4 text-cyan-600" />} />
+            <Counter label="Open claims" value={summary.openClaims} icon={<BarChart3 className="w-4 h-4 text-blue-600" />} />
+            <Counter label="Invoices issued" value={summary.issuedInvoices} icon={<ReceiptText className="w-4 h-4 text-slate-600" />} />
+            <Counter label="Invoices paid" value={summary.paidInvoices} icon={<BadgeCheck className="w-4 h-4 text-emerald-600" />} />
           </div>
         )}
-
-        {/* Revenue, on-time delivery, and service-level distribution require billing/carrier
-            data that isn't wired to a real reporting pipeline yet (spec section 24: large
-            exports belong on the worker's reports queue, not a request-serving endpoint).
-            Showing invented numbers here would violate the "no fabricated statistics" brand
-            rule, so this is disclosed rather than faked. */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex items-start gap-3 text-sm text-slate-600">
-          <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-          <p>
-            Revenue, on-time delivery, and service-level distribution reporting are not yet
-            connected to a real data pipeline in this environment. Only the operational counts
-            above reflect live data.
-          </p>
-        </div>
       </div>
     </AdminShell>
   );
+}
+
+function Counter({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+  return <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1"><div className="flex justify-between items-center text-slate-500"><span className="text-xs font-bold">{label}</span>{icon}</div><span className="text-2xl font-black text-slate-900">{value}</span></div>;
 }

@@ -43,9 +43,9 @@ function VerifyEmailContent() {
         return;
       }
       setStatus("done");
-      // The BFF route already set the session cookie on success - straight
-      // to the portal, no separate sign-in step needed.
-      router.push("/portal");
+      // The BFF route already set the session cookie and chooses the
+      // role-appropriate workspace without exposing the session token.
+      router.push(result.destination);
     })();
   }, [token, router]);
 

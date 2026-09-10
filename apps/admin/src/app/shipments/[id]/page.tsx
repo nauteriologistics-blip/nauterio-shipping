@@ -49,6 +49,9 @@ interface Profile {
   staffRole: string | null;
 }
 
+interface DriverOption { id: string; fullName: string; email: string }
+interface DeliveryAssignment { id: string; status: string; assignedDriverUserId: string | null }
+
 export default function ShipmentDetailPage() {
   const params = useParams<{ id: string }>();
   const [shipment, setShipment] = useState<ShipmentDetail | null>(null);
@@ -68,6 +71,14 @@ export default function ShipmentDetailPage() {
   const [estimatedDeliveryFrom, setEstimatedDeliveryFrom] = useState("");
   const [estimatedDeliveryTo, setEstimatedDeliveryTo] = useState("");
   const [savingEta, setSavingEta] = useState(false);
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
+  const [delivery, setDelivery] = useState<DeliveryAssignment | null>(null);
+  const [driverUserId, setDriverUserId] = useState("");
+  const [deliveryStatus, setDeliveryStatus] = useState<"SCHEDULED" | "OUT_FOR_DELIVERY">("SCHEDULED");
+  const [savingAssignment, setSavingAssignment] = useState(false);
+  const [newDriverName, setNewDriverName] = useState("");
+  const [newDriverEmail, setNewDriverEmail] = useState("");
+  const [creatingDriver, setCreatingDriver] = useState(false);
 
   useEffect(() => {
     Promise.all([apiFetch<ShipmentDetail>(`/shipments/${params.id}`), apiFetch<Profile>("/me")])
@@ -81,6 +92,17 @@ export default function ShipmentDetailPage() {
           const options = await apiFetch<TrackingStatusOption[]>(`/admin/shipments/${params.id}/tracking-events/statuses`);
           setStatuses(options);
           setStatusCode(options.find((option) => option.allowedForNewEvent)?.code ?? options[0]?.code ?? "");
+        }
+        if (canAssignDelivery(nextProfile.staffRole)) {
+          const [driverOptions, pickupDelivery] = await Promise.all([
+            apiFetch<DriverOption[]>("/admin/deliveries/drivers"),
+            apiFetch<{ deliveries: DeliveryAssignment[] }>(`/shipments/${params.id}/pickup-delivery`),
+          ]);
+          const currentDelivery = pickupDelivery.deliveries.at(-1) ?? null;
+          setDrivers(driverOptions);
+          setDelivery(currentDelivery);
+          setDriverUserId(currentDelivery?.assignedDriverUserId ?? driverOptions[0]?.id ?? "");
+          if (currentDelivery?.status === "OUT_FOR_DELIVERY") setDeliveryStatus("OUT_FOR_DELIVERY");
         }
       })
       .catch((e: unknown) => {
@@ -170,6 +192,45 @@ export default function ShipmentDetailPage() {
     }
   }
 
+  async function saveDeliveryAssignment() {
+    if (!driverUserId) { setError("Create an active DRIVER staff account before assigning this delivery."); return; }
+    setSavingAssignment(true);
+    setError(null);
+    try {
+      const assigned = await apiFetch<DeliveryAssignment>(`/admin/deliveries/${params.id}/assign`, {
+        method: "POST",
+        headers: { "Idempotency-Key": `delivery-assign-${params.id}-${crypto.randomUUID()}` },
+        body: JSON.stringify({ driverUserId, status: deliveryStatus }),
+      });
+      setDelivery(assigned);
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.body.message : "Could not assign the delivery.");
+    } finally {
+      setSavingAssignment(false);
+    }
+  }
+
+  async function createDriver() {
+    if (!newDriverName.trim() || !newDriverEmail.trim()) return;
+    setCreatingDriver(true);
+    setError(null);
+    try {
+      const driver = await apiFetch<DriverOption>("/admin/deliveries/drivers", {
+        method: "POST",
+        headers: { "Idempotency-Key": `driver-create-${crypto.randomUUID()}` },
+        body: JSON.stringify({ fullName: newDriverName.trim(), email: newDriverEmail.trim() }),
+      });
+      setDrivers((current) => [...current, driver].sort((left, right) => left.fullName.localeCompare(right.fullName)));
+      setDriverUserId(driver.id);
+      setNewDriverName("");
+      setNewDriverEmail("");
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.body.message : "Could not create the driver account.");
+    } finally {
+      setCreatingDriver(false);
+    }
+  }
+
   return (
     <AdminShell>
       <Link href="/shipments" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#081F3D]">
@@ -245,6 +306,39 @@ export default function ShipmentDetailPage() {
                   {savingEta ? "Saving…" : "Update ETA"}
                 </button>
               </div>
+            </section>
+          )}
+
+          {canAssignDelivery(role) && !["DELIVERED", "CANCELLED", "ARCHIVED"].includes(shipment.lifecycleStatus) && (
+            <section className="rounded-xl border border-slate-200 bg-white p-5">
+              <h2 className="text-sm font-bold uppercase text-[#081F3D]">Driver assignment</h2>
+              <p className="mt-1 text-xs text-slate-500">Only the selected driver can see and complete this delivery.</p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label className="text-xs font-semibold text-slate-600">Driver
+                  <select value={driverUserId} onChange={(event) => setDriverUserId(event.target.value)} className="mt-1 block min-w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    {drivers.length === 0 && <option value="">No active drivers</option>}
+                    {drivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.fullName} · {driver.email}</option>)}
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600">Work status
+                  <select value={deliveryStatus} onChange={(event) => setDeliveryStatus(event.target.value as "SCHEDULED" | "OUT_FOR_DELIVERY")} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="SCHEDULED">Scheduled</option>
+                    <option value="OUT_FOR_DELIVERY">Out for delivery</option>
+                  </select>
+                </label>
+                <button onClick={() => void saveDeliveryAssignment()} disabled={savingAssignment || !driverUserId} className="rounded-lg bg-[#081F3D] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{savingAssignment ? "Assigning…" : delivery ? "Update assignment" : "Assign driver"}</button>
+              </div>
+              {role === "SUPER_ADMIN" && (
+                <div className="mt-5 border-t border-slate-200 pt-4">
+                  <p className="text-xs font-bold text-[#081F3D]">Add a driver account</p>
+                  <p className="mt-1 text-xs text-slate-500">The driver signs in on the customer site with this email, then opens the driver workspace.</p>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <label className="text-xs font-semibold text-slate-600">Full name<input value={newDriverName} onChange={(event) => setNewDriverName(event.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+                    <label className="text-xs font-semibold text-slate-600">Email<input type="email" value={newDriverEmail} onChange={(event) => setNewDriverEmail(event.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
+                    <button onClick={() => void createDriver()} disabled={creatingDriver || !newDriverName.trim() || !newDriverEmail.trim()} className="rounded-lg border border-[#081F3D] px-5 py-2.5 text-sm font-bold text-[#081F3D] disabled:opacity-50">{creatingDriver ? "Creating…" : "Create driver"}</button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
@@ -348,5 +442,9 @@ function canCorrectTracking(role: string | null): boolean {
 }
 
 function canHoldShipment(role: string | null): boolean {
+  return role ? ["SUPER_ADMIN", "OPERATIONS"].includes(role) : false;
+}
+
+function canAssignDelivery(role: string | null): boolean {
   return role ? ["SUPER_ADMIN", "OPERATIONS"].includes(role) : false;
 }

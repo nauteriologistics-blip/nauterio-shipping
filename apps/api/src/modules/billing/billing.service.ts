@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { getPrismaClient } from "@nauterio/database";
 import { AuditService } from "../audit/audit.module";
-import { CreateInvoiceDto, PayInvoiceDto, UpdateInvoiceStatusDto } from "./dto/create-invoice.dto";
+import { CreateInvoiceDto, UpdateInvoiceStatusDto } from "./dto/create-invoice.dto";
 import { sliceCursorPage } from "../../common/pagination/paginate-cursor";
 import { STAFF_ROLES, type AppRole } from "@nauterio/contracts";
 
@@ -168,14 +168,5 @@ export class BillingService {
 
       return updated;
     });
-  }
-
-  async payInvoice(_id: string, _dto: PayInvoiceDto, _actorUserId: string, _scope: InvoiceListScope) {
-    void _id;
-    void _dto;
-    void _actorUserId;
-    void _scope;
-    await Promise.resolve();
-    throw new BadRequestException("Online payments are disabled. Nauterio operations will confirm any required settlement offline.");
   }
 }

@@ -18,13 +18,6 @@ export class CreateInvoiceDto {
   currency!: string;
 }
 
-export class PayInvoiceDto {
-  @ApiProperty({ description: "Payment method (CARD, BANK_TRANSFER, SEPA_DIRECT_DEBIT)" })
-  @IsString()
-  @IsNotEmpty()
-  paymentMethod!: string;
-}
-
 export class UpdateInvoiceStatusDto {
   @ApiProperty({ description: "Offline invoice status controlled by staff", enum: ["ISSUED", "PAID", "OVERDUE", "VOID"] })
   @IsIn(["ISSUED", "PAID", "OVERDUE", "VOID"])

@@ -1,5 +1,10 @@
 import { spawn, spawnSync } from "node:child_process";
 
+if (process.env.NODE_ENV === "production") {
+  const definitions = spawnSync("freshclam", ["--quiet"], { stdio: "inherit" });
+  if (definitions.error || definitions.status !== 0) console.warn("[render-supervisor] ClamAV definitions could not be refreshed; using the definitions baked into the image");
+}
+
 const migration = spawnSync(process.execPath, ["scripts/deploy-migrations.mjs"], {
   env: process.env,
   stdio: "inherit",

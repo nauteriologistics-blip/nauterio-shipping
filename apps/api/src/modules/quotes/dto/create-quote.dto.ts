@@ -7,10 +7,8 @@ const SERVICE_IDS = SERVICES.map((s) => s.id) as [ServiceId, ...ServiceId[]];
 // DATA-016: unbounded weight/dimensions/value overflowed to Infinity at
 // extreme input (e.g. weightKg: 1e308), which then threw an unhandled
 // RangeError converting to BigInt and surfaced as a 500 on this public,
-// unauthenticated endpoint. REQUIRES_BUSINESS_EVIDENCE: these are
-// conservative operational ceilings (well beyond any real parcel or
-// container), not a business rate/limit - replace once real carrier
-// service limits are confirmed.
+// unauthenticated endpoint. These are technical abuse/overflow ceilings,
+// not carrier service limits or statements of shipment acceptance.
 const MAX_WEIGHT_KG = 1000;
 const MAX_DIMENSION_CM = 500;
 const MAX_DECLARED_VALUE_EUR = 1_000_000;

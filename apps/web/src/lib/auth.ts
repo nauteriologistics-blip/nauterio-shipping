@@ -39,7 +39,7 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
   return { ok: true, devVerificationUrl: body?.devVerificationUrl };
 }
 
-export async function verifyEmail(token: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function verifyEmail(token: string): Promise<{ ok: true; destination: string } | { ok: false; error: string }> {
   const res = await fetch("/api/auth/verify-email", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -49,7 +49,8 @@ export async function verifyEmail(token: string): Promise<{ ok: true } | { ok: f
     const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
     return { ok: false, error: body?.message ?? body?.error ?? `Verification failed (HTTP ${res.status}).` };
   }
-  return { ok: true };
+  const body = (await res.json()) as { destination?: string };
+  return { ok: true, destination: body.destination === "/driver" ? "/driver" : "/portal" };
 }
 
 export async function requestSignIn(email: string): Promise<{ ok: true } | { ok: false; error: string }> {

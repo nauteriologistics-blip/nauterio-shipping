@@ -135,7 +135,7 @@
     },
     "oceanFreight": {
       "name": "Ocean Freight (LCL)",
-      "transitLabel": "In base al calendario - partenza e transito esatti mostrati al momento del preventivo",
+      "transitLabel": "In base al calendario - partenza confermata prima del ritiro",
       "description": "Trasporto marittimo groupage per merci troppo pesanti o voluminose per un servizio aereo conveniente. Cut-off, partenza e costi a destinazione vengono confermati per la tratta.",
       "tagline": "Per merci pesanti e non urgenti",
       "features": ["Aggiornamenti di partenza e arrivo", "Merce pallettizzata accettata", "Porto-domicilio dove disponibile", "Calendario di consolidamento confermato"]
@@ -149,7 +149,7 @@
     "transitTimeLabel": "Tempo di Transito",
     "pricingLabel": "Prezzo",
     "pricingValue": "Calcolato al momento del preventivo",
-    "pricingNote": "La tariffa finale dipende da peso tassabile, tratta e movimentazione.",
+    "pricingNote": "I prezzi online usano il peso tassabile. Dazi, imposte, deposito e movimentazioni eccezionali sono separati quando applicabili.",
     "compareHeading": "Confronto dei servizi",
     "compareSubheading": "Usa questa tabella come guida. Il collegamento disponibile viene confermato sulla spedizione effettiva.",
     "featureColumn": "Caratteristica",
@@ -200,7 +200,7 @@
     "stepService": "Servizio",
     "stepReview": "Riepilogo",
     "heroTitle": "Pianifica una spedizione",
-    "heroSubtitle": "Inserisci merce e tratta. Il prezzo mostrato è una stima iniziale; Nauterio conferma tariffa finale e piano di ritiro prima di accettare la spedizione.",
+    "heroSubtitle": "Inserisci merce e tratta per vedere il prezzo online pubblicato da Nauterio. Tempi di ritiro e movimentazioni eccezionali vengono confermati prima della partenza.",
     "actualWeightLabel": "Peso Effettivo (kg)",
     "actualWeightPlaceholder": "es. 50",
     "declaredValueLabel": "Valore Dichiarato (EUR)",
@@ -241,14 +241,10 @@
       "SE": "Svezia",
       "ZA": "Sudafrica",
       "AE": "Emirati Arabi Uniti",
-      "US": "Stati Uniti",
-      "OTHER": "Un altro paese — richiedi revisione"
+      "US": "Stati Uniti"
     },
-    "customRouteHeading": "Questa tratta richiede una revisione personalizzata",
-    "customRouteBody": "I prezzi in tempo reale non sono ancora approvati per tutte le rotte internazionali. Invia questa tratta a Nauterio e il team operativo confermerà disponibilità, requisiti doganali, valuta e tariffa reale senza mostrare un prezzo inventato.",
-    "requestRouteReviewLink": "Richiedi la revisione della tratta",
-    "routeEstimateHeading": "Stima per tratta internazionale",
-    "routeEstimateBody": "Nauterio può preparare una stima iniziale per questa coppia di paesi. Disponibilità del servizio, requisiti doganali e tariffa finale vengono confermati dal team operativo prima dell'accettazione della spedizione.",
+    "routeEstimateHeading": "Prezzo della spedizione internazionale",
+    "routeEstimateBody": "Il calcolo online si applica a questa coppia di paesi. Nauterio coordina ritiro e consegna con partner di trasporto indipendenti; calendario e movimentazioni eccezionali vengono confermati prima della partenza.",
     "cityLabel": "Città",
     "pickupCityPlaceholder": "es. Milano",
     "postcodeLabel": "CAP",
@@ -263,12 +259,12 @@
     "partialQuoteMessage": "Alcuni prezzi sono ancora in caricamento. Puoi selezionare un'opzione disponibile o riprovare.",
     "retryPricingButton": "Riprova il calcolo",
     "calculatingPrice": "Calcolo…",
-    "paymentHelpHeading": "Cosa succede dopo questa stima?",
-    "paymentHelpBody": "Invia la richiesta di spedizione per la verifica operativa. Nauterio confermerà il preventivo finale e fornirà le istruzioni di pagamento approvate: non effettuare pagamenti tramite link non verificati.",
+    "paymentHelpHeading": "Cosa succede dopo?",
+    "paymentHelpBody": "Invia i dettagli della spedizione per organizzare il ritiro. Il pagamento online non è disponibile; eventuali istruzioni di pagamento vengono gestite direttamente dalle operazioni Nauterio.",
     "contactSupportLink": "Contatta l'assistenza Nauterio",
     "quoteUnavailableMessage": "I prezzi in tempo reale non sono temporaneamente disponibili. Riprova a breve.",
     "calculating": "Calcolo in corso…",
-    "indicativeBaseRate": "Tariffa base indicativa",
+    "indicativeBaseRate": "Prezzo base online",
     "enterWeightHint": "Inserisci il peso al passo 1",
     "pricingUnavailableHint": "Prezzo non disponibile",
     "packageValidationError": "Inserisci un peso da 0,01 a 1.000 kg, dimensioni da 1 a 500 cm e un valore dichiarato da €0,01 a €1.000.000.",
@@ -295,7 +291,7 @@
     "insuranceLabel": "Protezione della spedizione richiesta",
     "totalEstimateLabel": "Stima Totale",
     "quoteReferenceLabel": "Riferimento preventivo",
-    "defaultDisclaimer": "Questa stima usa i dati inseriti. Il costo finale viene confermato dopo la verifica di tratta, merce e modalità di ritiro.",
+    "defaultDisclaimer": "Calcolato in base al listino online pubblicato da Nauterio. Dazi, imposte, deposito e movimentazioni eccezionali sono separati quando applicabili.",
     "bookedTitle": "Preventivo pronto",
     "bookedBody": "Continua inserendo i dettagli della spedizione e invia la richiesta per la revisione.",
     "startAnotherQuote": "Inizia un Altro Preventivo",
@@ -375,27 +371,22 @@
     "requestError": "Non siamo riusciti a inviare la richiesta. Riprova tra poco."
   },
   "DriverPage": {
-    "headerTitle": "PWA Corriere Autista",
-    "headerSubtitle": "Area di lavoro consegne autenticata",
-    "gpsLive": "Online",
-    "pickupTab": "Attività di Ritiro",
-    "deliveryTab": "Attività di Consegna",
+    "headerTitle": "Consegne autista",
+    "headerSubtitle": "Le consegne che ti sono state assegnate",
+    "assignedWork": "Lavoro assegnato",
+    "loading": "Caricamento consegne…",
+    "noAssignments": "Non ti sono state assegnate consegne",
+    "selectDelivery": "Seleziona consegna",
+    "scheduled": "Programmata",
     "outForDelivery": "In Consegna",
-    "addressLine1": "100 King Street West",
-    "addressLine2": "Toronto, ON M5X 1A9",
-    "callRecipient": "Chiama Destinatario",
-    "contactLabel": "Contatto: John Smith",
     "signatureHeading": "Conferma del Destinatario",
     "recipientNameLabel": "Nome Stampato del Destinatario",
+    "recipientNamePlaceholder": "Inserisci il nome completo del destinatario",
     "signPrompt": "Il nome del destinatario apparirà qui",
-    "signInsideBox": "Solo conferma del nome — l'acquisizione della firma non è attiva",
+    "signInsideBox": "Il destinatario conferma la consegna fornendo il proprio nome",
     "deliveredSuccess": "Stato della consegna registrato in Nauterio.",
-    "confirmDelivery": "Conferma e Registra Consegna",
-    "todaysPickupsHeading": "Ritiri di Oggi",
-    "pickup1Address": "Via Larga 15, Milano",
-    "pickup1Detail": "Mittente: Marco Rossi • 2 scatole di componenti meccanici",
-    "pickup2Address": "Zeil 106, Francoforte sul Meno",
-    "pickup2Detail": "Mittente: Lena Weber • 1 collo di tessuti"
+    "confirming": "Conferma…",
+    "confirmDelivery": "Conferma e Registra Consegna"
   },
   "WarehousePage": {
     "headerTitle": "PWA Accettazione Magazzino",
@@ -419,7 +410,7 @@
   "Home": {
     "corridorLabel": "Spedizioni internazionali gestite dall'Italia",
     "heroTitle": "Una spedizione parte bene quando ogni dettaglio è stato definito.",
-    "heroSubtitle": "Nauterio pianifica spedizioni aeree e marittime dalla propria base operativa in Italia. Comunicaci cosa devi spedire, dove deve arrivare e quando. Prima del ritiro verifichiamo tratta, documenti e tariffa finale.",
+    "heroSubtitle": "Nauterio pianifica spedizioni aeree e marittime dalla propria base operativa in Italia. Comunicaci cosa devi spedire, dove deve arrivare e quando. Coordiniamo tratta, documenti, ritiro e consegna con partner indipendenti adatti alla spedizione.",
     "getInstantQuote": "Pianifica una spedizione",
     "trackShipmentButton": "Traccia una spedizione",
     "quickTrackLabel": "Hai già un numero di tracciamento?",
@@ -441,18 +432,18 @@
     "exampleLabel": "Esempio",
     "trustBar": [
       { "title": "Assistenza Integrata", "desc": "Assistenza con ticket tramite l'area riservata" },
-      { "title": "Partner di Consegna", "desc": "Copertura di ritiro e consegna confermata in revisione" },
+      { "title": "Partner Indipendenti", "desc": "Ritiro e consegna coordinati per ogni spedizione" },
       { "title": "Tracciamento delle Tappe", "desc": "Aggiornamenti dal ritiro alla consegna" },
-      { "title": "Processo di Revisione Chiaro", "desc": "Copertura, tempi e condizioni finali vengono confermati prima dell'accettazione della spedizione" }
+      { "title": "Passaggi Chiari", "desc": "Copertura, tempi e responsabilità vengono confermati prima della partenza" }
     ],
     "readinessEyebrow": "Stato del servizio",
     "readinessHeading": "Pianificazione chiara prima che la merce si muova.",
-    "readinessBody": "Nauterio separa stime, controlli documentali, coordinamento con partner e accettazione finale, così il cliente vede esattamente il passaggio successivo.",
+    "readinessBody": "Nauterio riunisce prezzi, controlli documentali e coordinamento con partner nella stessa spedizione, così il cliente vede il passaggio successivo.",
     "readinessItems": [
-      { "title": "Stime indicative", "desc": "Confronta opzioni aeree e marittime usando i dettagli del collo e della rotta.", "status": "available" },
+      { "title": "Prezzi online di pianificazione", "desc": "Confronta opzioni aeree e marittime usando i dettagli del collo e della rotta.", "status": "available" },
       { "title": "Consegna coordinata con partner", "desc": "Collaboriamo con partner di consegna per coordinare ritiro e consegna dove la copertura è disponibile.", "status": "available" },
-      { "title": "Esecuzione con vettori", "desc": "Impegni di ritiro e calendari finali vengono confermati durante la revisione operativa.", "status": "pending" },
-      { "title": "Condizioni commerciali revisionate", "desc": "Le tariffe finali vengono emesse dalle operazioni Nauterio dopo la revisione dei dettagli della spedizione.", "status": "pending" }
+      { "title": "Coordinamento con vettori indipendenti", "desc": "Nauterio coordina il trasporto scelto senza presentare un'integrazione diretta con i vettori.", "status": "available" },
+      { "title": "Regolamento offline", "desc": "I pagamenti online sono disattivati; ogni regolamento viene gestito direttamente dalle operazioni Nauterio.", "status": "available" }
     ],
     "servicesHeading": "Scegli il trasporto adatto alla merce",
     "servicesSubheading": "I pacchi urgenti possono viaggiare per via aerea; per merci flessibili, pesanti o voluminose può essere più adatto il servizio aereo economy o marittimo groupage. Disponibilità e tempi dipendono dalla tratta.",
@@ -464,7 +455,7 @@
     "steps": [
       { "title": "Descrivi", "desc": "Inserisci merce, tratta, peso, dimensioni e tempi." },
       { "title": "Verifica", "desc": "Controlliamo disponibilità del servizio, documenti ed esigenze di movimentazione." },
-      { "title": "Conferma", "desc": "Ricevi la tariffa finale e il piano di ritiro prima dell'accettazione." },
+      { "title": "Organizza", "desc": "Nauterio conferma il piano di ritiro e le eventuali movimentazioni eccezionali." },
       { "title": "Segui", "desc": "Consulta gli aggiornamenti registrati fino alla consegna." }
     ],
     "documentsEyebrow": "Prima che la merce parta",
@@ -538,7 +529,7 @@
     "termsOfService": "Termini di Servizio",
     "cookiePolicy": "Cookie Policy",
     "copyright": "© {year} Nauterio Logistics. Tutti i diritti riservati.",
-    "previewNotice": "Preventivi e dettagli del servizio vengono revisionati dalle operazioni Nauterio prima dell'accettazione finale della spedizione."
+    "previewNotice": "Il pagamento online non è disponibile. Ritiro e consegna vengono coordinati direttamente dalle operazioni Nauterio."
   },
   "SupportWidget": {
     "title": "Assistenza Nauterio",
@@ -549,7 +540,7 @@
     "commonQuestions": "Domande comuni",
     "quickAnswers": [
       {"question": "Dove si trova la mia spedizione?", "answer": "Usa la pagina Traccia con il numero NT completo. Se l'ultimo aggiornamento non è chiaro, invia il numero al team di assistenza."},
-      {"question": "Come avvio una spedizione?", "answer": "Scegli Pianifica una spedizione e inserisci merce, dimensioni, origine e destinazione. Nauterio conferma tariffa finale e piano di ritiro prima dell'accettazione."},
+      {"question": "Come avvio una spedizione?", "answer": "Scegli Pianifica una spedizione e inserisci merce, dimensioni, origine e destinazione. Vedrai il prezzo online di pianificazione, poi Nauterio organizzerà il ritiro."},
       {"question": "Quali documenti doganali servono?", "answer": "Di norma le merci richiedono una fattura commerciale con descrizioni, valori e paesi di origine accurati. I requisiti esatti dipendono da tratta e prodotto."},
       {"question": "La protezione è inclusa?", "answer": "No. La protezione è facoltativa e vale solo quando costo e condizioni compaiono nei documenti di spedizione approvati."}
     ],

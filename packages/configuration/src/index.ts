@@ -82,10 +82,9 @@ export function loadApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     for (const key of ["OBJECT_STORAGE_ENDPOINT", "OBJECT_STORAGE_BUCKET", "OBJECT_STORAGE_ACCESS_KEY_ID", "OBJECT_STORAGE_SECRET_ACCESS_KEY"] as const) {
       if (!result.data[key]) throw new Error(`Invalid environment configuration: production requires ${key}`);
     }
-    // Malware scanning is an optional integration. Document scan requests
-    // already fail closed with a 400 response when it is not configured, so
-    // its absence must not prevent the API and unrelated worker jobs from
-    // starting in production.
+    // An external malware scanner is optional. The production API image has
+    // an embedded ClamAV fallback, so secure uploads work without vendor
+    // credentials while still failing closed if scanning cannot complete.
   }
   return result.data;
 }

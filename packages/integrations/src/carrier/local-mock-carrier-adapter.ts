@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { CarrierAdapter, CarrierTrackingEvent, CreateCarrierShipmentInput } from "./carrier-adapter";
 
-/** Local-dev only - see LocalMockPaymentAdapter for the same rationale. */
+/** Local contract-test adapter only; never instantiated by production. */
 export class LocalMockCarrierAdapter implements CarrierAdapter {
   readonly carrierName = "LOCAL_MOCK";
 

@@ -2,11 +2,9 @@ import { Controller, Get, Injectable, Module, NotFoundException, Param } from "@
 import { ApiTags } from "@nestjs/swagger";
 import { getPrismaClient } from "@nauterio/database";
 
-/** Content module (spec section 24): public pages, guides, FAQ, service
- * alerts, policy versions. Public read path only - the legal/help pages
- * currently on apps/web are static copy pending legal review (see
- * apps/web's terms/privacy/cookies pages); this exists so they can migrate
- * to database-backed, versioned content once that review happens. */
+/** Versioned public content read API. The current legal/help pages are the
+ * product owner's accepted static release copy (ADR 0004); this endpoint
+ * remains available for future approved policy versions. */
 @Injectable()
 class ContentService {
   async getPageBySlug(slug: string) {
