@@ -7,16 +7,15 @@ import { SubmitClaimDto, DecideClaimDto } from "./dto/submit-claim.dto";
 import { sliceCursorPage } from "../../common/pagination/paginate-cursor";
 import { getScopedShipmentOrThrow } from "../../common/authorization/shipment-scope";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
+import { createHash } from "node:crypto";
 
 function isStaff(role: string): boolean {
   return (STAFF_ROLES as readonly string[]).includes(role);
 }
 
-// A claim only makes sense once a shipment has actually moved or resolved -
-// not while it is still a draft, and not once it has been cancelled or
-// archived. REQUIRES_BUSINESS_EVIDENCE: the exact claimable lifecycle set
-// is a policy decision (spec does not enumerate one); this is a
-// conservative default, not a business rate/rule invented outright.
+// Nauterio's current claims intake policy: accept claims for active,
+// action-required and delivered shipments; drafts, cancelled and archived
+// records are not claimable.
 const CLAIMABLE_LIFECYCLE_STATUSES = ["ACTIVE", "ACTION_REQUIRED", "DELIVERED"] as const;
 const OPEN_CLAIM_STATUSES = ["SUBMITTED", "UNDER_REVIEW"] as const;
 
@@ -122,6 +121,8 @@ export class ClaimsReturnsService {
         tx
       );
 
+      await tx.notification.create({ data: { userId: user.userId, templateCode: "claim_submitted", channel: "IN_APP", renderedSubject: "Claim received", renderedBodyHash: createHash("sha256").update(`claim:${claim.id}:submitted`).digest("hex") } });
+
       return claim;
     });
   }
@@ -175,6 +176,8 @@ export class ClaimsReturnsService {
         },
         tx
       );
+
+      await tx.notification.create({ data: { userId: claim.submittedByUserId, templateCode: "claim_decided", channel: "IN_APP", renderedSubject: `Claim ${decision.toLowerCase()}`, renderedBodyHash: createHash("sha256").update(`claim:${id}:${decision}`).digest("hex") } });
 
       return { ...updated, decision: claimDecision };
     });

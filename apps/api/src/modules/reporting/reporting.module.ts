@@ -5,21 +5,25 @@ import { AuthGuard } from "../../common/guards/auth.guard";
 import { PermissionGuard } from "../../common/guards/permission.guard";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 
-/** Reporting module (spec section 24): operational/financial datasets,
- * exports, scheduled reports. A single real operational metric (open
- * shipment count) rather than the full reporting suite - large exports
- * belong on the `reports` queue in apps/worker (ADR 0001 section 7.2),
- * never inside a request-serving transaction (spec section 24 rule). */
+/** Live operational counters for the admin console. Every value is derived
+ * directly from production records; larger exports still belong on the
+ * worker queue rather than inside this request. */
 @Injectable()
 class ReportingService {
   async getOperationalSummary() {
     const prisma = getPrismaClient();
-    const [activeShipments, actionRequired, openClaims] = await Promise.all([
+    const [activeShipments, actionRequired, deliveredShipments, openClaims, awaitingDocuments, openSupport, pendingRequests, issuedInvoices, paidInvoices] = await Promise.all([
       prisma.shipment.count({ where: { lifecycleStatus: "ACTIVE" } }),
       prisma.shipment.count({ where: { lifecycleStatus: "ACTION_REQUIRED" } }),
+      prisma.shipment.count({ where: { lifecycleStatus: "DELIVERED" } }),
       prisma.claim.count({ where: { status: { in: ["SUBMITTED", "UNDER_REVIEW"] } } }),
+      prisma.document.count({ where: { reviewStatus: "PROCESSING" } }),
+      prisma.supportConversation.count({ where: { status: { in: ["OPEN", "WAITING_FOR_AGENT"] } } }),
+      prisma.booking.count({ where: { requestStatus: "SUBMITTED" } }),
+      prisma.invoice.count({ where: { status: "ISSUED" } }),
+      prisma.invoice.count({ where: { status: "PAID" } }),
     ]);
-    return { activeShipments, actionRequired, openClaims };
+    return { activeShipments, actionRequired, deliveredShipments, openClaims, awaitingDocuments, openSupport, pendingRequests, issuedInvoices, paidInvoices };
   }
 }
 

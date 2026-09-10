@@ -17,6 +17,14 @@ export interface ShipmentScopeCaller {
  * same rule can't drift between them the way it did before this fix.
  */
 export function shipmentScopeWhere(caller: ShipmentScopeCaller): Prisma.ShipmentWhereInput {
+  if (caller.role === "DRIVER") {
+    return {
+      OR: [
+        { deliveries: { some: { assignedDriverUserId: caller.userId } } },
+        { pickups: { some: { assignedDriverUserId: caller.userId } } },
+      ],
+    };
+  }
   if ((STAFF_ROLES as readonly string[]).includes(caller.role)) return {};
   return caller.organisationId
     ? { organisationId: caller.organisationId }

@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
   }
 
   let sessionToken: string;
+  let destination = "/portal";
   try {
     const upstreamRes = await fetch(`${apiOrigin}/v1/auth/verify-email`, {
       method: "POST",
@@ -33,13 +34,14 @@ export async function POST(req: NextRequest) {
         headers: { "content-type": "application/json" },
       });
     }
-    const parsed = (await upstreamRes.json()) as { sessionToken: string };
+    const parsed = (await upstreamRes.json()) as { sessionToken: string; staffRole?: string | null };
     sessionToken = parsed.sessionToken;
+    if (parsed.staffRole === "DRIVER") destination = "/driver";
   } catch {
     return NextResponse.json({ message: "Could not reach the API." }, { status: 502 });
   }
 
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true, destination });
   const isProduction = process.env.NODE_ENV === "production";
 
   response.cookies.set(SESSION_COOKIE, sessionToken, {

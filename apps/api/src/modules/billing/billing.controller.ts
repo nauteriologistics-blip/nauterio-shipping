@@ -6,7 +6,7 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 import { BillingService } from "./billing.service";
-import { CreateInvoiceDto, PayInvoiceDto, UpdateInvoiceStatusDto } from "./dto/create-invoice.dto";
+import { CreateInvoiceDto, UpdateInvoiceStatusDto } from "./dto/create-invoice.dto";
 import { RequireIdempotencyKey } from "../../common/decorators/require-idempotency-key.decorator";
 import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 
@@ -57,21 +57,5 @@ export class BillingController {
     @CorrelationId() correlationId: string
   ) {
     return this.service.updateInvoiceStatus(id, dto, user.userId, correlationId);
-  }
-
-  @Post(":id/pay")
-  @RequirePermission("invoice:read")
-  @RequireIdempotencyKey()
-  @ApiOperation({ summary: "Disabled: online payment is not collected through Nauterio" })
-  async payInvoice(
-    @Param("id", ParseUUIDPipe) id: string,
-    @Body() dto: PayInvoiceDto,
-    @CurrentUser() user: AuthenticatedUser
-  ) {
-    return this.service.payInvoice(id, dto, user.userId, {
-      role: user.role,
-      userId: user.userId,
-      organisationId: user.organisationId,
-    });
   }
 }

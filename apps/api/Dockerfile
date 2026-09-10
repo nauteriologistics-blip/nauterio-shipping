@@ -15,6 +15,7 @@ RUN pnpm -r build
 FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache clamav && freshclam
 RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 
 COPY --from=builder /app ./

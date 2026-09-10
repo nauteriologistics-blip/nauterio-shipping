@@ -21,6 +21,10 @@ import { S3CompatibleStorage } from "@nauterio/integrations";
 import { loadApiConfig } from "@nauterio/configuration";
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
 import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { CorrelationId } from "../../common/decorators/correlation-id.decorator";
 import { AuditService } from "../audit/audit.module";
 import { STAFF_ROLES } from "@nauterio/contracts";
@@ -47,13 +51,8 @@ class ReviewDocumentDto {
   @IsOptional() @IsString() reason?: string;
 }
 
-/** Documents module (spec section 24 and 28.1): upload, malware result,
- * version, review, generation, access, retention. Metadata read path only -
- * the real pre-signed-S3 upload flow (spec 28.1) needs a real S3 bucket/KMS
- * key, which is AWS infrastructure not yet provisioned (ADR 0001 section
- * 10). Do not fake a "successful upload" without real quarantine/malware
- * scanning behind it - that would violate the exact security control this
- * module exists to enforce. */
+/** Secure document intake: presigned upload to private quarantine, byte and
+ * type verification, malware scanning, then gated staff review/download. */
 @Injectable()
 class DocumentsService {
   constructor(private readonly auditService: AuditService) {}
@@ -85,13 +84,29 @@ class DocumentsService {
     const prisma = getPrismaClient();
     const document = await prisma.document.findFirst({ where: { id: documentId, ownerUserId: caller.userId }, include: { currentVersion: true } });
     if (!document?.currentVersion) throw new NotFoundException("Document not found");
+    const versionId = document.currentVersion.id;
     if (document.currentVersion.malwareScanResult !== "PENDING") throw new BadRequestException("Upload has already been completed.");
     const object = await this.storage().head(document.currentVersion.s3ObjectKey);
     if (object.size !== document.currentVersion.fileSizeBytes || object.contentType.split(";")[0] !== document.currentVersion.contentType) throw new BadRequestException("Uploaded file does not match the declared size or type.");
+    const download = await fetch(this.storage().presign("GET", document.currentVersion.s3ObjectKey, 300));
+    if (!download.ok) throw new BadRequestException("The uploaded file could not be read for its security scan.");
+    const bytes = Buffer.from(await download.arrayBuffer());
+    if (bytes.byteLength !== document.currentVersion.fileSizeBytes) throw new BadRequestException("Uploaded file size changed during verification.");
+    if (!matchesFileSignature(bytes, document.currentVersion.contentType)) throw new BadRequestException("The file contents do not match the declared PDF or image type.");
+
     const config = loadApiConfig();
-    if (!config.MALWARE_SCANNER_URL || !config.MALWARE_SCANNER_TOKEN) throw new BadRequestException("Malware scanning is not configured.");
-    const scanResponse = await fetch(config.MALWARE_SCANNER_URL, { method: "POST", headers: { Authorization: `Bearer ${config.MALWARE_SCANNER_TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify({ versionId: document.currentVersion.id, downloadUrl: this.storage().presign("GET", document.currentVersion.s3ObjectKey, 900), callbackUrl: `${config.API_PUBLIC_URL}/v1/document-scans/${document.currentVersion.id}` }) });
-    if (!scanResponse.ok) throw new BadRequestException("The malware scanner could not accept this file.");
+    if (config.MALWARE_SCANNER_URL && config.MALWARE_SCANNER_TOKEN) {
+      const scanResponse = await fetch(config.MALWARE_SCANNER_URL, { method: "POST", headers: { Authorization: `Bearer ${config.MALWARE_SCANNER_TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify({ versionId: document.currentVersion.id, downloadUrl: this.storage().presign("GET", document.currentVersion.s3ObjectKey, 900), callbackUrl: `${config.API_PUBLIC_URL}/v1/document-scans/${document.currentVersion.id}` }) });
+      if (!scanResponse.ok) throw new BadRequestException("The malware scanner could not accept this file.");
+      return { documentId, status: "PROCESSING" };
+    }
+
+    const scanResult = await scanWithClamAv(bytes);
+    await prisma.$transaction(async (tx) => {
+      await tx.documentVersion.update({ where: { id: versionId }, data: { malwareScanResult: scanResult } });
+      if (scanResult !== "CLEAN") await tx.document.update({ where: { id: document.id }, data: { reviewStatus: "REJECTED", reviewReason: scanResult === "INFECTED" ? "Security scan detected unsafe file content." : "The security scan could not complete." } });
+    });
+    if (scanResult !== "CLEAN") throw new BadRequestException(scanResult === "INFECTED" ? "The file was rejected by the security scan." : "The security scan could not complete safely.");
     return { documentId, status: "PROCESSING" };
   }
 
@@ -310,3 +325,27 @@ class AdminDocumentsController {
   exports: [DocumentsService],
 })
 export class DocumentsModule {}
+
+export function matchesFileSignature(bytes: Buffer, contentType: string): boolean {
+  if (contentType === "application/pdf") return bytes.subarray(0, 5).toString("ascii") === "%PDF-";
+  if (contentType === "image/png") return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (contentType === "image/jpeg") return bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes.at(-2) === 0xff && bytes.at(-1) === 0xd9;
+  return false;
+}
+
+async function scanWithClamAv(bytes: Buffer): Promise<"CLEAN" | "INFECTED" | "ERROR"> {
+  const directory = await mkdtemp(join(tmpdir(), "nauterio-scan-"));
+  const file = join(directory, "upload.bin");
+  try {
+    await writeFile(file, bytes, { flag: "wx", mode: 0o600 });
+    return await new Promise((resolve) => {
+      execFile("clamscan", ["--no-summary", "--", file], { timeout: 120_000 }, (error) => {
+        if (!error) return resolve("CLEAN");
+        const code = (error as unknown as { code?: number }).code;
+        return resolve(code === 1 ? "INFECTED" : "ERROR");
+      });
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}

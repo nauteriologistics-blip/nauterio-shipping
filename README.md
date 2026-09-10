@@ -45,4 +45,4 @@ The complete product and technical specification is indexed in `docs/specificati
 - `packages` — contracts, validation, database, integrations and shared tooling
 - `infra/cdk` — AWS infrastructure definitions
 
-Never commit real credentials or customer data. Local authentication and mock provider adapters are development-only.
+Never commit real credentials or customer data. Local authentication and test adapters are development-only; production does not expose online payment or a direct carrier integration.

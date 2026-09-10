@@ -2,7 +2,9 @@
  * Provider-neutral carrier adapter interface (ADR 0001 section 9.1).
  * No real carrier is contracted yet (ADR section 11, item 1) - this
  * interface exists so ShipmentsModule/TrackingModule can be built and
- * tested against a local mock now, then wired to a real carrier later
+ * available for local contract tests only. The production operating model
+ * coordinates independent carriers manually and does not instantiate this
+ * interface (ADR 0004).
  * without touching domain logic.
  */
 import type { TrackingStatus } from "@nauterio/contracts";

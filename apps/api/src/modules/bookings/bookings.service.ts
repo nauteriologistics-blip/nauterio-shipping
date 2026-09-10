@@ -250,10 +250,10 @@ export class BookingsService {
       await tx.trackingEvent.create({
         data: {
           shipmentId: shipment.id,
-          canonicalCode: "PACKAGE_COLLECTED",
-          publicTitleEn: "Package received",
-          publicTitleIt: "Pacco ricevuto",
-          publicDescriptionEn: "Your package is with Nauterio Logistics.",
+          canonicalCode: "SHIPMENT_CREATED",
+          publicTitleEn: "Shipment created",
+          publicTitleIt: "Spedizione creata",
+          publicDescriptionEn: "Your shipment record has been created. Collection has not yet been recorded.",
           sourceType: "SYSTEM_AUTOMATION",
           eventTime: new Date(),
         },

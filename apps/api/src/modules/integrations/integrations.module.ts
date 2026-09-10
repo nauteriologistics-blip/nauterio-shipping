@@ -17,13 +17,9 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../../common/guards/auth.guard";
 
-/** Integrations module (spec section 24): carrier, customs broker, payment,
- * maps, messaging, support, accounting adapters + ApiClient/ApiKey/
- * WebhookEndpoint identity for business/partner integrations. This owns
- * the *identity* records; actual provider adapters live in
- * packages/integrations (typed interfaces + local mocks - see ADR 0001
- * section 9.1), wired to real credentials in each domain module as those
- * become available. */
+/** Business API client identities. Carrier coordination and settlement are
+ * deliberately operational/offline in the current release (ADR 0004), so
+ * this module must not imply a live carrier or payment-provider connection. */
 @Injectable()
 class IntegrationsService {
   async listApiClients(organisationId: string, caller: AuthenticatedUser) {

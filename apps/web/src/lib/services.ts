@@ -1,8 +1,7 @@
 /**
  * Single source of truth for service names/transit times shown across the
- * public site. Prices are NOT part of this file: per CLAUDE.md, rate cards
- * and margins must come from the business, not be invented. The pricing API
- * (/api/v1/quote) returns a clearly-labelled indicative estimate only.
+ * public site. Prices are calculated by the API from the product owner's
+ * approved hardcoded online schedule (ADR 0004), not duplicated here.
  *
  * Transit ranges for air-express/air-economy come from the approved spec
  * (docs/nauterio-complete-specification.md line 284-285: "2-5 business days
@@ -38,7 +37,7 @@ export const SERVICES: ServiceInfo[] = [
   {
     id: "ocean-freight",
     name: "Ocean Freight (LCL)",
-    transitLabel: "Schedule-based - exact sailing and transit shown at quote time",
+    transitLabel: "Schedule-based - sailing confirmed before collection",
     description:
       "Consolidated sea freight for palletised, heavy or bulky cargo. Cut-off dates, sailing schedules and destination charges are confirmed before booking.",
   },
